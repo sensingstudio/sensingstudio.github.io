@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Front Camera · Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel h2 .units {
+        margin-left: 8px;
+        color: var(--grey-text);
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        text-transform: none;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 70px;
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.big { font-size: 16px; padding: 16px 36px; }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--black);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .video-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        width: 100%;
+      }
+      .video-wrap video {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+        background: #0c0c0e;
+      }
+      .video-wrap canvas.overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      .video-wrap .placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .video-meta {
+        display: flex;
+        gap: 18px;
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--grey-text);
+        font-variant-numeric: tabular-nums;
+        flex-wrap: wrap;
+      }
+      .video-meta .item strong {
+        color: var(--black);
+        font-weight: 700;
+        margin-left: 4px;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 5;
+      }
+      .canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+      .canvas-wrap .placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        margin-top: 12px;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--grey-text);
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .legend .axis {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .legend .val {
+        font-weight: 700;
+        color: var(--black);
+        min-width: 50px;
+        display: inline-block;
+        text-align: right;
+      }
+      .status { font-size: 13px; color: var(--grey-text); margin: 0; }
+      .status.error { color: var(--red); }
+      .status.ok { color: var(--green); font-weight: 500; }
+      .note {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 16px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">Front Camera</span>
+    </header>
+    <main>
+      <h1>Front Camera</h1>
+      <p class="lead">Use this device&rsquo;s front-facing (selfie) camera directly. Tap Start, grant camera access, and the live feed plus pose tracking, shoulder position, breathing waveform, and per-channel red/green/blue averages appear below. Frames stay on this device &mdash; nothing is recorded or uploaded.</p>
+
+      <section class="panel">
+        <h2>Camera</h2>
+        <p class="status" id="camStatus">Tap Start to enable the camera.</p>
+        <div class="row" style="margin-top: 16px;">
+          <button id="startBtn" class="big">Start</button>
+        </div>
+        <div class="row" id="cameraControls" hidden>
+          <label for="qualitySelect">Quality</label>
+          <select id="qualitySelect">
+            <option value="480">480p</option>
+            <option value="720" selected>720p</option>
+            <option value="1080">1080p</option>
+          </select>
+        </div>
+        <div class="row" id="torchRow" hidden>
+          <label for="torchBtn">Light</label>
+          <button id="torchBtn" type="button" class="secondary" disabled>Off</button>
+          <span class="status" id="torchStatus">Checking torch support&hellip;</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Live feed</h2>
+        <div class="video-wrap" id="liveWrap">
+          <video id="liveVideo" autoplay playsinline muted></video>
+          <canvas id="poseOverlay" class="overlay"></canvas>
+          <div class="placeholder" id="videoPlaceholder">Camera off</div>
+        </div>
+        <div class="video-meta">
+          <span class="item">Resolution<strong id="metaRes">&mdash;</strong></span>
+          <span class="item">Frame rate<strong id="metaFps">&mdash;</strong></span>
+          <span class="item">Facing<strong id="metaFacing">&mdash;</strong></span>
+          <span class="item">Pose<strong id="metaPose">&mdash;</strong></span>
+          <span class="item">Inference<strong id="metaInf">&mdash;</strong></span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Shoulder vertical position <span class="units">(raw, normalized 0–1; 0 = top of frame)</span></h2>
+        <div class="canvas-wrap">
+          <canvas id="shoulderCanvas"></canvas>
+          <div class="placeholder" id="shoulderPlaceholder">Waiting for pose&hellip;</div>
+        </div>
+        <div class="legend" id="shoulderLegend"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Breathing waveform <span class="units">(bandpass 0.1–0.5 Hz; % of frame height; inhale = up)</span></h2>
+        <div class="canvas-wrap">
+          <canvas id="breathCanvas"></canvas>
+          <div class="placeholder" id="breathPlaceholder">Waiting for pose&hellip;</div>
+        </div>
+        <div class="legend" id="breathLegend"></div>
+        <p class="note">Filter has a transient on startup &mdash; expect about 5&ndash;10 seconds of warmup before the trace stabilizes. Sit still: head/torso motion can swamp the breathing signal.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Red channel <span class="units">(0&ndash;255)</span></h2>
+        <div class="canvas-wrap">
+          <canvas id="rCanvas"></canvas>
+          <div class="placeholder" id="rPlaceholder">Camera off</div>
+        </div>
+        <div class="legend" id="rLegend"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Green channel <span class="units">(0&ndash;255)</span></h2>
+        <div class="canvas-wrap">
+          <canvas id="gCanvas"></canvas>
+          <div class="placeholder" id="gPlaceholder">Camera off</div>
+        </div>
+        <div class="legend" id="gLegend"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Blue channel <span class="units">(0&ndash;255)</span></h2>
+        <div class="canvas-wrap">
+          <canvas id="bCanvas"></canvas>
+          <div class="placeholder" id="bPlaceholder">Camera off</div>
+        </div>
+        <div class="legend" id="bLegend"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Display</h2>
+        <div class="row">
+          <label for="windowSlider">Window</label>
+          <input type="range" id="windowSlider" min="0" max="1" step="0.001" />
+          <span class="status" id="windowVal" style="min-width: 64px; text-align: right;">5.0 s</span>
+          <span class="status" id="rgbRate" style="margin-left: auto;">&mdash; Hz</span>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        PoseLandmarker,
+        FilesetResolver,
+        DrawingUtils,
+      } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+      const MEDIAPIPE_VERSION = '0.10.14';
+      const MEDIAPIPE_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
+      const POSE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+
+      const FACING = 'user';
+
+      // ---- DSP: RBJ biquad + Butterworth bandpass for breathing band ----
+      // Direct Form I; coefficients pre-normalized by a0.
+      function biquad(b0, b1, b2, a1, a2) {
+        let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+        return {
+          process(x) {
+            const y = b0*x + b1*x1 + b2*x2 - a1*y1 - a2*y2;
+            x2 = x1; x1 = x;
+            y2 = y1; y1 = y;
+            return y;
+          },
+          reset() { x1 = x2 = y1 = y2 = 0; },
+        };
+      }
+      function biquadHP(fc, fs, Q = Math.SQRT1_2) {
+        const w = 2 * Math.PI * fc / fs;
+        const cw = Math.cos(w), sw = Math.sin(w);
+        const alpha = sw / (2 * Q);
+        const b0 = (1 + cw) / 2, b1 = -(1 + cw), b2 = (1 + cw) / 2;
+        const a0 = 1 + alpha,    a1 = -2 * cw,    a2 = 1 - alpha;
+        return biquad(b0/a0, b1/a0, b2/a0, a1/a0, a2/a0);
+      }
+      function biquadLP(fc, fs, Q = Math.SQRT1_2) {
+        const w = 2 * Math.PI * fc / fs;
+        const cw = Math.cos(w), sw = Math.sin(w);
+        const alpha = sw / (2 * Q);
+        const b0 = (1 - cw) / 2, b1 = 1 - cw, b2 = (1 - cw) / 2;
+        const a0 = 1 + alpha,    a1 = -2 * cw, a2 = 1 - alpha;
+        return biquad(b0/a0, b1/a0, b2/a0, a1/a0, a2/a0);
+      }
+      // Butterworth bandpass via HP + LP cascade. Sharper than a single
+      // 2nd-order BPF biquad for narrow bands like 0.1–0.5 Hz.
+      function makeBandpass(fLow, fHigh, fs) {
+        const hp = biquadHP(fLow, fs);
+        const lp = biquadLP(fHigh, fs);
+        return {
+          process(x) { return lp.process(hp.process(x)); },
+          reset() { hp.reset(); lp.reset(); },
+        };
+      }
+
+      const camStatus       = document.getElementById('camStatus');
+      const startBtn        = document.getElementById('startBtn');
+      const cameraControls  = document.getElementById('cameraControls');
+      const torchRow        = document.getElementById('torchRow');
+      const qualitySelect   = document.getElementById('qualitySelect');
+      const torchBtn        = document.getElementById('torchBtn');
+      const torchStatus     = document.getElementById('torchStatus');
+      const liveVideo       = document.getElementById('liveVideo');
+      const liveWrap        = document.getElementById('liveWrap');
+      const videoPlaceholder = document.getElementById('videoPlaceholder');
+      const poseOverlay     = document.getElementById('poseOverlay');
+      const poseCtx         = poseOverlay.getContext('2d');
+      const metaRes         = document.getElementById('metaRes');
+      const metaFps         = document.getElementById('metaFps');
+      const metaFacing      = document.getElementById('metaFacing');
+      const metaPose        = document.getElementById('metaPose');
+      const metaInf         = document.getElementById('metaInf');
+
+      const charts = {
+        r: makeChannelChart('rCanvas', 'rPlaceholder', 'rLegend', 'R', '#e63946'),
+        g: makeChannelChart('gCanvas', 'gPlaceholder', 'gLegend', 'G', '#2a8b2a'),
+        b: makeChannelChart('bCanvas', 'bPlaceholder', 'bLegend', 'B', '#1f6feb'),
+        shoulder: makeChannelChart(
+          'shoulderCanvas', 'shoulderPlaceholder', 'shoulderLegend',
+          'Shoulder Y', '#bc122a',
+          {
+            yClampMin: 0,
+            yClampMax: 1,
+            minSpan: 0.005,
+            valueFormat: (v) => v.toFixed(3),
+            tickFormat: (v, step) => v.toFixed(step < 0.01 ? 3 : step < 0.1 ? 2 : 1),
+            rangeFormat: (v) => v.toFixed(3),
+          }
+        ),
+        breath: makeChannelChart(
+          'breathCanvas', 'breathPlaceholder', 'breathLegend',
+          'Breath', '#bc122a',
+          {
+            yClampMin: -50,
+            yClampMax: 50,
+            minSpan: 0.3,
+            valueFormat: (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '%',
+            rangeFormat: (v) => v.toFixed(1),
+          }
+        ),
+      };
+      function chartsForEach(fn) { fn(charts.r); fn(charts.g); fn(charts.b); fn(charts.shoulder); fn(charts.breath); }
+
+      const rgbRateEl    = document.getElementById('rgbRate');
+      const windowSlider = document.getElementById('windowSlider');
+      const windowVal    = document.getElementById('windowVal');
+      const WMIN = 1, WMAX = 120;
+      const sliderToWin = t => WMIN * Math.pow(WMAX / WMIN, t);
+      const winToSlider = s => Math.log(s / WMIN) / Math.log(WMAX / WMIN);
+      const fmtWin = s => s < 10 ? s.toFixed(1) + ' s'
+                        : s < 60 ? s.toFixed(0) + ' s'
+                        : (s / 60).toFixed(1) + ' min';
+      let windowSec = 5;
+      windowSlider.value = winToSlider(windowSec);
+      windowVal.textContent = fmtWin(windowSec);
+      windowSlider.addEventListener('input', () => {
+        windowSec = sliderToWin(parseFloat(windowSlider.value));
+        windowVal.textContent = fmtWin(windowSec);
+        chartsForEach(c => c.setWindow(windowSec));
+      });
+      chartsForEach(c => c.setWindow(windowSec));
+
+      // Hidden downsampling canvas for cheap per-frame averaging.
+      const sampleCanvas = document.createElement('canvas');
+      sampleCanvas.width = 64;
+      sampleCanvas.height = 36;
+      const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+      let samplingId = null;
+      let sampleT0 = 0;
+      let sampleCount = 0;
+      let sampleRateAt = 0;
+
+      function startRGBSampling(videoEl) {
+        stopRGBSampling();
+        chartsForEach(c => c.clear());
+        sampleT0 = performance.now() / 1000;
+        sampleCount = 0;
+        sampleRateAt = performance.now();
+        rgbRateEl.textContent = 'Waiting for frame…';
+
+        if (videoEl.paused) {
+          const p = videoEl.play();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        }
+
+        const tick = () => {
+          samplingId = requestAnimationFrame(tick);
+          const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+          if (!vw || !vh) return;
+          const sw = sampleCanvas.width, sh = sampleCanvas.height;
+          try {
+            sampleCtx.drawImage(videoEl, 0, 0, sw, sh);
+            const data = sampleCtx.getImageData(0, 0, sw, sh).data;
+            let r = 0, g = 0, b = 0;
+            const px = data.length / 4;
+            for (let i = 0; i < data.length; i += 4) {
+              r += data[i]; g += data[i + 1]; b += data[i + 2];
+            }
+            r /= px; g /= px; b /= px;
+            const t = performance.now() / 1000 - sampleT0;
+            charts.r.push(t, r);
+            charts.g.push(t, g);
+            charts.b.push(t, b);
+            sampleCount++;
+            const now = performance.now();
+            if (now - sampleRateAt > 500) {
+              const hz = sampleCount * 1000 / (now - sampleRateAt);
+              rgbRateEl.textContent = hz.toFixed(0) + ' Hz';
+              sampleRateAt = now;
+              sampleCount = 0;
+            }
+          } catch (err) {
+            cancelAnimationFrame(samplingId);
+            samplingId = null;
+            rgbRateEl.textContent = 'Sampling error: ' + err.message;
+          }
+        };
+        tick();
+      }
+      function stopRGBSampling() {
+        if (samplingId) cancelAnimationFrame(samplingId);
+        samplingId = null;
+        rgbRateEl.textContent = '— Hz';
+      }
+
+      /* ---- pose tracking ---- */
+      let poseLandmarker = null;
+      let drawingUtils = null;
+      let poseRafId = null;
+      let lastPoseVideoTime = -1;
+      let infEMA = 0;
+      let poseT0 = 0;
+
+      // Filter is designed for an assumed webcam frame rate. Breathing
+      // sits well inside the band, so modest mismatches don't matter.
+      const POSE_FS = 30;
+      const breathFilter = makeBandpass(0.1, 0.5, POSE_FS);
+
+      async function ensurePose() {
+        if (poseLandmarker) return;
+        metaPose.textContent = 'loading…';
+        const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM);
+        poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: 'GPU' },
+          runningMode: 'VIDEO',
+          numPoses: 1,
+        });
+        drawingUtils = new DrawingUtils(poseCtx);
+      }
+
+      // Shoulders are landmarks 11 (left) and 12 (right). The chest ROI
+      // spans them horizontally and extends ~1.2 shoulder-widths down.
+      function shouldersToROI(landmarks) {
+        const L = landmarks[11], R = landmarks[12];
+        if (!L || !R) return null;
+        const vL = L.visibility ?? 1, vR = R.visibility ?? 1;
+        if (vL < 0.5 || vR < 0.5) return null;
+        const left  = Math.min(L.x, R.x);
+        const right = Math.max(L.x, R.x);
+        const top   = Math.max(L.y, R.y);
+        const sw    = right - left;
+        if (sw < 0.05) return null;
+        const padX = sw * 0.05;
+        const x = Math.max(0, left - padX);
+        return {
+          x,
+          y: top,
+          w: Math.min(1, right + padX) - x,
+          h: Math.min(1 - top, sw * 1.2),
+        };
+      }
+
+      function drawROI(roi) {
+        if (!roi) return;
+        const w = poseOverlay.width, h = poseOverlay.height;
+        poseCtx.save();
+        poseCtx.strokeStyle = '#bc122a';
+        poseCtx.lineWidth = 3;
+        poseCtx.setLineDash([8, 6]);
+        poseCtx.strokeRect(roi.x * w, roi.y * h, roi.w * w, roi.h * h);
+        poseCtx.restore();
+      }
+
+      function syncOverlaySize() {
+        const vw = liveVideo.videoWidth, vh = liveVideo.videoHeight;
+        if (!vw || !vh) return false;
+        if (poseOverlay.width !== vw || poseOverlay.height !== vh) {
+          poseOverlay.width = vw;
+          poseOverlay.height = vh;
+        }
+        // Match wrap aspect to incoming video so the overlay aligns 1:1
+        // with the (object-fit: contain) <video> contents.
+        const a = vw / vh;
+        liveWrap.style.aspectRatio = a.toString();
+        return true;
+      }
+
+      async function startPoseTracking() {
+        stopPoseTracking();
+        try {
+          await ensurePose();
+        } catch (err) {
+          metaPose.textContent = 'load error';
+          console.warn('pose model load failed', err);
+          return;
+        }
+        metaPose.textContent = 'searching…';
+        poseT0 = performance.now() / 1000;
+        charts.shoulder.clear();
+        charts.breath.clear();
+        breathFilter.reset();
+        const tick = () => {
+          poseRafId = requestAnimationFrame(tick);
+          if (liveVideo.readyState < 2) return;
+          if (!syncOverlaySize()) return;
+          if (liveVideo.currentTime === lastPoseVideoTime) return;
+          lastPoseVideoTime = liveVideo.currentTime;
+
+          const t0 = performance.now();
+          let result;
+          try {
+            result = poseLandmarker.detectForVideo(liveVideo, t0);
+          } catch (_) {
+            return;
+          }
+          const dt = performance.now() - t0;
+          infEMA = infEMA ? infEMA * 0.85 + dt * 0.15 : dt;
+          metaInf.textContent = infEMA.toFixed(0) + ' ms';
+
+          poseCtx.clearRect(0, 0, poseOverlay.width, poseOverlay.height);
+          const lms = result?.landmarks?.[0];
+          if (lms) {
+            metaPose.textContent = 'tracked';
+            drawingUtils.drawConnectors(lms, PoseLandmarker.POSE_CONNECTIONS, {
+              color: 'rgba(255,255,255,0.85)',
+              lineWidth: 3,
+            });
+            drawingUtils.drawLandmarks(lms, {
+              color: '#bc122a',
+              fillColor: '#fff',
+              radius: 4,
+              lineWidth: 2,
+            });
+            drawROI(shouldersToROI(lms));
+
+            // Raw breathing signal: average shoulder Y. Only push when both
+            // shoulders are confidently visible — gaps appear as breaks in
+            // the trace, which is what we want.
+            const L = lms[11], R = lms[12];
+            const vL = L?.visibility ?? 1, vR = R?.visibility ?? 1;
+            if (L && R && vL >= 0.5 && vR >= 0.5) {
+              const shoulderY = (L.y + R.y) / 2;
+              const t = performance.now() / 1000 - poseT0;
+              charts.shoulder.push(t, shoulderY);
+              // Bandpass to breathing band; flip sign so inhale (shoulders
+              // up; image-y down) renders as a positive peak. Scale to
+              // % of frame height for readability.
+              const breath = -breathFilter.process(shoulderY) * 100;
+              charts.breath.push(t, breath);
+            }
+          } else {
+            metaPose.textContent = 'searching…';
+          }
+        };
+        tick();
+      }
+
+      function stopPoseTracking() {
+        if (poseRafId) cancelAnimationFrame(poseRafId);
+        poseRafId = null;
+        lastPoseVideoTime = -1;
+        infEMA = 0;
+        if (poseOverlay.width && poseOverlay.height) {
+          poseCtx.clearRect(0, 0, poseOverlay.width, poseOverlay.height);
+        }
+        metaPose.textContent = '—';
+        metaInf.textContent = '—';
+        charts.shoulder.clear();
+        charts.breath.clear();
+        breathFilter.reset();
+      }
+
+      /* ----- single-channel chart: scrolling time-series, auto Y range ----- */
+      function makeChannelChart(canvasId, placeholderId, legendId, name, color, opts) {
+        opts = opts || {};
+        const yClampMin = opts.yClampMin ?? 0;
+        const yClampMax = opts.yClampMax ?? 255;
+        const minSpan   = opts.minSpan   ?? 4;
+        const valueFormat = opts.valueFormat ?? ((v) => v.toFixed(0));
+        const tickFormat  = opts.tickFormat  ?? ((v, step) => v.toFixed(step < 1 ? 1 : 0));
+        const rangeFormat = opts.rangeFormat ?? valueFormat;
+
+        const canvas = document.getElementById(canvasId);
+        const placeholder = document.getElementById(placeholderId);
+        const legend = document.getElementById(legendId);
+        const ctx = canvas.getContext('2d');
+
+        const span = document.createElement('span');
+        span.className = 'axis';
+        const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = color;
+        const lab = document.createElement('span'); lab.textContent = name;
+        const val = document.createElement('span'); val.className = 'val'; val.textContent = '—';
+        span.append(sw, lab, val);
+        legend.append(span);
+
+        const buf = [];
+        let windowSec = 5;
+        let lastT = 0;
+        let firstT = null;
+        let drawScheduled = false;
+        let smoothedMin = null, smoothedMax = null;
+
+        function setWindow(s) { windowSec = s; scheduleDraw(); }
+        function clear() {
+          buf.length = 0;
+          firstT = null; lastT = 0;
+          smoothedMin = smoothedMax = null;
+          placeholder.style.display = '';
+          val.textContent = '—';
+          scheduleDraw();
+        }
+        function push(t, v) {
+          if (firstT === null) { firstT = t; placeholder.style.display = 'none'; }
+          lastT = t;
+          buf.push({ t, v });
+          const cutoff = t - windowSec * 1.2;
+          let drop = 0;
+          while (drop < buf.length && buf[drop].t < cutoff) drop++;
+          if (drop > 0) buf.splice(0, drop);
+          val.textContent = valueFormat(v);
+          scheduleDraw();
+        }
+        function scheduleDraw() {
+          if (drawScheduled) return;
+          drawScheduled = true;
+          requestAnimationFrame(() => { drawScheduled = false; draw(); });
+        }
+
+        function niceTickStep(target) {
+          if (target <= 0) return 1;
+          const p = Math.pow(10, Math.floor(Math.log10(target)));
+          const n = target / p;
+          let m;
+          if (n < 1.5) m = 1;
+          else if (n < 3) m = 2;
+          else if (n < 7) m = 5;
+          else m = 10;
+          return m * p;
+        }
+
+        function draw() {
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          const w = Math.round(rect.width * dpr);
+          const h = Math.round(rect.height * dpr);
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w; canvas.height = h;
+          }
+          ctx.fillStyle = '#0c0c0e';
+          ctx.fillRect(0, 0, w, h);
+
+          const tEnd = lastT;
+          const tStart = tEnd - windowSec;
+
+          let lo = Infinity, hi = -Infinity;
+          for (const { t, v } of buf) {
+            if (t < tStart) continue;
+            if (!isFinite(v)) continue;
+            if (v < lo) lo = v;
+            if (v > hi) hi = v;
+          }
+          if (!isFinite(lo) || !isFinite(hi)) { lo = yClampMin; hi = yClampMax; }
+          let span = hi - lo;
+          if (span < minSpan) {
+            const c = (lo + hi) / 2;
+            lo = c - minSpan / 2; hi = c + minSpan / 2; span = minSpan;
+          }
+          const padFrac = 0.12;
+          lo -= span * padFrac;
+          hi += span * padFrac;
+          lo = Math.max(yClampMin, lo);
+          hi = Math.min(yClampMax, hi);
+          if (hi - lo < minSpan) hi = Math.min(yClampMax, lo + minSpan);
+
+          const alpha = 0.25;
+          smoothedMin = (smoothedMin === null) ? lo : smoothedMin + (lo - smoothedMin) * alpha;
+          smoothedMax = (smoothedMax === null) ? hi : smoothedMax + (hi - smoothedMax) * alpha;
+          const yMin = smoothedMin, yMax = smoothedMax;
+          const yRange = Math.max(yMax - yMin, 1e-6);
+
+          const padPx = 6 * dpr;
+          const xOf = t => ((t - tStart) / windowSec) * w;
+          const yOf = v => h - padPx - ((v - yMin) / yRange) * (h - 2 * padPx);
+
+          const step = niceTickStep(yRange / 3);
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+          ctx.lineWidth = 1 * dpr;
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.font = (10 * dpr) + 'px Roboto, sans-serif';
+          const startTick = Math.ceil(yMin / step) * step;
+          for (let v = startTick; v <= yMax; v += step) {
+            const y = yOf(v);
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            ctx.fillText(tickFormat(v, step), 4 * dpr, y - 2 * dpr);
+          }
+
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+          for (let s = Math.ceil(tStart); s <= tEnd; s += 1) {
+            const x = xOf(s);
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+          }
+
+          if (buf.length) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.6 * dpr;
+            ctx.beginPath();
+            let pen = false;
+            for (const { t, v } of buf) {
+              if (!isFinite(v)) { pen = false; continue; }
+              const x = xOf(t); const y = yOf(v);
+              if (!pen) { ctx.moveTo(x, y); pen = true; }
+              else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+
+          ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          ctx.textAlign = 'right';
+          ctx.fillText(rangeFormat(yMin) + '–' + rangeFormat(yMax), w - 6 * dpr, 12 * dpr);
+          ctx.textAlign = 'left';
+        }
+
+        window.addEventListener('resize', () => { if (firstT !== null) draw(); });
+        return { push, setWindow, clear };
+      }
+
+      /* ============ CAMERA ============ */
+      let stream = null;
+      let torchOn = false;
+      let torchSupported = false;
+
+      const QUALITIES = {
+        '480':  { width: { ideal: 854 },  height: { ideal: 480 },  frameRate: { ideal: 30 } },
+        '720':  { width: { ideal: 1280 }, height: { ideal: 720 },  frameRate: { ideal: 30 } },
+        '1080': { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+      };
+
+      async function getCameraStream() {
+        const constraints = {
+          audio: false,
+          video: Object.assign(
+            { facingMode: { ideal: FACING } },
+            QUALITIES[qualitySelect.value] || QUALITIES['720']
+          ),
+        };
+        return await navigator.mediaDevices.getUserMedia(constraints);
+      }
+
+      function currentVideoTrack() {
+        return stream ? stream.getVideoTracks()[0] : null;
+      }
+
+      function refreshTorchSupport() {
+        torchOn = false;
+        const track = currentVideoTrack();
+        const caps = (track && typeof track.getCapabilities === 'function') ? track.getCapabilities() : {};
+        torchSupported = !!caps.torch;
+        torchBtn.disabled = !torchSupported;
+        torchBtn.classList.toggle('secondary', true);
+        torchBtn.textContent = 'Off';
+        if (!track) {
+          torchStatus.textContent = '';
+        } else if (torchSupported) {
+          torchStatus.textContent = 'Tap to toggle.';
+        } else {
+          torchStatus.textContent = 'Not supported on this camera.';
+        }
+      }
+
+      async function applyTorch(on) {
+        const track = currentVideoTrack();
+        if (!track || !torchSupported) return;
+        try {
+          await track.applyConstraints({ advanced: [{ torch: on }] });
+          torchOn = on;
+          torchBtn.textContent = on ? 'On' : 'Off';
+          torchBtn.classList.toggle('secondary', !on);
+          torchStatus.textContent = on ? 'Light on.' : 'Tap to toggle.';
+        } catch (err) {
+          torchStatus.textContent = 'Could not toggle: ' + err.message;
+        }
+      }
+      torchBtn.addEventListener('click', () => applyTorch(!torchOn));
+
+      function updateMeta() {
+        const track = currentVideoTrack();
+        if (!track) {
+          metaRes.textContent = '—';
+          metaFps.textContent = '—';
+          metaFacing.textContent = '—';
+          return;
+        }
+        const s = track.getSettings();
+        if (s.width && s.height) metaRes.textContent = s.width + '×' + s.height;
+        if (s.frameRate) metaFps.textContent = Math.round(s.frameRate) + ' fps';
+        metaFacing.textContent = s.facingMode || '—';
+      }
+
+      async function applyConstraints() {
+        if (!stream) return;
+        camStatus.textContent = 'Switching camera…';
+        camStatus.classList.remove('error', 'ok');
+        const oldTracks = stream.getTracks();
+        let newStream;
+        try {
+          newStream = await getCameraStream();
+        } catch (err) {
+          camStatus.textContent = 'Could not switch: ' + err.message;
+          camStatus.classList.add('error');
+          return;
+        }
+        stream = newStream;
+        liveVideo.srcObject = stream;
+        oldTracks.forEach(t => t.stop());
+        updateMeta();
+        refreshTorchSupport();
+        camStatus.textContent = 'Camera live.';
+        camStatus.classList.add('ok');
+      }
+
+      qualitySelect.addEventListener('change', applyConstraints);
+
+      startBtn.addEventListener('click', async () => {
+        startBtn.disabled = true;
+        camStatus.classList.remove('error', 'ok');
+        try {
+          camStatus.textContent = 'Requesting camera permission…';
+          stream = await getCameraStream();
+          liveVideo.srcObject = stream;
+          videoPlaceholder.style.display = 'none';
+          cameraControls.hidden = false;
+          torchRow.hidden = false;
+          updateMeta();
+          refreshTorchSupport();
+          startRGBSampling(liveVideo);
+          startPoseTracking();
+          camStatus.textContent = 'Camera live.';
+          camStatus.classList.add('ok');
+          startBtn.textContent = 'Live';
+
+          if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').catch(() => {});
+          }
+        } catch (err) {
+          camStatus.textContent = 'Could not start: ' + err.message;
+          camStatus.classList.add('error');
+          startBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
