@@ -201,6 +201,37 @@ def read_system_profiler():
     return res or None
 
 
+# ---------- Scan all nearby APs (macOS only, slow ~6 s per scan) ----------
+
+def scan_corewlan():
+    if _corewlan_iface is None:
+        return None
+    try:
+        result, err = _corewlan_iface.scanForNetworksWithName_error_(None, None)
+    except Exception:
+        return None
+    if err is not None or result is None:
+        return []
+    out = []
+    for net in result:
+        try:
+            ch = net.wlanChannel()
+            ssid = net.ssid()
+            bssid = net.bssid()
+            out.append({
+                'ssid': str(ssid) if ssid else None,
+                'bssid': str(bssid) if bssid else None,
+                'rssi': int(net.rssiValue()),
+                'noise': int(net.noiseMeasurement() or 0) or None,
+                'channel': int(ch.channelNumber()) if ch else None,
+                'width_mhz': _WIDTH.get(int(ch.channelWidth())) if ch else None,
+                'band': _BAND.get(int(ch.channelBand())) if ch else None,
+            })
+        except Exception:
+            continue
+    return out
+
+
 # ---------- Linux & Windows readers (lighter, single-shot) ----------
 
 def read_linux():
@@ -282,6 +313,9 @@ latest = {
 }
 sp_extras = {}  # last system_profiler result on macOS
 subscribers = []
+scan_subscribers = []
+scan_lock = threading.Lock()
+latest_scan = {'ts': None, 'networks': [], 'error': None}
 
 
 def merge_macos_state():
@@ -366,6 +400,35 @@ def system_profiler_loop():
         time.sleep(20)
 
 
+def scan_loop():
+    """Active scan of all nearby APs every ~8 s. macOS only."""
+    while True:
+        t0 = time.time()
+        nets = None
+        err = None
+        try:
+            nets = scan_corewlan()
+        except Exception as e:
+            err = str(e)
+        with scan_lock:
+            if nets is None:
+                latest_scan['error'] = err or 'Wi-Fi scan failed (Location Services permission?)'
+            else:
+                latest_scan['networks'] = nets
+                latest_scan['error'] = None
+            latest_scan['ts'] = time.time()
+            payload = json.dumps(latest_scan)
+        for q in list(scan_subscribers):
+            try:
+                q.put_nowait(payload)
+            except queue.Full:
+                pass
+        # Throttle so radio isn't constantly off the connected channel.
+        elapsed = time.time() - t0
+        if elapsed < 8.0:
+            time.sleep(8.0 - elapsed)
+
+
 # ---------- HTTP / SSE ----------
 
 class Handler(BaseHTTPRequestHandler):
@@ -401,33 +464,40 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if self.path == '/rssi':
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/event-stream')
-            self.send_header('Cache-Control', 'no-cache')
-            self.send_header('Connection', 'keep-alive')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            q = queue.Queue(maxsize=8)
-            subscribers.append(q)
-            with state_lock:
-                init = json.dumps(latest)
-            try:
-                self.wfile.write(f'data: {init}\n\n'.encode())
-                self.wfile.flush()
-                while True:
-                    msg = q.get()
-                    self.wfile.write(f'data: {msg}\n\n'.encode())
-                    self.wfile.flush()
-            except (BrokenPipeError, ConnectionResetError):
-                pass
-            finally:
-                try:
-                    subscribers.remove(q)
-                except ValueError:
-                    pass
+            self._serve_sse(subscribers, state_lock, latest)
+            return
+
+        if self.path == '/scan':
+            self._serve_sse(scan_subscribers, scan_lock, latest_scan)
             return
 
         self.send_error(404)
+
+    def _serve_sse(self, sub_list, lock, state_obj):
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/event-stream')
+        self.send_header('Cache-Control', 'no-cache')
+        self.send_header('Connection', 'keep-alive')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        q = queue.Queue(maxsize=8)
+        sub_list.append(q)
+        with lock:
+            init = json.dumps(state_obj)
+        try:
+            self.wfile.write(f'data: {init}\n\n'.encode())
+            self.wfile.flush()
+            while True:
+                msg = q.get()
+                self.wfile.write(f'data: {msg}\n\n'.encode())
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            try:
+                sub_list.remove(q)
+            except ValueError:
+                pass
 
 
 class QuietServer(ThreadingHTTPServer):
@@ -443,6 +513,8 @@ def main():
     threading.Thread(target=poll_loop, daemon=True).start()
     if platform.system() == 'Darwin':
         threading.Thread(target=system_profiler_loop, daemon=True).start()
+        if _corewlan_iface is not None:
+            threading.Thread(target=scan_loop, daemon=True).start()
 
     srv = QuietServer(('127.0.0.1', PORT), Handler)
     url = f'http://localhost:{PORT}'
