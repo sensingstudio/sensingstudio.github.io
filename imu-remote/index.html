@@ -18,6 +18,7 @@
       gtag('config', 'G-XTHNL4559K');
     </script>
     <script src="https://unpkg.com/peerjs@1/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
     <style>
       :root {
         --red: #bc122a;
@@ -396,6 +397,18 @@
         </section>
 
         <section class="panel needs-phone host-only">
+          <h2>3D box</h2>
+          <div class="canvas-wrap" style="aspect-ratio: 16 / 9;">
+            <canvas id="boxCanvas"></canvas>
+            <div class="placeholder" id="boxPlaceholder">Waiting for phone&hellip;</div>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button id="recenterBtn" class="secondary">Recenter</button>
+            <span class="status" id="boxNote">Move your phone to rotate the box. Recenter sets the current pose as the new identity.</span>
+          </div>
+        </section>
+
+        <section class="panel needs-phone host-only">
           <h2>Display</h2>
           <div class="row">
             <label for="windowSlider">Window</label>
@@ -597,11 +610,13 @@
         const orientMeta = document.getElementById('orientMeta');
         let orientCount = 0;
         let orientRateAt = performance.now();
+        const box3d = initBoxScene();
 
         function onOrient(o) {
           alphaValEl.textContent = (o.alpha == null) ? '—' : o.alpha.toFixed(1) + '°';
           betaValEl.textContent  = (o.beta  == null) ? '—' : o.beta.toFixed(1) + '°';
           gammaValEl.textContent = (o.gamma == null) ? '—' : o.gamma.toFixed(1) + '°';
+          if (box3d) box3d.setOrientation(o.alpha, o.beta, o.gamma);
           orientCount++;
           const now = performance.now();
           if (now - orientRateAt > 500) {
@@ -613,6 +628,104 @@
             orientRateAt = now;
             orientCount = 0;
           }
+        }
+
+        function initBoxScene() {
+          if (typeof THREE === 'undefined') return null;
+          const canvas = document.getElementById('boxCanvas');
+          const placeholder = document.getElementById('boxPlaceholder');
+
+          const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          renderer.setClearColor(0x0c0c0e, 1);
+
+          const scene = new THREE.Scene();
+
+          const camera = new THREE.PerspectiveCamera(35, 16/9, 0.1, 100);
+          camera.position.set(3.2, 2.8, 4.0);
+          camera.lookAt(0, 0, 0);
+
+          scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+          const key = new THREE.DirectionalLight(0xffffff, 0.85);
+          key.position.set(5, 6, 4);
+          scene.add(key);
+          const fill = new THREE.DirectionalLight(0xffffff, 0.25);
+          fill.position.set(-4, -2, -3);
+          scene.add(fill);
+
+          // Faces ordered: +x, -x, +y, -y, +z, -z
+          // Box local frame mirrors device frame: +x = right edge, +y = top edge, +z = screen-out
+          const faceColors = [
+            0xbc122a, 0x5a0c14,   // +x right (red),    -x left
+            0xe8b923, 0x6e5610,   // +y top   (gold),   -y bottom
+            0xf5f5f5, 0x1f4eb6,   // +z screen (white), -z back (blue)
+          ];
+          const mats = faceColors.map(c => new THREE.MeshStandardMaterial({
+            color: c, roughness: 0.55, metalness: 0.05
+          }));
+          const box = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.8, 0.14), mats);
+          scene.add(box);
+
+          // Edges for definition
+          const edges = new THREE.LineSegments(
+            new THREE.EdgesGeometry(box.geometry),
+            new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 })
+          );
+          box.add(edges);
+
+          // World axes helper (X red, Y green, Z blue)
+          const axes = new THREE.AxesHelper(1.4);
+          axes.material.transparent = true;
+          axes.material.opacity = 0.5;
+          scene.add(axes);
+
+          // Ground reference grid
+          const grid = new THREE.GridHelper(4, 8, 0x444444, 0x222222);
+          grid.position.y = -1.0;
+          scene.add(grid);
+
+          function resize() {
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+            renderer.setSize(rect.width, rect.height, false);
+            camera.aspect = rect.width / rect.height;
+            camera.updateProjectionMatrix();
+          }
+          resize();
+          window.addEventListener('resize', resize);
+
+          // Recenter logic: store the inverse of the current device->world rotation,
+          // and pre-multiply it onto every subsequent orientation.
+          const tmpEuler = new THREE.Euler(0, 0, 0, 'ZXY');
+          const tmpQ     = new THREE.Quaternion();
+          const offset   = new THREE.Quaternion();   // identity by default
+          let lastRaw = null;
+
+          function setOrientation(alpha, beta, gamma) {
+            const a = (alpha || 0) * Math.PI / 180;
+            const b = (beta  || 0) * Math.PI / 180;
+            const g = (gamma || 0) * Math.PI / 180;
+            // W3C DeviceOrientationEvent is intrinsic Z (alpha) -> X' (beta) -> Y'' (gamma)
+            tmpEuler.set(b, g, a, 'ZXY');
+            tmpQ.setFromEuler(tmpEuler);
+            lastRaw = tmpQ.clone();
+            box.quaternion.copy(offset).multiply(tmpQ);
+            placeholder.style.display = 'none';
+          }
+
+          document.getElementById('recenterBtn').addEventListener('click', () => {
+            if (!lastRaw) return;
+            offset.copy(lastRaw).invert();
+            // apply immediately so the box snaps to identity now
+            box.quaternion.copy(offset).multiply(lastRaw);
+          });
+
+          (function loop() {
+            renderer.render(scene, camera);
+            requestAnimationFrame(loop);
+          })();
+
+          return { setOrientation };
         }
 
         function onCaps(c) {

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Camera · Remote · Sensing School</title>
+    <title>Back Camera · Remote · Sensing School</title>
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -361,14 +361,14 @@
         </svg>
         <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
       </a>
-      <span class="crumb">Camera · Remote</span>
+      <span class="crumb">Back Camera · Remote</span>
     </header>
     <main>
       <!-- LAPTOP ROLE -->
       <div class="laptop-only">
-        <h1>Camera (Remote)</h1>
-        <p class="lead host-only">Pair a phone to stream its camera here. Video is sent over a WebRTC media channel directly between phone and laptop &mdash; no server holds the frames.</p>
-        <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone as its camera.</p>
+        <h1>Back Camera (Remote)</h1>
+        <p class="lead host-only">Pair a phone to stream its rear-facing camera here. Video is sent over a WebRTC media channel directly between phone and laptop &mdash; no server holds the frames.</p>
+        <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone&rsquo;s rear camera.</p>
 
         <section class="panel host-only">
           <h2>Pair your phone</h2>
@@ -377,7 +377,7 @@
             <span class="pair-code" id="pairCode">— — — —</span>
           </div>
           <p class="status" id="pairStatus">Generating session&hellip;</p>
-          <p class="pair-help">On your phone, open <strong>sensingschool.com/camera-remote</strong> and enter this code.</p>
+          <p class="pair-help">On your phone, open <strong>sensingschool.com/camera-remote-back</strong> and enter this code.</p>
         </section>
 
         <section class="panel join-only">
@@ -452,8 +452,8 @@
 
       <!-- PHONE ROLE -->
       <div class="phone-only">
-        <h1>Camera Mode</h1>
-        <p class="lead">This phone streams its camera to the laptop. Tap Start, grant camera access, and keep the screen on.</p>
+        <h1>Back Camera Mode</h1>
+        <p class="lead">This phone streams its rear-facing camera to the laptop. Tap Start, grant camera access, and keep the screen on.</p>
 
         <section class="panel">
           <h2>Status</h2>
@@ -485,11 +485,6 @@
         <section class="panel" id="phoneControls" hidden>
           <h2>Camera</h2>
           <div class="row">
-            <label for="facingSelect">Facing</label>
-            <select id="facingSelect">
-              <option value="environment" selected>Back</option>
-              <option value="user">Front</option>
-            </select>
             <label for="qualitySelect">Quality</label>
             <select id="qualitySelect">
               <option value="480">480p</option>
