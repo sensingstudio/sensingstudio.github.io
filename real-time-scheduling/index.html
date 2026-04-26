@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Real-Time Scheduling &middot; Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+        --blue: #1f6feb;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 28px;
+        max-width: 64ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 18px;
+      }
+      .panel h3 {
+        margin: 0 0 12px;
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .help { font-size: 14px; color: var(--black); line-height: 1.55; }
+      .help p { margin: 0 0 10px; color: var(--grey-text); }
+      .help p b { color: var(--black); }
+      .help ol { margin: 0; padding-left: 22px; color: var(--grey-text); }
+      .help li { margin: 6px 0; }
+      .help li b { color: var(--black); }
+      .help code {
+        background: #eef0f2;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+
+      /* Tasks editor */
+      .task-card {
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1.4fr) repeat(5, minmax(0, 1fr));
+        gap: 10px 14px;
+        align-items: end;
+      }
+      @media (max-width: 720px) {
+        .task-card {
+          grid-template-columns: 18px minmax(0, 1fr) repeat(2, minmax(0, 1fr));
+        }
+      }
+      .task-card .swatch {
+        width: 14px; height: 14px; border-radius: 50%;
+        margin-bottom: 6px;
+      }
+      .field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+      .field label {
+        font-size: 10px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .field input {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 6px 8px;
+        border: 1px solid var(--grey-line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--black);
+        width: 100%;
+        min-width: 0;
+      }
+      .field input.num {
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+      .field input:focus {
+        outline: 2px solid var(--red);
+        border-color: var(--red);
+      }
+      .field input.invalid { border-color: var(--red); background: #fff1f3; }
+
+      .pri-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #1f2228;
+        color: #fff;
+        margin-left: 6px;
+        vertical-align: 2px;
+      }
+
+      /* Resource / protocol */
+      .res-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+        align-items: center;
+        font-size: 14px;
+        color: var(--grey-text);
+        margin: 0 0 14px;
+      }
+      .res-line b { color: var(--black); }
+      .res-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #f1f2f4;
+        font-weight: 700;
+        font-size: 12px;
+        color: var(--black);
+      }
+      .res-pill .dot {
+        width: 8px; height: 8px; border-radius: 50%;
+      }
+
+      .seg {
+        display: inline-flex;
+        border: 1.5px solid var(--grey-line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .seg button {
+        background: #fff;
+        border: none;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 8px 14px;
+        cursor: pointer;
+        color: var(--black);
+        transition: background 0.15s, color 0.15s;
+      }
+      .seg button + button { border-left: 1px solid var(--grey-line); }
+      .seg button.active { background: var(--red); color: #fff; }
+
+      .knobs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px 24px;
+      }
+      .knob label.knob-label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .knob .knob-row {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .knob .knob-val {
+        font-weight: 900;
+        font-size: 22px;
+        letter-spacing: -0.5px;
+        line-height: 1;
+      }
+      .knob .knob-sub {
+        color: var(--grey-text);
+        font-size: 12px;
+      }
+      .knob input[type=range] {
+        width: 100%;
+        accent-color: var(--red);
+        cursor: pointer;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 18px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--red);
+        color: #fff;
+        border: none;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 11px 22px;
+        border-radius: 8px;
+        cursor: pointer;
+        letter-spacing: 0.3px;
+        transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      }
+      .btn:hover {
+        background: #a00f24;
+        box-shadow: 0 4px 14px rgba(188, 18, 42, 0.25);
+        transform: translateY(-1px);
+      }
+      .btn.ghost {
+        background: #fff;
+        color: var(--black);
+        border: 1.5px solid var(--grey-line);
+      }
+      .btn.ghost:hover {
+        background: #fff;
+        color: var(--red);
+        border-color: var(--red);
+        box-shadow: none;
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .scroll-x {
+        overflow-x: auto;
+        margin: 0 -4px;
+        padding: 4px;
+      }
+      svg.gantt-svg {
+        display: block;
+        height: auto;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        align-items: center;
+      }
+      .legend .key {
+        display: inline-block;
+        width: 18px;
+        height: 12px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: middle;
+        border: 1px solid var(--grey-line);
+      }
+
+      /* Analysis table */
+      .anly-grid {
+        display: grid;
+        grid-template-columns: 2fr repeat(4, 1fr);
+        gap: 0;
+        font-size: 14px;
+        margin-top: 4px;
+      }
+      .anly-grid > div {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--grey-line);
+      }
+      .anly-grid > div.head {
+        font-size: 10px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+        border-bottom-color: var(--black);
+      }
+      .anly-grid .num {
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+        font-weight: 700;
+        text-align: right;
+      }
+      .anly-grid .miss { color: var(--red); }
+      .anly-grid .ok { color: var(--green); }
+      .anly-grid .task-name {
+        display: flex; align-items: center; gap: 8px;
+      }
+      .anly-grid .task-name .dot {
+        width: 10px; height: 10px; border-radius: 50%;
+      }
+
+      .util-bar {
+        position: relative;
+        height: 12px;
+        background: #f1f2f4;
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 6px 0 4px;
+      }
+      .util-bar .fill {
+        position: absolute;
+        top: 0; left: 0; bottom: 0;
+        background: linear-gradient(90deg, #2a8b2a, #E8B923 70%, #bc122a 100%);
+        border-radius: 999px;
+        transition: width 0.2s;
+      }
+      .util-bar .ll-mark {
+        position: absolute;
+        top: -4px; bottom: -4px;
+        width: 2px;
+        background: #1f2228;
+      }
+      .util-bar .ll-mark::after {
+        content: 'LL';
+        position: absolute;
+        top: -16px; left: -8px;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.6px;
+        color: var(--grey-text);
+      }
+      .util-summary {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--grey-text);
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+
+      details summary {
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        color: var(--grey-text);
+        margin-top: 12px;
+      }
+      details summary:hover { color: var(--black); }
+      details p { margin-top: 8px; color: var(--grey-text); line-height: 1.55; font-size: 14px; }
+
+      .attribution {
+        margin-top: 48px; padding-top: 24px;
+        border-top: 1px solid var(--grey-line);
+        width: 100%; font-size: 13px; letter-spacing: 0.5px;
+        color: var(--grey-text); display: flex;
+        align-items: center; justify-content: center; gap: 8px;
+      }
+      .attribution a {
+        display: inline-flex; align-items: center; gap: 8px;
+        color: var(--black); text-decoration: none; font-weight: 700;
+        transition: color 0.15s, opacity 0.15s;
+      }
+      .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+      .attribution a:hover { color: var(--red); }
+      .attribution a:hover img { opacity: 0.85; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">Real-Time Scheduling</span>
+    </header>
+
+    <main>
+      <h1>Real-time scheduling: rate-monotonic &amp; the priority-inversion fix</h1>
+      <p class="lead">Three periodic tasks share one CPU. Rate-monotonic gives the shortest-period task the highest static priority &mdash; that part is easy. The hard part is what happens when a low-priority task locks a shared resource just before a high-priority task wakes up. Watch a medium-priority task that doesn&rsquo;t even touch the resource starve the high-priority one indirectly &mdash; then turn on the highest-locker fix and watch the inversion vanish.</p>
+
+      <div class="panel help">
+        <h3>The trick in two paragraphs</h3>
+        <p><b>Rate-monotonic scheduling (RMS, Liu &amp; Layland 1973).</b> Sort the periodic tasks by period. The shortest period gets the highest fixed priority. Whenever multiple tasks are ready, the CPU runs the highest-priority one and preempts everyone else. For a set of <i>n</i> tasks, RMS is guaranteed to meet all deadlines if total utilization U&nbsp;=&nbsp;&Sigma;&nbsp;C<sub>i</sub>/T<sub>i</sub>&nbsp;&le;&nbsp;<i>n</i>&middot;(2<sup>1/n</sup>&minus;1) &mdash; the bound that drops to ln&nbsp;2&nbsp;&approx;&nbsp;0.693 as <i>n</i>&nbsp;&rarr;&nbsp;&infin;. Above the bound, run response-time analysis instead.</p>
+        <p><b>Highest locker&rsquo;s priority (HLP, a.k.a. immediate priority-ceiling protocol).</b> Each shared resource gets a <i>ceiling</i> equal to the priority of the highest-priority task that ever locks it. The instant a task acquires the resource, its effective priority is bumped to the ceiling. Now no task that <i>could</i> someday want the resource &mdash; nor any task of equal-or-lower priority &mdash; can preempt the holder. The holder gets through its critical section quickly, releases, and drops back. Bounded blocking, no deadlocks, no Mars Pathfinder.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Tasks (rate-monotonic order)</h3>
+        <p style="margin:0 0 14px;font-size:13px;color:var(--grey-text);">Edit any number. <b>T</b> = period, <b>C</b> = worst-case execution time, <b>phase</b> = first release time. Set <b>CS&nbsp;len</b> to&nbsp;0 to make a task that doesn&rsquo;t touch the shared resource.</p>
+        <div id="tasks-grid"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Shared resource &amp; protocol</h3>
+        <p class="res-line" id="ceiling-line"></p>
+        <div class="actions" style="margin-top:0;">
+          <span style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--grey-text);font-weight:700;margin-right:6px;">Locking protocol</span>
+          <div class="seg" id="protocol-seg">
+            <button data-p="none" class="active">No protocol</button>
+            <button data-p="hlp">Highest locker (HLP)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Schedule</h3>
+        <div class="knobs">
+          <div class="knob">
+            <label class="knob-label" for="s-horizon">Time horizon</label>
+            <div class="knob-row"><span class="knob-val" id="v-horizon">25</span><span class="knob-sub">ticks</span></div>
+            <input id="s-horizon" type="range" min="10" max="60" step="1" value="25">
+          </div>
+          <div class="knob">
+            <label class="knob-label" for="s-speed">Play speed</label>
+            <div class="knob-row"><span class="knob-val" id="v-speed">350</span><span class="knob-sub">ms per tick</span></div>
+            <input id="s-speed" type="range" min="60" max="1200" step="10" value="350">
+          </div>
+          <div class="knob">
+            <label class="knob-label">Current tick</label>
+            <div class="knob-row"><span class="knob-val" id="v-step">&mdash;</span><span class="knob-sub" id="v-step-sub">press Step or Play</span></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn"       id="btn-play">Play</button>
+          <button class="btn ghost" id="btn-step">Step once</button>
+          <button class="btn ghost" id="btn-back">Back</button>
+          <button class="btn ghost" id="btn-reset">Reset</button>
+          <button class="btn ghost" id="btn-fast">Skip to end</button>
+        </div>
+        <div class="scroll-x" style="margin-top:18px;">
+          <svg class="gantt-svg" id="gantt-svg" aria-label="Real-time schedule timeline"></svg>
+        </div>
+        <div class="legend">
+          <span><span class="key" style="background:#bc122a"></span>task running on CPU</span>
+          <span><span class="key" style="background:#bc122a;outline:2px dashed #E8B923;outline-offset:-2px"></span>running inside critical section</span>
+          <span><span class="key" style="background:repeating-linear-gradient(45deg,#fdecef,#fdecef 4px,#fff 4px,#fff 8px);border-color:var(--red)"></span>blocked, waiting for resource</span>
+          <span>&#9660; release &nbsp; &#9650; deadline</span>
+        </div>
+      </div>
+
+      <div class="panel" id="analysis-panel">
+        <h3>Analysis</h3>
+        <div id="util-block"></div>
+        <div class="anly-grid" id="anly-grid"></div>
+      </div>
+
+      <div class="panel help">
+        <h3>Things to try</h3>
+        <ol>
+          <li>Press <b>Play</b> with the defaults under <b>No protocol</b>. Watch what happens around <b>t=2&hellip;7</b>: the high-priority Sensor wakes up, runs for one tick, then asks for the resource the low-priority Display is still holding. Sensor blocks. Logger then arrives, doesn&rsquo;t need the resource, and happily preempts Display for three full ticks &mdash; even though Sensor has higher priority. <b>That delay is the priority inversion.</b> It&rsquo;s the medium-priority task indirectly starving the high-priority one through a resource it doesn&rsquo;t even touch.</li>
+          <li>Switch to <b>Highest locker (HLP)</b> and reset. The instant Display locks the resource at <b>t=0</b>, its effective priority jumps to the ceiling (= Sensor&rsquo;s priority). Now neither Sensor nor Logger can preempt it. Display blasts through its critical section, releases, drops back. Sensor finishes a few ticks earlier; Logger a bit later. You traded a tiny bit of Logger&rsquo;s slack for a strict bound on Sensor&rsquo;s blocking time.</li>
+          <li>Crank Display&rsquo;s execution time <b>C</b> up until the total utilization passes the Liu&ndash;Layland bound (the marker on the bar). RMS is no longer guaranteed schedulable by the simple test, but the simulator may still meet all deadlines &mdash; that&rsquo;s the gap between sufficient and necessary conditions. Push further until you see a red <b>missed</b> deadline marker.</li>
+          <li>Set Logger&rsquo;s <b>CS len</b> to a non-zero value so it also locks the resource. The ceiling is still Sensor&rsquo;s priority (it&rsquo;s the highest user), but now there&rsquo;s a richer interaction: under HLP, Logger holding the resource also blocks Sensor &mdash; bounded by Logger&rsquo;s critical section length. Compare to the no-protocol case where chained inversions can occur.</li>
+          <li>Make all three periods harmonic (e.g. 4, 8, 16). RMS becomes optimal at U&nbsp;=&nbsp;1 in this special case, well above the Liu&ndash;Layland bound. The bound is conservative for harmonic task sets.</li>
+          <li>Set Sensor&rsquo;s <b>phase</b> to 0 instead of 1. Now Sensor runs first (it has highest priority), grabs the resource, releases it, and is gone before Display ever starts. Inversion can&rsquo;t happen if the high-priority task gets in first &mdash; but you can&rsquo;t count on phasing to save you in general.</li>
+        </ol>
+        <details>
+          <summary>What this simulator skips</summary>
+          <p>One CPU, one shared resource, integer time, zero context-switch overhead, deterministic worst-case execution times, no jitter on releases, and critical sections that always start at the same execution offset within a job. Real-world RTOSes also have to deal with tick interrupts, priority queue maintenance, kernel-mode/user-mode transitions, and cache effects on C<sub>i</sub>. This page treats <b>C</b> as a single integer.</p>
+          <p>The protocol toggle is between <i>no protocol at all</i> (a task that holds a resource keeps its base priority) and <i>highest locker / immediate priority-ceiling</i> (priority bumped on lock). The closely-related <b>priority inheritance</b> protocol (PIP) only bumps the holder&rsquo;s priority <i>when</i> a higher-priority task actually blocks on the resource &mdash; it solves bounded inversion too, but doesn&rsquo;t prevent deadlock the way HLP/PCP do, and gives slightly worse blocking bounds in chained-resource cases. The full <b>Priority Ceiling Protocol</b> (Sha, Rajkumar, Lehoczky 1990) only allows a new lock when the requesting task&rsquo;s priority is strictly higher than the system ceiling, which is subtly different from HLP but gives identical guarantees with one resource.</p>
+          <p>Schedulability shown here is the Liu&ndash;Layland utilization bound (sufficient, not necessary). Tighter exact tests &mdash; the hyperbolic bound and response-time analysis &mdash; aren&rsquo;t evaluated; you just watch the simulator run and see whether deadlines slip.</p>
+        </details>
+      </div>
+
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const $ = (id) => document.getElementById(id);
+
+      // ---------- Configuration ----------
+      // The default task set is engineered to demonstrate priority inversion under
+      // "no protocol": Display (low pri) acquires R at t=0, Sensor (high pri) arrives
+      // at t=1, blocks on R at t=2, Logger (mid pri) arrives at t=2 and runs in
+      // place of Sensor. Switching to HLP eliminates the inversion.
+      const TASK_PRESETS = [
+        { name: 'Sensor',  color: '#bc122a', T: 10, C: 2, phase: 1, csStart: 1, csLen: 1 },
+        { name: 'Logger',  color: '#1f6feb', T: 15, C: 3, phase: 2, csStart: 0, csLen: 0 },
+        { name: 'Display', color: '#2a8b2a', T: 20, C: 5, phase: 0, csStart: 0, csLen: 3 },
+      ];
+      let tasks = TASK_PRESETS.map(t => ({ ...t }));
+
+      let cfg = {
+        horizon: 25,
+        protocol: 'none',  // 'none' or 'hlp'
+        speedMs: 350,
+      };
+
+      let step = 0;       // current visible tick (0..horizon)
+      let playing = false;
+      let playTimer = null;
+      let sim = null;     // most recent simulation result
+
+      // ---------- Validation helpers ----------
+      function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+      function intOr(s, fallback) {
+        const v = parseInt(s, 10);
+        return Number.isFinite(v) ? v : fallback;
+      }
+
+      function normalizeTasks() {
+        for (const tk of tasks) {
+          tk.T = clamp(intOr(tk.T, 10), 2, 60);
+          tk.C = clamp(intOr(tk.C, 1), 1, tk.T - 1);
+          tk.phase = clamp(intOr(tk.phase, 0), 0, tk.T - 1);
+          tk.csStart = clamp(intOr(tk.csStart, 0), 0, Math.max(0, tk.C - 1));
+          tk.csLen = clamp(intOr(tk.csLen, 0), 0, tk.C - tk.csStart);
+        }
+      }
+
+      // ---------- Priority math ----------
+      function computeBasePriorities() {
+        // RMS: lower T => higher priority. Tie-break by index for stability.
+        const order = tasks.map((t, i) => ({ i, T: t.T })).sort((a, b) => a.T - b.T || a.i - b.i);
+        const basePri = new Array(tasks.length);
+        order.forEach((o, rank) => { basePri[o.i] = tasks.length - rank; }); // highest = N
+        return basePri;
+      }
+
+      function computeCeiling(basePri) {
+        // Ceiling = max basePri among tasks that lock R.
+        let ceil = -Infinity;
+        let ceilTask = -1;
+        for (let i = 0; i < tasks.length; i++) {
+          if (tasks[i].csLen > 0 && basePri[i] > ceil) {
+            ceil = basePri[i]; ceilTask = i;
+          }
+        }
+        return { ceil, ceilTask };
+      }
+
+      // ---------- Simulation ----------
+      function simulate() {
+        const N = tasks.length;
+        const basePri = computeBasePriorities();
+        const { ceil: ceiling } = computeCeiling(basePri);
+
+        const jobs = new Array(N).fill(null);          // current job per task
+        const releases = Array.from({length: N}, () => []);
+        const completions = Array.from({length: N}, () => []);
+        const misses = Array.from({length: N}, () => []);
+        let heldBy = null;
+
+        const history = [];
+        let lastRun = null;
+
+        for (let t = 0; t < cfg.horizon; t++) {
+          const tickEvents = [];
+
+          // 1) Job releases
+          for (let i = 0; i < N; i++) {
+            const tk = tasks[i];
+            if (t >= tk.phase && (t - tk.phase) % tk.T === 0) {
+              if (jobs[i] && !jobs[i].done) {
+                misses[i].push({
+                  releaseTime: jobs[i].releaseTime,
+                  deadline: jobs[i].releaseTime + tk.T,
+                  executed: jobs[i].executed,
+                });
+                tickEvents.push({ type: 'miss', task: i });
+                // If the missed job was holding R, in this simplification we
+                // free it on miss to keep simulation moving.
+                if (jobs[i].holdsR) {
+                  jobs[i].holdsR = false;
+                  if (heldBy === i) heldBy = null;
+                }
+              }
+              jobs[i] = {
+                releaseTime: t,
+                deadline: t + tk.T,
+                executed: 0,
+                holdsR: false,
+                done: false,
+              };
+              releases[i].push({ releaseTime: t, deadline: t + tk.T });
+              tickEvents.push({ type: 'release', task: i });
+            }
+          }
+
+          // 2) Eligible tasks: have a job, not done, and either don't need to
+          //    enter CS this tick or R is free (or already held by them).
+          const eligible = [];
+          const blockedOnR = new Set();
+          for (let i = 0; i < N; i++) {
+            const j = jobs[i];
+            if (!j || j.done) continue;
+            const tk = tasks[i];
+            const aboutToEnterCS = (tk.csLen > 0 && j.executed === tk.csStart && !j.holdsR);
+            if (aboutToEnterCS && heldBy !== null && heldBy !== i) {
+              blockedOnR.add(i);
+              continue;
+            }
+            eligible.push(i);
+          }
+
+          // 3) Pick highest effective priority. Stable tie-break: prefer last runner.
+          let running = null;
+          let bestPri = -Infinity;
+          for (const i of eligible) {
+            const j = jobs[i];
+            let pri = basePri[i];
+            if (cfg.protocol === 'hlp' && j.holdsR && ceiling > pri) {
+              pri = ceiling;
+            }
+            if (pri > bestPri || (pri === bestPri && i === lastRun)) {
+              bestPri = pri;
+              running = i;
+            }
+          }
+
+          // 4) Execute one tick of the chosen task.
+          let runningInCS = false;
+          if (running !== null) {
+            const j = jobs[running];
+            const tk = tasks[running];
+            // Entering CS at the boundary of this tick?
+            if (tk.csLen > 0 && j.executed === tk.csStart && !j.holdsR) {
+              j.holdsR = true;
+              heldBy = running;
+              tickEvents.push({ type: 'lock', task: running });
+            }
+            // Are we executing inside CS during this tick?
+            if (tk.csLen > 0 && j.executed >= tk.csStart && j.executed < tk.csStart + tk.csLen) {
+              runningInCS = true;
+            }
+            j.executed += 1;
+            // Exiting CS at the end of this tick?
+            if (tk.csLen > 0 && j.executed === tk.csStart + tk.csLen && j.holdsR) {
+              j.holdsR = false;
+              heldBy = null;
+              tickEvents.push({ type: 'unlock', task: running });
+            }
+            // Job complete?
+            if (j.executed >= tk.C) {
+              j.done = true;
+              completions[running].push({ releaseTime: j.releaseTime, completedTime: t + 1 });
+              tickEvents.push({ type: 'complete', task: running });
+            }
+          }
+
+          history.push({
+            t,
+            running,
+            runningInCS,
+            heldBy,
+            blockedOnR,
+            events: tickEvents,
+          });
+          lastRun = running;
+        }
+
+        return { history, releases, completions, misses, basePri, ceiling };
+      }
+
+      // ---------- Tasks editor ----------
+      function renderTasksEditor() {
+        const grid = $('tasks-grid');
+        grid.innerHTML = '';
+        const basePri = computeBasePriorities();
+        // Render in current array order (user identity), not RMS order, so
+        // colors stay tied to names. Show the priority badge to make the
+        // RMS ordering visible.
+        tasks.forEach((tk, i) => {
+          const card = document.createElement('div');
+          card.className = 'task-card';
+          card.innerHTML = `
+            <span class="swatch" style="background:${tk.color}"></span>
+            <div class="field">
+              <label>Task <span class="pri-badge" title="RMS priority (higher = more urgent)">P${basePri[i]}</span></label>
+              <input type="text" class="name" data-i="${i}" value="${escapeAttr(tk.name)}" maxlength="20">
+            </div>
+            <div class="field">
+              <label>Period T</label>
+              <input type="number" class="num" data-i="${i}" data-f="T" value="${tk.T}" min="2" max="60">
+            </div>
+            <div class="field">
+              <label>Exec C</label>
+              <input type="number" class="num" data-i="${i}" data-f="C" value="${tk.C}" min="1" max="${tk.T - 1}">
+            </div>
+            <div class="field">
+              <label>Phase</label>
+              <input type="number" class="num" data-i="${i}" data-f="phase" value="${tk.phase}" min="0" max="${tk.T - 1}">
+            </div>
+            <div class="field">
+              <label>CS offset</label>
+              <input type="number" class="num" data-i="${i}" data-f="csStart" value="${tk.csStart}" min="0" max="${Math.max(0, tk.C - 1)}">
+            </div>
+            <div class="field">
+              <label>CS len</label>
+              <input type="number" class="num" data-i="${i}" data-f="csLen" value="${tk.csLen}" min="0" max="${tk.C - tk.csStart}">
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+
+        grid.querySelectorAll('input.name').forEach(el => {
+          el.addEventListener('input', e => {
+            const idx = +e.target.dataset.i;
+            tasks[idx].name = e.target.value || `Task ${idx + 1}`;
+            recomputeAndRender({ keepStep: true, skipEditor: true });
+          });
+        });
+        grid.querySelectorAll('input.num').forEach(el => {
+          el.addEventListener('input', e => {
+            const idx = +e.target.dataset.i;
+            const f = e.target.dataset.f;
+            const v = parseInt(e.target.value, 10);
+            if (!Number.isFinite(v)) {
+              e.target.classList.add('invalid');
+              return;
+            }
+            e.target.classList.remove('invalid');
+            tasks[idx][f] = v;
+            normalizeTasks();
+            // Hard reset the playhead because the schedule shape just changed.
+            recomputeAndRender({ keepStep: false });
+          });
+          el.addEventListener('blur', () => {
+            normalizeTasks();
+            recomputeAndRender({ keepStep: true });
+          });
+        });
+      }
+
+      function escapeAttr(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      }
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // ---------- Resource / protocol panel ----------
+      function renderCeiling() {
+        const basePri = computeBasePriorities();
+        const { ceil, ceilTask } = computeCeiling(basePri);
+        const line = $('ceiling-line');
+        if (ceilTask < 0) {
+          line.innerHTML = `No task locks <b>R</b>. The protocol toggle has no effect on this task set &mdash; turn on a CS to see HLP work.`;
+          return;
+        }
+        const t = tasks[ceilTask];
+        const users = tasks.map((tk, i) => ({ tk, i })).filter(x => x.tk.csLen > 0);
+        const userPills = users.map(({ tk }) =>
+          `<span class="res-pill"><span class="dot" style="background:${tk.color}"></span>${escapeHtml(tk.name)}</span>`
+        ).join(' ');
+        line.innerHTML = `
+          Resource <b>R</b> is locked by: ${userPills}.
+          Ceiling = priority of the highest user =
+          <b><span style="color:${t.color}">${escapeHtml(t.name)}</span></b>'s priority
+          (P${ceil}).
+        `;
+      }
+
+      // ---------- Gantt rendering ----------
+      const PX_PER_TICK = 32;
+      const LABEL_W = 132;
+      const ROW_H = 50;
+      const CPU_ROW_H = 40;
+      const HEADER_H = 32;
+      const PAD_X = 12;
+      const PAD_Y = 14;
+
+      function renderGantt() {
+        const svg = $('gantt-svg');
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        const N = tasks.length;
+        const cols = cfg.horizon;
+        const W = LABEL_W + PAD_X * 2 + cols * PX_PER_TICK + 28; // 28 for right-side legend room
+        const H = PAD_Y * 2 + HEADER_H + N * ROW_H + CPU_ROW_H;
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.setAttribute('width', W);
+        svg.setAttribute('height', H);
+
+        // CS hatch pattern
+        const defs = document.createElementNS(SVG_NS, 'defs');
+        defs.innerHTML = `
+          <pattern id="cs-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(0,0,0,0.28)" stroke-width="2"/>
+          </pattern>
+          <pattern id="block-stripes" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill="#fff"/>
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#bc122a" stroke-width="2.4" opacity="0.55"/>
+          </pattern>
+        `;
+        svg.appendChild(defs);
+
+        // Time axis header
+        for (let t = 0; t <= cols; t++) {
+          const x = LABEL_W + PAD_X + t * PX_PER_TICK;
+          const tickColor = (t % 5 === 0) ? '#1f2228' : 'var(--grey-line)';
+          const lineH = (t % 5 === 0) ? 6 : 3;
+          const tk = mkLine(x, PAD_Y + HEADER_H - lineH - 4, x, PAD_Y + HEADER_H - 4, tickColor, 1);
+          svg.appendChild(tk);
+          if (t % 5 === 0 || t === cols) {
+            svg.appendChild(mkText(x, PAD_Y + HEADER_H - 12, String(t), {
+              anchor: 'middle', size: 10, weight: 700, color: 'var(--grey-text)',
+              family: 'Roboto, Helvetica, sans-serif', letter: 0.6,
+            }));
+          }
+        }
+        // Axis line
+        svg.appendChild(mkLine(LABEL_W + PAD_X, PAD_Y + HEADER_H - 4, LABEL_W + PAD_X + cols * PX_PER_TICK, PAD_Y + HEADER_H - 4, '#1f2228', 1.2));
+
+        // Per-task rows
+        for (let i = 0; i < N; i++) {
+          const ry = PAD_Y + HEADER_H + i * ROW_H;
+          drawTaskRow(svg, i, ry);
+        }
+
+        // CPU row
+        const cpuY = PAD_Y + HEADER_H + N * ROW_H;
+        drawCpuRow(svg, cpuY);
+
+        // Playhead cursor
+        if (step > 0 && step <= cols) {
+          const x = LABEL_W + PAD_X + step * PX_PER_TICK;
+          const y0 = PAD_Y + HEADER_H - 6;
+          const y1 = cpuY + CPU_ROW_H - 6;
+          const cur = mkLine(x, y0, x, y1, 'var(--red)', 1.6);
+          cur.setAttribute('stroke-dasharray', '4 3');
+          cur.setAttribute('opacity', '0.85');
+          svg.appendChild(cur);
+        }
+      }
+
+      function drawTaskRow(svg, i, ry) {
+        const tk = tasks[i];
+        const cols = cfg.horizon;
+
+        // Row label: name + RMS pri + (T, C)
+        const swatch = mkRect(PAD_X, ry + ROW_H/2 - 6, 12, 12, tk.color, null, 3);
+        svg.appendChild(swatch);
+        svg.appendChild(mkText(PAD_X + 18, ry + ROW_H/2 - 4, truncate(tk.name, 14), {
+          anchor: 'start', size: 12, weight: 700, color: 'var(--black)',
+          family: 'Roboto, Helvetica, sans-serif',
+        }));
+        svg.appendChild(mkText(PAD_X + 18, ry + ROW_H/2 + 10, `T=${tk.T} C=${tk.C}`, {
+          anchor: 'start', size: 10, weight: 700, color: 'var(--grey-text)',
+          family: 'ui-monospace, Menlo, monospace',
+        }));
+
+        // Gridline at row top (subtle)
+        svg.appendChild(mkLine(LABEL_W + PAD_X, ry, LABEL_W + PAD_X + cols * PX_PER_TICK, ry, 'var(--grey-line)', 1));
+
+        // Bar position within row (centered vertically)
+        const barH = 18;
+        const barY = ry + ROW_H/2 - barH/2 + 2;
+
+        // Build a list of contiguous "running" segments for this task, and "blocked" segments.
+        const k = step; // visible up to tick k (exclusive: ticks 0..k-1 are revealed)
+        let segStart = null;
+        let segIsCS = null;
+        const runSegs = [];
+        const blockSegs = [];
+        let blockStart = null;
+
+        for (let t = 0; t < cols; t++) {
+          const visible = t < k;
+          const h = visible ? sim.history[t] : null;
+          const isRun = visible && h && h.running === i;
+          const isCSnow = isRun && h.runningInCS;
+          if (isRun) {
+            if (segStart === null) {
+              segStart = t; segIsCS = isCSnow;
+            } else if (isCSnow !== segIsCS) {
+              runSegs.push({ a: segStart, b: t, cs: segIsCS });
+              segStart = t; segIsCS = isCSnow;
+            }
+          } else if (segStart !== null) {
+            runSegs.push({ a: segStart, b: t, cs: segIsCS });
+            segStart = null;
+          }
+          const isBlocked = visible && h && h.blockedOnR && h.blockedOnR.has(i);
+          if (isBlocked) {
+            if (blockStart === null) blockStart = t;
+          } else if (blockStart !== null) {
+            blockSegs.push({ a: blockStart, b: t });
+            blockStart = null;
+          }
+        }
+        if (segStart !== null) runSegs.push({ a: segStart, b: cols, cs: segIsCS });
+        if (blockStart !== null) blockSegs.push({ a: blockStart, b: cols });
+
+        // Draw blocked stripes (behind exec bars). Render them as a thin band BELOW
+        // the exec bar so both can be visible.
+        const blockH = 6;
+        const blockY = barY + barH + 2;
+        for (const seg of blockSegs) {
+          const x = LABEL_W + PAD_X + seg.a * PX_PER_TICK;
+          const w = (seg.b - seg.a) * PX_PER_TICK;
+          const r = mkRect(x, blockY, w, blockH, 'url(#block-stripes)', 'var(--red)', 2);
+          r.setAttribute('stroke-width', '1');
+          svg.appendChild(r);
+        }
+
+        // Draw exec bars
+        for (const seg of runSegs) {
+          const x = LABEL_W + PAD_X + seg.a * PX_PER_TICK;
+          const w = (seg.b - seg.a) * PX_PER_TICK;
+          const fill = tk.color;
+          const r = mkRect(x + 1, barY, w - 2, barH, fill, null, 3);
+          svg.appendChild(r);
+          if (seg.cs) {
+            // CS overlay: hatch + gold border
+            const hatch = mkRect(x + 1, barY, w - 2, barH, 'url(#cs-hatch)', null, 3);
+            svg.appendChild(hatch);
+            const border = mkRect(x + 1, barY, w - 2, barH, 'none', '#E8B923', 3);
+            border.setAttribute('stroke-width', '2');
+            svg.appendChild(border);
+          }
+        }
+
+        // Release/deadline arrows for jobs that started by tick `step`.
+        const k2 = step;
+        for (const rel of sim.releases[i]) {
+          if (rel.releaseTime > k2) continue;
+          const x = LABEL_W + PAD_X + rel.releaseTime * PX_PER_TICK;
+          // Down arrow at top of row
+          drawArrow(svg, x, ry + 4, 'down', tk.color, 9);
+        }
+        for (const rel of sim.releases[i]) {
+          const dy = rel.deadline;
+          if (dy > k2) continue;
+          if (dy > cols) continue;
+          const x = LABEL_W + PAD_X + dy * PX_PER_TICK;
+          // Determine if this deadline was met
+          const completed = sim.completions[i].some(c =>
+            c.releaseTime === rel.releaseTime && c.completedTime <= rel.deadline
+          );
+          const missed = sim.misses[i].some(m => m.releaseTime === rel.releaseTime);
+          const color = missed ? '#bc122a' : (completed ? '#9aa0a8' : '#9aa0a8');
+          drawArrow(svg, x, ry + ROW_H - 6, 'up', color, 9);
+          if (missed) {
+            // Red X above the up arrow
+            const cx = x;
+            const cy = ry + ROW_H - 18;
+            const x1 = mkLine(cx - 4, cy - 4, cx + 4, cy + 4, '#bc122a', 1.6);
+            const x2 = mkLine(cx - 4, cy + 4, cx + 4, cy - 4, '#bc122a', 1.6);
+            svg.appendChild(x1); svg.appendChild(x2);
+          }
+        }
+      }
+
+      function drawCpuRow(svg, ry) {
+        const cols = cfg.horizon;
+
+        // Row label
+        svg.appendChild(mkText(PAD_X, ry + CPU_ROW_H/2 - 2, 'CPU', {
+          anchor: 'start', size: 12, weight: 900, color: 'var(--black)',
+          family: 'Roboto, Helvetica, sans-serif', letter: 1.2,
+        }));
+        svg.appendChild(mkText(PAD_X, ry + CPU_ROW_H/2 + 12, cfg.protocol === 'hlp' ? 'HLP on' : 'no protocol', {
+          anchor: 'start', size: 10, weight: 700, color: 'var(--grey-text)',
+          family: 'Roboto, Helvetica, sans-serif',
+        }));
+
+        // Top divider
+        svg.appendChild(mkLine(LABEL_W + PAD_X, ry, LABEL_W + PAD_X + cols * PX_PER_TICK, ry, '#1f2228', 1));
+
+        // Bar
+        const barH = 22;
+        const barY = ry + CPU_ROW_H/2 - barH/2;
+
+        const k = step;
+        for (let t = 0; t < cols; t++) {
+          const x = LABEL_W + PAD_X + t * PX_PER_TICK;
+          const visible = t < k;
+          if (!visible) {
+            const r = mkRect(x + 0.5, barY, PX_PER_TICK - 1, barH, '#fafbfc', 'var(--grey-line)', 2);
+            svg.appendChild(r);
+            continue;
+          }
+          const h = sim.history[t];
+          if (h.running === null) {
+            // Idle
+            const r = mkRect(x + 0.5, barY, PX_PER_TICK - 1, barH,
+              'repeating-linear-gradient(45deg,#f1f2f4,#f1f2f4 4px,#fff 4px,#fff 8px)',
+              'var(--grey-line)', 2);
+            // SVG can't use CSS gradient; fall back to hatched fill via pattern.
+            r.setAttribute('fill', 'url(#cs-hatch)');
+            r.setAttribute('opacity', '0.35');
+            svg.appendChild(r);
+            const r2 = mkRect(x + 0.5, barY, PX_PER_TICK - 1, barH, 'none', 'var(--grey-line)', 2);
+            svg.appendChild(r2);
+          } else {
+            const tk = tasks[h.running];
+            const r = mkRect(x + 0.5, barY, PX_PER_TICK - 1, barH, tk.color, null, 2);
+            svg.appendChild(r);
+            if (h.runningInCS) {
+              const hatch = mkRect(x + 0.5, barY, PX_PER_TICK - 1, barH, 'url(#cs-hatch)', null, 2);
+              svg.appendChild(hatch);
+              const border = mkRect(x + 0.5, barY, PX_PER_TICK - 1, barH, 'none', '#E8B923', 2);
+              border.setAttribute('stroke-width', '1.6');
+              svg.appendChild(border);
+            }
+          }
+        }
+
+        // Bottom border
+        svg.appendChild(mkLine(LABEL_W + PAD_X, ry + CPU_ROW_H - 6, LABEL_W + PAD_X + cols * PX_PER_TICK, ry + CPU_ROW_H - 6, '#1f2228', 1));
+      }
+
+      function drawArrow(svg, x, y, dir, color, size) {
+        const s = size || 8;
+        let path;
+        if (dir === 'down') {
+          // ▼ point of arrow at (x, y+s); base above
+          path = `M ${x - s/2} ${y} L ${x + s/2} ${y} L ${x} ${y + s} Z`;
+        } else {
+          // ▲ point of arrow at (x, y-s); base below
+          path = `M ${x - s/2} ${y} L ${x + s/2} ${y} L ${x} ${y - s} Z`;
+        }
+        const el = document.createElementNS(SVG_NS, 'path');
+        el.setAttribute('d', path);
+        el.setAttribute('fill', color);
+        svg.appendChild(el);
+      }
+      function mkRect(x, y, w, h, fill, stroke, r) {
+        const el = document.createElementNS(SVG_NS, 'rect');
+        el.setAttribute('x', x); el.setAttribute('y', y);
+        el.setAttribute('width', w); el.setAttribute('height', h);
+        if (r) el.setAttribute('rx', r);
+        el.setAttribute('fill', fill || 'none');
+        if (stroke) el.setAttribute('stroke', stroke);
+        return el;
+      }
+      function mkLine(x1, y1, x2, y2, stroke, w) {
+        const el = document.createElementNS(SVG_NS, 'line');
+        el.setAttribute('x1', x1); el.setAttribute('y1', y1);
+        el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+        el.setAttribute('stroke', stroke);
+        el.setAttribute('stroke-width', w || 1);
+        return el;
+      }
+      function mkText(x, y, str, opts) {
+        const el = document.createElementNS(SVG_NS, 'text');
+        el.setAttribute('x', x); el.setAttribute('y', y);
+        el.setAttribute('text-anchor', opts.anchor || 'start');
+        el.setAttribute('font-size', opts.size || 12);
+        el.setAttribute('font-weight', opts.weight || 400);
+        el.setAttribute('fill', opts.color || 'var(--black)');
+        if (opts.family) el.setAttribute('font-family', opts.family);
+        if (opts.letter) el.setAttribute('letter-spacing', opts.letter);
+        el.textContent = str;
+        return el;
+      }
+      function truncate(s, max) {
+        if (s.length <= max) return s;
+        return s.slice(0, max - 1) + '…';
+      }
+
+      // ---------- Analysis ----------
+      function renderAnalysis() {
+        const N = tasks.length;
+        // Utilization bar
+        const utilEach = tasks.map(tk => tk.C / tk.T);
+        const U = utilEach.reduce((a, b) => a + b, 0);
+        const llBound = N * (Math.pow(2, 1 / N) - 1);
+        const U100 = Math.min(1, U) * 100;
+        const ll100 = Math.min(1, llBound) * 100;
+        const verdict = U > 1
+          ? `<b style="color:var(--red)">U &gt; 1</b> &mdash; impossible on one CPU.`
+          : U <= llBound
+            ? `<b style="color:var(--green)">U &le; ${llBound.toFixed(3)}</b> &mdash; RMS guaranteed schedulable.`
+            : `<b style="color:#a06b00">${llBound.toFixed(3)} &lt; U &le; 1</b> &mdash; above the LL bound. Might still be schedulable; check the simulation for missed deadlines.`;
+        $('util-block').innerHTML = `
+          <p style="margin:0 0 6px;font-size:14px;color:var(--grey-text);">
+            Utilization U = &Sigma; C<sub>i</sub>/T<sub>i</sub> =
+            ${utilEach.map((u, i) => `<span style="color:${tasks[i].color};font-weight:700">${u.toFixed(3)}</span>`).join(' + ')}
+            = <b style="color:var(--black)">${U.toFixed(3)}</b>.
+            Liu&ndash;Layland bound for <i>n</i>=${N}: <b>${llBound.toFixed(3)}</b>.
+          </p>
+          <div class="util-bar">
+            <div class="fill" style="width:${U100}%"></div>
+            <div class="ll-mark" style="left:${ll100}%"></div>
+          </div>
+          <div class="util-summary"><span>0</span><span>U = ${U.toFixed(3)}</span><span>1.0</span></div>
+          <p style="margin:10px 0 14px;font-size:14px;color:var(--grey-text);">${verdict}</p>
+        `;
+
+        // Per-task table: P, U, first-job response, missed count
+        let html = `
+          <div class="head">Task</div>
+          <div class="head num">RMS pri</div>
+          <div class="head num">U<sub>i</sub></div>
+          <div class="head num">First-job R</div>
+          <div class="head num">Misses</div>
+        `;
+        const basePri = computeBasePriorities();
+        for (let i = 0; i < N; i++) {
+          const tk = tasks[i];
+          const ui = tk.C / tk.T;
+          const completion = sim.completions[i][0];
+          const release = sim.releases[i][0];
+          let respStr = '&mdash;';
+          let respClass = '';
+          if (completion && release) {
+            const r = completion.completedTime - release.releaseTime;
+            const dl = release.deadline - release.releaseTime;
+            respStr = `${r}/${dl}`;
+            respClass = (r <= dl) ? 'ok' : 'miss';
+          }
+          const missCount = sim.misses[i].length;
+          html += `
+            <div class="task-name"><span class="dot" style="background:${tk.color}"></span>${escapeHtml(tk.name)}</div>
+            <div class="num">P${basePri[i]}</div>
+            <div class="num">${ui.toFixed(3)}</div>
+            <div class="num ${respClass}">${respStr}</div>
+            <div class="num ${missCount > 0 ? 'miss' : ''}">${missCount}</div>
+          `;
+        }
+        $('anly-grid').innerHTML = html;
+      }
+
+      // ---------- Step / play ----------
+      function recomputeAndRender(opts) {
+        opts = opts || {};
+        normalizeTasks();
+        sim = simulate();
+        if (!opts.keepStep) {
+          step = 0;
+          stopPlay();
+        } else {
+          step = clamp(step, 0, cfg.horizon);
+        }
+        if (!opts.skipEditor) renderTasksEditor();
+        renderCeiling();
+        renderGantt();
+        renderAnalysis();
+        updateStepReadout();
+        updateButtons();
+      }
+
+      function updateStepReadout() {
+        $('v-step').textContent = step === 0 ? '—' : (step >= cfg.horizon ? `done` : `${step}`);
+        if (step === 0) {
+          $('v-step-sub').textContent = 'press Step or Play';
+        } else if (step >= cfg.horizon) {
+          $('v-step-sub').textContent = `simulation complete at t=${cfg.horizon}`;
+        } else {
+          const h = sim.history[step - 1];
+          if (h.running === null) {
+            $('v-step-sub').textContent = `t=${step - 1}..${step}: CPU idle`;
+          } else {
+            const tk = tasks[h.running];
+            const cs = h.runningInCS ? ' (in CS)' : '';
+            $('v-step-sub').textContent = `t=${step - 1}..${step}: ${tk.name}${cs}`;
+          }
+        }
+      }
+
+      function stepForward() {
+        if (step >= cfg.horizon) {
+          stopPlay();
+          return;
+        }
+        step++;
+        renderGantt();
+        updateStepReadout();
+        updateButtons();
+      }
+      function stepBack() {
+        if (step <= 0) return;
+        step--;
+        renderGantt();
+        updateStepReadout();
+        updateButtons();
+      }
+      function startPlay() {
+        if (playing) return;
+        if (step >= cfg.horizon) step = 0;
+        playing = true;
+        $('btn-play').textContent = 'Pause';
+        const tick = () => {
+          if (!playing) return;
+          stepForward();
+          if (step < cfg.horizon) {
+            playTimer = setTimeout(tick, cfg.speedMs);
+          } else {
+            stopPlay();
+          }
+        };
+        playTimer = setTimeout(tick, cfg.speedMs);
+      }
+      function stopPlay() {
+        playing = false;
+        if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+        $('btn-play').textContent = 'Play';
+      }
+      function updateButtons() {
+        $('btn-step').disabled = step >= cfg.horizon;
+        $('btn-back').disabled = step <= 0;
+      }
+
+      // ---------- Bind ----------
+      function bind() {
+        $('btn-play').addEventListener('click', () => {
+          if (playing) stopPlay(); else startPlay();
+        });
+        $('btn-step').addEventListener('click', () => { stopPlay(); stepForward(); });
+        $('btn-back').addEventListener('click', () => { stopPlay(); stepBack(); });
+        $('btn-reset').addEventListener('click', () => {
+          stopPlay();
+          step = 0;
+          renderGantt();
+          updateStepReadout();
+          updateButtons();
+        });
+        $('btn-fast').addEventListener('click', () => {
+          stopPlay();
+          step = cfg.horizon;
+          renderGantt();
+          updateStepReadout();
+          updateButtons();
+        });
+        $('s-speed').addEventListener('input', e => {
+          cfg.speedMs = +e.target.value;
+          $('v-speed').textContent = cfg.speedMs;
+        });
+        $('s-horizon').addEventListener('input', e => {
+          cfg.horizon = +e.target.value;
+          $('v-horizon').textContent = cfg.horizon;
+          recomputeAndRender({ keepStep: false });
+        });
+        document.querySelectorAll('#protocol-seg button').forEach(b => {
+          b.addEventListener('click', () => {
+            cfg.protocol = b.dataset.p;
+            document.querySelectorAll('#protocol-seg button').forEach(x =>
+              x.classList.toggle('active', x.dataset.p === cfg.protocol));
+            recomputeAndRender({ keepStep: false });
+          });
+        });
+      }
+
+      // ---------- Boot ----------
+      function boot() {
+        normalizeTasks();
+        bind();
+        recomputeAndRender({ keepStep: false });
+      }
+      boot();
+    </script>
+  </body>
+</html>

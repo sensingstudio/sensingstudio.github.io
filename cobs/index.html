@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>COBS &middot; Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+        --blue: #1f6feb;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 28px;
+        max-width: 64ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 18px;
+      }
+      .panel h3 {
+        margin: 0 0 12px;
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .help { font-size: 14px; color: var(--black); line-height: 1.55; }
+      .help p { margin: 0 0 10px; color: var(--grey-text); }
+      .help p b { color: var(--black); }
+      .help ol { margin: 0; padding-left: 22px; color: var(--grey-text); }
+      .help li { margin: 4px 0; }
+      .help li b { color: var(--black); }
+      .help code, .mono {
+        background: #eef0f2;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .input-row {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+        flex-wrap: wrap;
+      }
+      .input-row input.hex {
+        flex: 1;
+        min-width: 220px;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        padding: 11px 12px;
+        border: 1.5px solid var(--grey-line);
+        border-radius: 8px;
+        background: #fff;
+        letter-spacing: 0.5px;
+      }
+      .input-row input.hex:focus { outline: 2px solid var(--red); border-color: var(--red); }
+      .input-row input.hex.invalid { border-color: var(--red); background: #fff1f3; }
+      .hint {
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        color: var(--grey-text);
+        margin-top: 6px;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      .err {
+        margin-top: 10px;
+        color: var(--red);
+        font-size: 13px;
+        font-weight: 700;
+        min-height: 1.2em;
+      }
+
+      .presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .chip-btn {
+        background: #fff;
+        border: 1.5px solid var(--grey-line);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-family: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--black);
+        cursor: pointer;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+      }
+      .chip-btn:hover { border-color: var(--red); color: var(--red); }
+      .chip-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+      .scroll-x {
+        overflow-x: auto;
+        margin: 0 -4px;
+        padding: 4px;
+      }
+      svg.viz {
+        display: block;
+        height: auto;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        align-items: center;
+      }
+      .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: middle;
+        border: 1px solid var(--grey-line);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+      }
+      .stat .stat-num {
+        font-weight: 900;
+        font-size: 28px;
+        letter-spacing: -0.5px;
+        line-height: 1.05;
+        color: var(--black);
+      }
+      .stat .stat-num.ok    { color: var(--green); }
+      .stat .stat-num.warn  { color: var(--gold); }
+      .stat .stat-num.bad   { color: var(--red); }
+      .stat .stat-label {
+        margin-top: 4px;
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+
+      .compare-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .compare-table th, .compare-table td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--grey-line);
+      }
+      .compare-table th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .compare-table td.num {
+        font-family: ui-monospace, Menlo, monospace;
+        text-align: right;
+        font-weight: 700;
+      }
+      .compare-table td.label { color: var(--grey-text); }
+      .compare-table .winner { color: var(--green); font-weight: 900; }
+      .compare-table .loser  { color: var(--red); }
+
+      details summary {
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        color: var(--grey-text);
+        margin-top: 12px;
+      }
+      details summary:hover { color: var(--black); }
+      details p { margin-top: 8px; color: var(--grey-text); line-height: 1.55; font-size: 14px; }
+
+      .attribution {
+        margin-top: 48px; padding-top: 24px;
+        border-top: 1px solid var(--grey-line);
+        width: 100%; font-size: 13px; letter-spacing: 0.5px;
+        color: var(--grey-text); display: flex;
+        align-items: center; justify-content: center; gap: 8px;
+      }
+      .attribution a {
+        display: inline-flex; align-items: center; gap: 8px;
+        color: var(--black); text-decoration: none; font-weight: 700;
+        transition: color 0.15s, opacity 0.15s;
+      }
+      .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+      .attribution a:hover { color: var(--red); }
+      .attribution a:hover img { opacity: 0.85; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">COBS</span>
+    </header>
+
+    <main>
+      <h1>COBS &mdash; Consistent Overhead Byte Stuffing</h1>
+      <p class="lead">A clever framing trick from 1997: rewrite the message so it contains no zero bytes anywhere &mdash; then a single <code>0x00</code> at the end is unambiguously the frame boundary. The cost is fixed and tiny: one extra byte per 254 bytes of payload, no matter what the data looks like.</p>
+
+      <div class="panel help">
+        <h3>The trick in one paragraph</h3>
+        <p>SLIP escapes <code>C0</code> with a two-byte sequence, so a pathological payload doubles in size. COBS does something cleverer: it removes <i>every</i> zero from the payload by replacing it with a <i>distance</i>. The encoded frame begins with an <b>overhead byte</b> &mdash; a count <i>N</i> &mdash; meaning &ldquo;the next zero is <i>N</i> bytes ahead.&rdquo; You skip ahead <i>N</i> bytes; that position holds another overhead byte pointing to the next zero, and so on. The chain ends at a final <code>0x00</code> appended as the frame delimiter. Since no overhead byte is ever zero, and the original zeros have all been replaced by counts, the encoded frame contains <i>exactly one</i> <code>0x00</code> &mdash; the delimiter. Receivers find frame boundaries instantly, with no escape-sequence parsing.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Payload bytes</h3>
+        <div class="input-row">
+          <input id="payload-input" class="hex" type="text" value="11 22 00 33 44 55 00 66" spellcheck="false" autocomplete="off" />
+        </div>
+        <div class="hint">Hex bytes, any reasonable separator: <span class="mono">01 02 00</span>, <span class="mono">0x01,0x02,0x00</span>, <span class="mono">010200</span></div>
+        <div class="err" id="err-msg"></div>
+        <div class="presets" id="presets"></div>
+      </div>
+
+      <div class="panel">
+        <h3>COBS encoding</h3>
+        <div class="scroll-x"><svg class="viz" id="enc-svg" aria-label="COBS encoding diagram"></svg></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#fdecef;border-color:var(--red)"></span><b>zero in payload</b> &mdash; replaced by an overhead byte on the wire</span>
+          <span><span class="swatch" style="background:rgba(232,185,35,0.5);border-color:#E8B923"></span><b>overhead byte</b> &mdash; distance to the next zero (or to the end of its block)</span>
+          <span><span class="swatch" style="background:#fff;border-color:#9aa0a8"></span>regular payload byte (passes through unchanged)</span>
+          <span><span class="swatch" style="background:#1f2228;border-color:#1f2228"></span><b>frame delimiter</b> &mdash; the only <span class="mono">0x00</span> in the output</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Cost</h3>
+        <div class="stats-grid" id="stats"></div>
+        <details>
+          <summary>Why the overhead is bounded by 1 byte per 254</summary>
+          <p>The overhead byte is a count from 1 to 255. A count of <i>N</i> means &ldquo;the next zero is at offset <i>N</i> from here&rdquo; (so the byte at offset <i>N</i> from the overhead byte represents a zero). With 254 non-zero data bytes in a row, the count is 255 (= 0xFF), but no actual zero exists. COBS handles this with one rule: a count of 255 is a special &ldquo;keep going&rdquo; marker &mdash; the next overhead byte starts immediately after, without consuming a zero. Worst case: payload of 254 non-zero bytes uses one extra overhead byte; 508 non-zero bytes uses two. That&rsquo;s 1/254 ≈ 0.4% overhead, regardless of content.</p>
+        </details>
+      </div>
+
+      <div class="panel">
+        <h3>SLIP vs COBS for this payload</h3>
+        <div id="compare"></div>
+        <p style="margin:12px 0 0;color:var(--grey-text);font-size:13px;line-height:1.5;">
+          The point isn&rsquo;t that one is always smaller &mdash; it&rsquo;s that COBS&rsquo;s overhead is <i>predictable</i>. SLIP can be cheaper for nice payloads and more than 2× the size for unlucky ones. COBS is always within 0.4% of the input size. For real-time systems where you must size buffers up front, predictable beats lucky.
+        </p>
+      </div>
+
+      <div class="panel help">
+        <h3>Things to try</h3>
+        <ol>
+          <li>Click <b>No zeros at all</b>. The encoder still adds two bytes &mdash; one overhead byte at the front (<code>0x07</code>, since the next &ldquo;zero&rdquo; is the implicit terminator 7 steps away) and the trailing <code>0x00</code> delimiter. Constant overhead: 2 bytes for any short payload.</li>
+          <li>Click <b>Lots of zeros</b>. Each zero in the payload becomes an arrow link in the chain. The encoded length equals the input length plus 2 &mdash; zeros aren&rsquo;t free, but they aren&rsquo;t expensive either. Compare to SLIP, which would cost the same for a payload full of <code>C0</code>s.</li>
+          <li>Click <b>254 non-zero bytes</b>. The count saturates at <code>0xFF</code>. The decoder treats this as &ldquo;continue without a zero,&rdquo; so a follow-on overhead byte appears even though the payload had no actual zero there. This is the only special case in the protocol &mdash; and it&rsquo;s why the worst-case overhead is exactly 1 byte per 254.</li>
+          <li>Click <b>Single zero at start</b>. The frame starts <code>0x01 0x01 ...</code> &mdash; the first overhead byte points one step ahead, where the second overhead byte sits. That second one then points further ahead. Pointers can land directly on other pointers; that&rsquo;s the linked-list structure.</li>
+          <li>Click <b>All zeros</b>. The result is the longest output relative to a small input, but only by a constant factor. <i>n</i> input zeros produce <i>n</i>+1 overhead bytes plus a trailing zero &mdash; still beats SLIP&rsquo;s 2× expansion on its own worst case.</li>
+        </ol>
+        <details>
+          <summary>Compared to SLIP, HDLC, and length-prefixed framing</summary>
+          <p><b>SLIP</b> picks two reserved bytes and escapes them; overhead is unbounded in the worst case (2× expansion) but typically near zero. <b>HDLC</b> bit-stuffing is similar in spirit but works at the bit level (stuff a 0 after every five 1s). <b>Length-prefixed</b> framing avoids stuffing entirely but requires reading the length before any data, so a single corrupt length byte misaligns the rest of the stream until you re-sync somehow.</p>
+          <p>COBS wins where you need both <i>delimiter-based resync</i> (a single byte you can hunt for) <i>and</i> <i>predictable maximum size</i> (no doubling under adversarial input). That combination is exactly what microcontroller serial protocols and packet-radio links want, which is why COBS shows up in MAVLink, OpenLCB, ROS&rsquo;s rosserial, and many home-grown firmware framings.</p>
+        </details>
+      </div>
+
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const $ = (id) => document.getElementById(id);
+
+      // ---------- COBS encode ----------
+      // Output entries: { byte, role: 'overhead'|'data'|'delim', srcIdx?: int (for data), pointsToIdx?: int (for overhead), special255?: bool }
+      function cobsEncode(input) {
+        const out = [];
+        // Place a placeholder overhead byte; remember its index so we can fill it in later.
+        let codeIdx = out.length;
+        out.push({ byte: 1, role: 'overhead' }); // placeholder, will fix .byte and .pointsToIdx
+        let count = 1;
+
+        for (let i = 0; i < input.length; i++) {
+          const b = input[i];
+          if (b !== 0) {
+            out.push({ byte: b, role: 'data', srcIdx: i });
+            count++;
+            if (count === 0xFF) {
+              // Block full without seeing a zero. Set the current overhead byte to 0xFF
+              // ("special: 254 non-zero bytes follow, no zero consumed"), then start a new block.
+              out[codeIdx].byte = 0xFF;
+              out[codeIdx].pointsToIdx = out.length; // points to byte right after this block
+              out[codeIdx].special255 = true;
+              codeIdx = out.length;
+              out.push({ byte: 1, role: 'overhead' });
+              count = 1;
+            }
+          } else {
+            // Zero in payload: fill in current overhead byte and start a new block.
+            out[codeIdx].byte = count;
+            out[codeIdx].pointsToIdx = out.length; // index where the next overhead byte will go
+            out[codeIdx].zeroSrcIdx = i;
+            codeIdx = out.length;
+            out.push({ byte: 1, role: 'overhead' });
+            count = 1;
+          }
+        }
+        // Finalize the last overhead byte: it points at the trailing delimiter
+        out[codeIdx].byte = count;
+        out[codeIdx].pointsToIdx = out.length;
+        out[codeIdx].endsAtDelim = true;
+
+        // Trailing 0x00 frame delimiter (this is what makes COBS framing work).
+        out.push({ byte: 0x00, role: 'delim' });
+        return out;
+      }
+
+      // ---------- Hex parsing ----------
+      function parseHex(text) {
+        const cleaned = text.replace(/0[xX]/g, '');
+        const tokens = cleaned.split(/[^0-9a-fA-F]+/).filter(t => t.length > 0);
+        if (tokens.length === 0) return [];
+        if (tokens.length === 1 && tokens[0].length > 2 && tokens[0].length % 2 === 0) {
+          const s = tokens[0];
+          const out = [];
+          for (let i = 0; i < s.length; i += 2) out.push(parseInt(s.slice(i, i+2), 16));
+          return out;
+        }
+        const out = [];
+        for (const t of tokens) {
+          if (t.length > 2) throw new Error(`token "${t.toUpperCase()}" is more than one byte`);
+          out.push(parseInt(t, 16));
+        }
+        return out;
+      }
+      const hex = (b) => b.toString(16).toUpperCase().padStart(2, '0');
+
+      // ---------- SLIP encode (for comparison) ----------
+      const SLIP_END = 0xC0, SLIP_ESC = 0xDB;
+      function slipEncodedLength(bytes) {
+        let n = 2; // leading + trailing END
+        for (const b of bytes) n += (b === SLIP_END || b === SLIP_ESC) ? 2 : 1;
+        return n;
+      }
+
+      // ---------- Presets ----------
+      const PRESETS = [
+        { label: 'Two zero gaps',          value: '11 22 00 33 44 55 00 66' },
+        { label: 'No zeros at all',        value: '01 02 03 04 05 06 07' },
+        { label: 'Lots of zeros',          value: '00 11 00 22 00 33 00' },
+        { label: 'Single zero at start',   value: '00 AA BB CC' },
+        { label: 'Single zero at end',     value: 'AA BB CC 00' },
+        { label: 'All zeros',              value: '00 00 00 00 00' },
+        { label: '254 non-zero bytes',     value: gen254() },
+      ];
+      function gen254() {
+        // 254 bytes of value 0x55 to demonstrate the 0xFF special case.
+        const arr = new Array(254).fill(0x55);
+        return arr.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+      }
+
+      function renderPresets() {
+        const root = $('presets');
+        root.innerHTML = '';
+        PRESETS.forEach((p) => {
+          const b = document.createElement('button');
+          b.className = 'chip-btn';
+          b.type = 'button';
+          b.textContent = p.label;
+          b.addEventListener('click', () => {
+            $('payload-input').value = p.value;
+            render();
+          });
+          root.appendChild(b);
+        });
+      }
+
+      // ---------- SVG primitives ----------
+      function mkRect(x, y, w, h, fill, stroke, r) {
+        const el = document.createElementNS(SVG_NS, 'rect');
+        el.setAttribute('x', x); el.setAttribute('y', y);
+        el.setAttribute('width', w); el.setAttribute('height', h);
+        if (r != null) el.setAttribute('rx', r);
+        el.setAttribute('fill', fill || 'none');
+        if (stroke) el.setAttribute('stroke', stroke);
+        return el;
+      }
+      function mkText(x, y, str, opts) {
+        const el = document.createElementNS(SVG_NS, 'text');
+        el.setAttribute('x', x); el.setAttribute('y', y);
+        el.setAttribute('text-anchor', opts.anchor || 'middle');
+        el.setAttribute('font-size', opts.size || 12);
+        el.setAttribute('font-weight', opts.weight || 400);
+        el.setAttribute('fill', opts.color || 'var(--black)');
+        if (opts.family) el.setAttribute('font-family', opts.family);
+        if (opts.letter) el.setAttribute('letter-spacing', opts.letter);
+        el.textContent = str;
+        return el;
+      }
+      function mkLine(x1, y1, x2, y2, stroke, w, dash) {
+        const el = document.createElementNS(SVG_NS, 'line');
+        el.setAttribute('x1', x1); el.setAttribute('y1', y1);
+        el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+        el.setAttribute('stroke', stroke);
+        if (w != null) el.setAttribute('stroke-width', w);
+        if (dash) el.setAttribute('stroke-dasharray', dash);
+        return el;
+      }
+      function mkPath(d, fill, stroke, w) {
+        const el = document.createElementNS(SVG_NS, 'path');
+        el.setAttribute('d', d);
+        el.setAttribute('fill', fill || 'none');
+        if (stroke) el.setAttribute('stroke', stroke);
+        if (w != null) el.setAttribute('stroke-width', w);
+        return el;
+      }
+      function ensureArrowMarker(svg) {
+        // Reuse a single defs/marker
+        let defs = svg.querySelector('defs');
+        if (!defs) {
+          defs = document.createElementNS(SVG_NS, 'defs');
+          svg.appendChild(defs);
+        }
+        if (!defs.querySelector('#cobs-arrow')) {
+          const m = document.createElementNS(SVG_NS, 'marker');
+          m.setAttribute('id', 'cobs-arrow');
+          m.setAttribute('viewBox', '0 0 10 10');
+          m.setAttribute('refX', '8');
+          m.setAttribute('refY', '5');
+          m.setAttribute('markerWidth', '6');
+          m.setAttribute('markerHeight', '6');
+          m.setAttribute('orient', 'auto-start-reverse');
+          const p = document.createElementNS(SVG_NS, 'path');
+          p.setAttribute('d', 'M 0 0 L 10 5 L 0 10 Z');
+          p.setAttribute('fill', '#1f6feb');
+          m.appendChild(p);
+          defs.appendChild(m);
+        }
+      }
+
+      // ---------- Byte cell ----------
+      const BOX_W = 44, BOX_H = 34, GAP = 4, COL = BOX_W + GAP;
+
+      function styleForRole(role, isZero) {
+        if (role === 'delim')    return { fill: '#1f2228', stroke: '#1f2228', textColor: '#fff' };
+        if (role === 'overhead') return { fill: 'rgba(232,185,35,0.5)', stroke: '#E8B923', textColor: '#5a4500' };
+        if (role === 'data')     return { fill: '#fff', stroke: '#9aa0a8', textColor: '#1f2228' };
+        if (isZero)              return { fill: '#fdecef', stroke: 'var(--red)', textColor: 'var(--red)' };
+        return                          { fill: '#fff', stroke: '#9aa0a8', textColor: '#1f2228' };
+      }
+
+      function drawByteBox(parent, x, y, w, h, hexLabel, sub, style) {
+        const r = mkRect(x, y, w, h, style.fill, style.stroke, 5);
+        r.setAttribute('stroke-width', '1.4');
+        parent.appendChild(r);
+        parent.appendChild(mkText(x + w/2, y + h/2 + 5, hexLabel, {
+          anchor: 'middle', size: 14, weight: 900, color: style.textColor,
+          family: 'ui-monospace, Menlo, monospace', letter: 0.5,
+        }));
+        if (sub) {
+          parent.appendChild(mkText(x + w/2, y + h + 14, sub, {
+            anchor: 'middle', size: 10, weight: 700, color: 'var(--grey-text)',
+            family: 'Roboto, Helvetica, sans-serif', letter: 0.6,
+          }));
+        }
+      }
+
+      // ---------- Encoding visualization ----------
+      function renderEncoded(bytes) {
+        const svg = $('enc-svg');
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        ensureArrowMarker(svg);
+
+        const encoded = cobsEncode(bytes);
+        const padX = 12, padY = 6;
+        const labelW = 84;
+
+        // Encoded layout
+        const encX = encoded.map((_, i) => labelW + padX + i * COL);
+        const encWidth = COL * encoded.length - GAP;
+
+        // Input layout: each input byte aligns over the encoded slot for the same data position.
+        // For non-zero data byte i: align over the encoded entry where srcIdx === i.
+        // For a zero in the payload at index i: align over the encoded overhead byte that recorded zeroSrcIdx === i.
+        const inputLayout = bytes.map((b, i) => {
+          let encIdx = -1;
+          if (b !== 0) {
+            encIdx = encoded.findIndex(e => e.role === 'data' && e.srcIdx === i);
+          } else {
+            encIdx = encoded.findIndex(e => e.zeroSrcIdx === i);
+          }
+          return { byte: b, x: encX[encIdx], w: BOX_W, isZero: b === 0 };
+        });
+
+        // Compute layout heights
+        const arrowsAreaH = 32; // arrows above encoded row
+        const inputRowY = padY + 18;
+        const encRowY = inputRowY + BOX_H + arrowsAreaH;
+        const totalH = encRowY + BOX_H + 32;
+        const totalW = labelW + padX + Math.max(encWidth, 250) + padX;
+
+        svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+        svg.setAttribute('width', totalW);
+
+        // Row labels
+        svg.appendChild(mkText(padX, inputRowY + BOX_H/2 + 4, 'PAYLOAD', {
+          anchor: 'start', size: 10, weight: 900, color: 'var(--grey-text)',
+          family: 'Roboto, Helvetica, sans-serif', letter: 1.5,
+        }));
+        svg.appendChild(mkText(padX, encRowY + BOX_H/2 + 4, 'ON WIRE', {
+          anchor: 'start', size: 10, weight: 900, color: 'var(--red)',
+          family: 'Roboto, Helvetica, sans-serif', letter: 1.5,
+        }));
+
+        // Header
+        svg.appendChild(mkText(labelW + padX + encWidth/2, padY + 10,
+          `${bytes.length} byte${bytes.length===1?'':'s'} in → ${encoded.length} bytes out`, {
+          anchor: 'middle', size: 10, weight: 700, color: 'var(--grey-text)',
+          family: 'Roboto, sans-serif', letter: 0.8,
+        }));
+
+        // Input row — non-zero bytes pass through; zero bytes highlighted in red
+        for (const it of inputLayout) {
+          const style = styleForRole('data', it.isZero);
+          if (it.isZero) {
+            // Override for zero appearance
+            style.fill = '#fdecef';
+            style.stroke = 'var(--red)';
+            style.textColor = 'var(--red)';
+          }
+          const sub = it.isZero ? 'literal 00' : null;
+          drawByteBox(svg, it.x, inputRowY, it.w, BOX_H, hex(it.byte), sub, style);
+        }
+
+        // Encoded row + arrows for overhead bytes
+        encoded.forEach((e, i) => {
+          const style = styleForRole(e.role, e.byte === 0);
+          let sub = null;
+          if (e.role === 'delim') sub = 'delim';
+          else if (e.role === 'overhead') {
+            if (e.special255) sub = 'skip 254';
+            else sub = `+${e.byte}`;
+          }
+          drawByteBox(svg, encX[i], encRowY, BOX_W, BOX_H, hex(e.byte), sub, style);
+        });
+
+        // Curved arrows above encoded row: from each overhead byte to the position it points to
+        const arrowBaseY = encRowY - 3;     // arrow lands here (just above its target box top)
+        const arrowApexBase = encRowY - 32; // peak of arc
+        encoded.forEach((e, i) => {
+          if (e.role !== 'overhead' || e.pointsToIdx == null) return;
+          const fromCx = encX[i] + BOX_W/2;
+          const toIdx = Math.min(e.pointsToIdx, encoded.length - 1);
+          const toCx = encX[toIdx] + BOX_W/2;
+          const dist = Math.abs(toCx - fromCx);
+          // Arc height scales gently with distance
+          const apex = arrowApexBase - Math.min(dist * 0.04, 8);
+          const fromY = arrowBaseY - 6;
+          const toY = arrowBaseY - 2;
+          const cx1 = fromCx + (toCx - fromCx) * 0.35;
+          const cx2 = fromCx + (toCx - fromCx) * 0.65;
+          const d = `M ${fromCx} ${fromY} C ${cx1} ${apex}, ${cx2} ${apex}, ${toCx} ${toY}`;
+          const path = mkPath(d, 'none', 'var(--blue)', 1.4);
+          path.setAttribute('marker-end', 'url(#cobs-arrow)');
+          path.setAttribute('opacity', e.special255 ? '0.55' : '0.9');
+          if (e.special255) path.setAttribute('stroke-dasharray', '4 3');
+          svg.appendChild(path);
+        });
+
+        // Connecting lines from input → encoded for non-zero bytes (subtle)
+        for (let i = 0; i < inputLayout.length; i++) {
+          const it = inputLayout[i];
+          const ix = it.x + it.w/2;
+          const iy = inputRowY + BOX_H;
+          if (it.isZero) {
+            // Indicate that this zero became an overhead byte: subtle red dashed line
+            const ey = encRowY;
+            svg.appendChild(mkLine(ix, iy + 2, ix, ey - 2, 'var(--red)', 1, '3 3'));
+          }
+        }
+      }
+
+      // ---------- Stats ----------
+      function renderStats(bytes) {
+        const root = $('stats');
+        const encoded = cobsEncode(bytes);
+        const overhead = encoded.length - bytes.length;
+        const pct = bytes.length === 0
+          ? '—'
+          : ((overhead / bytes.length) * 100).toFixed(1) + '%';
+        const blocks = encoded.filter(e => e.role === 'overhead').length;
+        const cells = [
+          { num: bytes.length,    label: 'payload bytes',  cls: '' },
+          { num: encoded.length,  label: 'encoded bytes',  cls: '' },
+          { num: overhead,        label: 'overhead bytes', cls: 'ok' },
+          { num: pct,             label: 'overhead',       cls: '' },
+          { num: blocks,          label: 'blocks',         cls: '' },
+        ];
+        root.innerHTML = '';
+        for (const c of cells) {
+          const div = document.createElement('div');
+          div.className = 'stat';
+          div.innerHTML = `<div class="stat-num ${c.cls}">${c.num}</div><div class="stat-label">${c.label}</div>`;
+          root.appendChild(div);
+        }
+      }
+
+      // ---------- SLIP comparison ----------
+      function renderCompare(bytes) {
+        const cobsLen = cobsEncode(bytes).length;
+        const slipLen = slipEncodedLength(bytes);
+        const cobsOH = cobsLen - bytes.length;
+        const slipOH = slipLen - bytes.length;
+        const cobsPct = bytes.length === 0 ? '—' : ((cobsOH / bytes.length) * 100).toFixed(1) + '%';
+        const slipPct = bytes.length === 0 ? '—' : ((slipOH / bytes.length) * 100).toFixed(1) + '%';
+        const cobsCls = cobsLen <= slipLen ? 'winner' : 'loser';
+        const slipCls = slipLen <  cobsLen ? 'winner' : (slipLen > cobsLen ? 'loser' : '');
+        $('compare').innerHTML = `
+          <table class="compare-table">
+            <thead>
+              <tr><th>Protocol</th><th style="text-align:right">Encoded size</th><th style="text-align:right">Overhead</th><th style="text-align:right">Overhead %</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>COBS</b> <span class="label">+ trailing 0x00 delimiter</span></td>
+                <td class="num ${cobsCls}">${cobsLen} B</td>
+                <td class="num ${cobsCls}">+${cobsOH}</td>
+                <td class="num ${cobsCls}">${cobsPct}</td>
+              </tr>
+              <tr>
+                <td><b>SLIP</b> <span class="label">+ leading and trailing END</span></td>
+                <td class="num ${slipCls}">${slipLen} B</td>
+                <td class="num ${slipCls}">+${slipOH}</td>
+                <td class="num ${slipCls}">${slipPct}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      }
+
+      // ---------- Main render ----------
+      function render() {
+        const text = $('payload-input').value;
+        const errEl = $('err-msg');
+        const inputEl = $('payload-input');
+        let bytes;
+        try {
+          bytes = parseHex(text);
+          for (const b of bytes) {
+            if (!Number.isInteger(b) || b < 0 || b > 255) throw new Error('byte out of range 0–255');
+          }
+        } catch (e) {
+          errEl.textContent = e.message;
+          inputEl.classList.add('invalid');
+          return;
+        }
+        errEl.textContent = '';
+        inputEl.classList.remove('invalid');
+
+        renderEncoded(bytes);
+        renderStats(bytes);
+        renderCompare(bytes);
+      }
+
+      // ---------- Boot ----------
+      function boot() {
+        renderPresets();
+        $('payload-input').addEventListener('input', render);
+        render();
+      }
+      boot();
+    </script>
+  </body>
+</html>

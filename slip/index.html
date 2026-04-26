@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SLIP &middot; Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+        --blue: #1f6feb;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 28px;
+        max-width: 64ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 18px;
+      }
+      .panel h3 {
+        margin: 0 0 12px;
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .help { font-size: 14px; color: var(--black); line-height: 1.55; }
+      .help p { margin: 0 0 10px; color: var(--grey-text); }
+      .help p b { color: var(--black); }
+      .help ol { margin: 0; padding-left: 22px; color: var(--grey-text); }
+      .help li { margin: 4px 0; }
+      .help li b { color: var(--black); }
+      .help code, .mono {
+        background: #eef0f2;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .input-row {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+        flex-wrap: wrap;
+      }
+      .input-row input.hex {
+        flex: 1;
+        min-width: 220px;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        padding: 11px 12px;
+        border: 1.5px solid var(--grey-line);
+        border-radius: 8px;
+        background: #fff;
+        letter-spacing: 0.5px;
+      }
+      .input-row input.hex:focus { outline: 2px solid var(--red); border-color: var(--red); }
+      .input-row input.hex.invalid { border-color: var(--red); background: #fff1f3; }
+      .input-row .hint {
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        color: var(--grey-text);
+        margin-top: 6px;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      .err {
+        margin-top: 10px;
+        color: var(--red);
+        font-size: 13px;
+        font-weight: 700;
+        min-height: 1.2em;
+      }
+
+      .presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .chip-btn {
+        background: #fff;
+        border: 1.5px solid var(--grey-line);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-family: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--black);
+        cursor: pointer;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+      }
+      .chip-btn:hover { border-color: var(--red); color: var(--red); }
+      .chip-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+      .scroll-x {
+        overflow-x: auto;
+        margin: 0 -4px;
+        padding: 4px;
+      }
+      svg.viz {
+        display: block;
+        height: auto;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        align-items: center;
+      }
+      .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: middle;
+        border: 1px solid var(--grey-line);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+      }
+      .stat .stat-num {
+        font-weight: 900;
+        font-size: 28px;
+        letter-spacing: -0.5px;
+        line-height: 1.05;
+        color: var(--black);
+      }
+      .stat .stat-num.ok    { color: var(--green); }
+      .stat .stat-num.warn  { color: var(--gold); }
+      .stat .stat-num.bad   { color: var(--red); }
+      .stat .stat-label {
+        margin-top: 4px;
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+
+      details summary {
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        color: var(--grey-text);
+        margin-top: 12px;
+      }
+      details summary:hover { color: var(--black); }
+      details p { margin-top: 8px; color: var(--grey-text); line-height: 1.55; font-size: 14px; }
+
+      .attribution {
+        margin-top: 48px; padding-top: 24px;
+        border-top: 1px solid var(--grey-line);
+        width: 100%; font-size: 13px; letter-spacing: 0.5px;
+        color: var(--grey-text); display: flex;
+        align-items: center; justify-content: center; gap: 8px;
+      }
+      .attribution a {
+        display: inline-flex; align-items: center; gap: 8px;
+        color: var(--black); text-decoration: none; font-weight: 700;
+        transition: color 0.15s, opacity 0.15s;
+      }
+      .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+      .attribution a:hover { color: var(--red); }
+      .attribution a:hover img { opacity: 0.85; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">SLIP</span>
+    </header>
+
+    <main>
+      <h1>SLIP &mdash; Serial Line IP</h1>
+      <p class="lead">The simplest framing protocol that actually works. One byte means &ldquo;end of packet,&rdquo; and one more byte rescues that meaning when it shows up inside your data. That&rsquo;s the whole protocol &mdash; eight lines of C, RFC 1055 in 1988.</p>
+
+      <div class="panel help">
+        <h3>The trick in one paragraph</h3>
+        <p>SLIP picks one byte &mdash; <code>0xC0</code>, named <b>END</b> &mdash; and declares that whenever the receiver sees it, the current frame is over. To send a payload that itself contains <code>0xC0</code>, you have to disguise it. SLIP uses one more byte, <code>0xDB</code> (<b>ESC</b>), meaning &ldquo;the next byte tells you what was really here.&rdquo; <code>ESC</code>&nbsp;<code>0xDC</code> means &ldquo;a literal <code>0xC0</code>,&rdquo; and <code>ESC</code>&nbsp;<code>0xDD</code> means &ldquo;a literal <code>0xDB</code>.&rdquo; The cost: every <code>C0</code> or <code>DB</code> in the data turns into two bytes on the wire. The win: a receiver that joins mid-stream just waits for the next <code>C0</code> and resyncs &mdash; no header parsing, no length fields, no state.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Payload bytes</h3>
+        <div class="input-row">
+          <input id="payload-input" class="hex" type="text" value="48 65 6C 6C 6F C0 DE AD DB EE F0" spellcheck="false" autocomplete="off" />
+        </div>
+        <div class="hint">Hex bytes, any reasonable separator: <span class="mono">01 02 C0</span>, <span class="mono">0x01,0x02,0xC0</span>, <span class="mono">0102C0</span></div>
+        <div class="err" id="err-msg"></div>
+        <div class="presets" id="presets"></div>
+      </div>
+
+      <div class="panel">
+        <h3>SLIP encoding</h3>
+        <div class="scroll-x"><svg class="viz" id="enc-svg" aria-label="SLIP encoding diagram"></svg></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#1f2228;border-color:#1f2228"></span><b>END</b> &mdash; <span class="mono">0xC0</span> frame delimiter</span>
+          <span><span class="swatch" style="background:rgba(232,185,35,0.5);border-color:#E8B923"></span><b>ESC sequence</b> &mdash; literal <span class="mono">C0</span> or <span class="mono">DB</span> in the payload</span>
+          <span><span class="swatch" style="background:#fff;border-color:#9aa0a8"></span>regular payload byte (passes through unchanged)</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Cost</h3>
+        <div class="stats-grid" id="stats"></div>
+        <details>
+          <summary>Why every byte except <code>C0</code> and <code>DB</code> is free</summary>
+          <p>Two bytes are reserved as &ldquo;control&rdquo; bytes. Everything else &mdash; the other 254 values &mdash; passes through as-is. So the worst case is a payload made entirely of <code>C0</code> or <code>DB</code> bytes, where SLIP doubles your size. For typical IP packets, where these two specific values are rare, overhead is well under 1%.</p>
+        </details>
+      </div>
+
+      <div class="panel">
+        <h3>On the wire: three frames back-to-back</h3>
+        <div class="scroll-x"><svg class="viz" id="stream-svg" aria-label="SLIP stream of frames"></svg></div>
+        <p style="margin:12px 0 0;color:var(--grey-text);font-size:13px;line-height:1.5;">
+          Frames are simply concatenated, with a single <code>END</code> between each. (RFC 1055 also lets you send a <code>END</code> at the <i>start</i> of each frame &mdash; if line noise scrambled the previous one, the lone <code>END</code> turns into a harmless empty frame, and the real one stays intact.) A receiver synchronizes by discarding everything until it sees the first <code>END</code>, then decodes between successive <code>END</code> bytes.
+        </p>
+      </div>
+
+      <div class="panel help">
+        <h3>Things to try</h3>
+        <ol>
+          <li>Click <b>Plain ASCII</b>. None of the payload bytes match <code>C0</code> or <code>DB</code>, so encoding adds exactly two bytes total &mdash; the leading and trailing <code>END</code> markers. Overhead: 2 bytes regardless of payload length.</li>
+          <li>Click <b>One <code>C0</code> in the middle</b>. Watch the single <code>C0</code> turn into a <span style="color:#a07000">gold ESC sequence</span> on the wire. The receiver sees <code>DB&nbsp;DC</code> and reconstructs the original <code>C0</code>; the actual frame-ending <code>C0</code> at the end is unambiguous.</li>
+          <li>Click <b>Worst case (all <code>C0</code>)</b>. Every payload byte costs two bytes on the wire. SLIP is at its 2&times; expansion factor &mdash; the same reason length-prefixed framings exist when the alphabet has many reserved values.</li>
+          <li>Click <b>Empty packet</b>. With no payload at all, the wire shows just <code>C0&nbsp;C0</code>. Many SLIP implementations skip empty frames silently, which is exactly why an extra leading <code>END</code> after noise is harmless.</li>
+          <li>Type <span class="mono">DB DC</span> as the payload. The encoder must escape <i>both</i> bytes: the <code>DB</code> becomes <code>DB DD</code>, then the literal <code>DC</code> passes through, then nothing else &mdash; so the encoded frame contains <code>C0 DB DD DC C0</code>. The decoder, walking left-to-right, sees <code>DB</code>, swallows the next byte and emits <code>DB</code>, then sees <code>DC</code> and emits <code>DC</code>. No ambiguity.</li>
+        </ol>
+        <details>
+          <summary>What SLIP doesn&rsquo;t do (and what came after)</summary>
+          <p>SLIP has no addressing, no length, no checksum, no negotiation, and no compression. It simply frames a stream of bytes &mdash; both endpoints must already agree on what those bytes mean (e.g. that they&rsquo;re an IP packet). RFC 1055 explicitly says &ldquo;there is no &lsquo;standard&rsquo; specification of SLIP,&rdquo; just a description of the de facto convention.</p>
+          <p><b>PPP</b> (RFC 1661, 1994) replaces SLIP in essentially every modern setting: it adds a real header with protocol type, an HDLC-style FCS for error detection, and link-layer negotiation. <b>COBS</b> (1997) tackles the same framing problem from a different angle &mdash; bounded constant overhead, instead of variable per-byte stuffing.</p>
+        </details>
+      </div>
+
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const $ = (id) => document.getElementById(id);
+
+      // ---------- SLIP constants ----------
+      const END     = 0xC0;
+      const ESC     = 0xDB;
+      const ESC_END = 0xDC;
+      const ESC_ESC = 0xDD;
+
+      // ---------- SLIP encode ----------
+      function slipEncode(bytes) {
+        // Each output byte: { byte, role: 'frame'|'esc'|'data', srcIdx?: int }
+        const out = [];
+        out.push({byte: END, role: 'frame'});
+        for (let i = 0; i < bytes.length; i++) {
+          const b = bytes[i];
+          if (b === END) {
+            out.push({byte: ESC,     role: 'esc', srcIdx: i, escFirst: true});
+            out.push({byte: ESC_END, role: 'esc', srcIdx: i, escFirst: false});
+          } else if (b === ESC) {
+            out.push({byte: ESC,     role: 'esc', srcIdx: i, escFirst: true});
+            out.push({byte: ESC_ESC, role: 'esc', srcIdx: i, escFirst: false});
+          } else {
+            out.push({byte: b,       role: 'data', srcIdx: i});
+          }
+        }
+        out.push({byte: END, role: 'frame'});
+        return out;
+      }
+
+      // ---------- Hex parsing ----------
+      function parseHex(text) {
+        const cleaned = text.replace(/0[xX]/g, '');
+        const tokens = cleaned.split(/[^0-9a-fA-F]+/).filter(t => t.length > 0);
+        if (tokens.length === 0) return [];
+        // If a single long run of hex digits, treat as packed pairs.
+        if (tokens.length === 1 && tokens[0].length > 2 && tokens[0].length % 2 === 0) {
+          const s = tokens[0];
+          const out = [];
+          for (let i = 0; i < s.length; i += 2) out.push(parseInt(s.slice(i, i+2), 16));
+          return out;
+        }
+        const out = [];
+        for (const t of tokens) {
+          if (t.length > 2) throw new Error(`token "${t.toUpperCase()}" is more than one byte`);
+          out.push(parseInt(t, 16));
+        }
+        return out;
+      }
+      const hex = (b) => b.toString(16).toUpperCase().padStart(2, '0');
+
+      // ---------- Presets ----------
+      const PRESETS = [
+        { label: 'Plain ASCII',          value: '48 65 6C 6C 6F 20 53 4C 49 50' },                 // "Hello SLIP"
+        { label: 'One C0 in the middle', value: '01 02 03 C0 04 05 06' },
+        { label: 'Adjacent C0 and DB',   value: '11 C0 DB 22' },
+        { label: 'Mixed payload',        value: '48 65 6C 6C 6F C0 DE AD DB EE F0' },
+        { label: 'Worst case (all C0)',  value: 'C0 C0 C0 C0 C0 C0' },
+        { label: 'Empty packet',         value: '' },
+      ];
+
+      function renderPresets() {
+        const root = $('presets');
+        root.innerHTML = '';
+        PRESETS.forEach((p, i) => {
+          const b = document.createElement('button');
+          b.className = 'chip-btn';
+          b.type = 'button';
+          b.textContent = p.label;
+          b.addEventListener('click', () => {
+            $('payload-input').value = p.value;
+            render();
+          });
+          root.appendChild(b);
+        });
+      }
+
+      // ---------- SVG primitives ----------
+      function mkRect(x, y, w, h, fill, stroke, r) {
+        const el = document.createElementNS(SVG_NS, 'rect');
+        el.setAttribute('x', x); el.setAttribute('y', y);
+        el.setAttribute('width', w); el.setAttribute('height', h);
+        if (r != null) el.setAttribute('rx', r);
+        el.setAttribute('fill', fill || 'none');
+        if (stroke) el.setAttribute('stroke', stroke);
+        return el;
+      }
+      function mkText(x, y, str, opts) {
+        const el = document.createElementNS(SVG_NS, 'text');
+        el.setAttribute('x', x); el.setAttribute('y', y);
+        el.setAttribute('text-anchor', opts.anchor || 'middle');
+        el.setAttribute('font-size', opts.size || 12);
+        el.setAttribute('font-weight', opts.weight || 400);
+        el.setAttribute('fill', opts.color || 'var(--black)');
+        if (opts.family) el.setAttribute('font-family', opts.family);
+        if (opts.letter) el.setAttribute('letter-spacing', opts.letter);
+        el.textContent = str;
+        return el;
+      }
+      function mkLine(x1, y1, x2, y2, stroke, w, dash) {
+        const el = document.createElementNS(SVG_NS, 'line');
+        el.setAttribute('x1', x1); el.setAttribute('y1', y1);
+        el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+        el.setAttribute('stroke', stroke);
+        if (w != null) el.setAttribute('stroke-width', w);
+        if (dash) el.setAttribute('stroke-dasharray', dash);
+        return el;
+      }
+      function mkPath(d, fill, stroke, w) {
+        const el = document.createElementNS(SVG_NS, 'path');
+        el.setAttribute('d', d);
+        el.setAttribute('fill', fill || 'none');
+        if (stroke) el.setAttribute('stroke', stroke);
+        if (w != null) el.setAttribute('stroke-width', w);
+        return el;
+      }
+      function mkGroup() { return document.createElementNS(SVG_NS, 'g'); }
+
+      // ---------- Byte cell renderer ----------
+      const BOX_W = 44, BOX_H = 34, GAP = 4, COL = BOX_W + GAP; // 48
+
+      function styleFor(role) {
+        if (role === 'frame') return { fill: '#1f2228', stroke: '#1f2228', textColor: '#fff' };
+        if (role === 'esc')   return { fill: 'rgba(232,185,35,0.5)', stroke: '#E8B923', textColor: '#5a4500' };
+        return                       { fill: '#fff', stroke: '#9aa0a8', textColor: '#1f2228' };
+      }
+
+      function drawByteBox(parent, x, y, w, h, hexLabel, sub, style) {
+        const r = mkRect(x, y, w, h, style.fill, style.stroke, 5);
+        r.setAttribute('stroke-width', '1.4');
+        parent.appendChild(r);
+        parent.appendChild(mkText(x + w/2, y + h/2 + 5, hexLabel, {
+          anchor: 'middle', size: 14, weight: 900, color: style.textColor,
+          family: 'ui-monospace, Menlo, monospace', letter: 0.5,
+        }));
+        if (sub) {
+          parent.appendChild(mkText(x + w/2, y + h + 14, sub, {
+            anchor: 'middle', size: 10, weight: 700, color: 'var(--grey-text)',
+            family: 'Roboto, Helvetica, sans-serif', letter: 0.6,
+          }));
+        }
+      }
+
+      // ---------- Main encoding visualization ----------
+      function renderEncoded(bytes) {
+        const svg = $('enc-svg');
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        const encoded = slipEncode(bytes);
+        const padX = 12, padY = 6;
+        const labelW = 84;
+
+        // Compute encoded layout (output bytes laid left-to-right, COL apart).
+        const encX = encoded.map((_, i) => labelW + padX + i * COL);
+        const encWidth = COL * encoded.length - GAP;
+        const totalW = labelW + padX + encWidth + padX;
+
+        // Compute input layout: each input byte aligned over its encoded counterpart(s).
+        // Special bytes (C0/DB) span two encoded slots; their input box is wider.
+        const inputLayout = [];
+        for (let i = 0; i < bytes.length; i++) {
+          const b = bytes[i];
+          const isSpecial = (b === END || b === ESC);
+          // Find first encoded entry with srcIdx === i.
+          const startEncIdx = encoded.findIndex(e => e.srcIdx === i);
+          const ex = encX[startEncIdx];
+          const w = isSpecial ? (2*COL - GAP) : BOX_W;
+          inputLayout.push({byte: b, x: ex, w, special: isSpecial});
+        }
+
+        // Geometry
+        const inputRowY  = padY + 18;
+        const inputBoxH  = BOX_H;
+        const arrowsY1   = inputRowY + inputBoxH;
+        const arrowsY2   = arrowsY1 + 36;
+        const encRowY    = arrowsY2;
+        const encBoxH    = BOX_H;
+        const totalH     = encRowY + encBoxH + 28;
+
+        svg.setAttribute('viewBox', `0 0 ${Math.max(totalW, 380)} ${totalH}`);
+        svg.setAttribute('width', Math.max(totalW, 380));
+
+        // Row labels
+        svg.appendChild(mkText(padX, inputRowY + inputBoxH/2 + 4, 'PAYLOAD', {
+          anchor: 'start', size: 10, weight: 900, color: 'var(--grey-text)',
+          family: 'Roboto, Helvetica, sans-serif', letter: 1.5,
+        }));
+        svg.appendChild(mkText(padX, encRowY + encBoxH/2 + 4, 'ON WIRE', {
+          anchor: 'start', size: 10, weight: 900, color: 'var(--red)',
+          family: 'Roboto, Helvetica, sans-serif', letter: 1.5,
+        }));
+
+        // Header tick: column "above payload" — just informational header above
+        if (bytes.length > 0) {
+          svg.appendChild(mkText(labelW + padX + (encX[encX.length-1] - encX[0])/2 + COL/2 - padX, padY + 10,
+            `${bytes.length} byte${bytes.length===1?'':'s'} in → ${encoded.length} bytes out`, {
+            anchor: 'middle', size: 10, weight: 700, color: 'var(--grey-text)',
+            family: 'Roboto, Helvetica, sans-serif', letter: 0.8,
+          }));
+        } else {
+          svg.appendChild(mkText(labelW + padX + encWidth/2, padY + 10,
+            `0 bytes in → ${encoded.length} bytes out (empty frame)`, {
+            anchor: 'middle', size: 10, weight: 700, color: 'var(--grey-text)',
+            family: 'Roboto, Helvetica, sans-serif', letter: 0.8,
+          }));
+        }
+
+        // Input row
+        for (const it of inputLayout) {
+          const style = it.special
+            ? { fill: 'rgba(232,185,35,0.18)', stroke: '#E8B923', textColor: '#5a4500' }
+            : { fill: '#fff', stroke: '#9aa0a8', textColor: '#1f2228' };
+          const sub = (it.byte === END) ? 'literal C0' :
+                      (it.byte === ESC) ? 'literal DB' : null;
+          drawByteBox(svg, it.x, inputRowY, it.w, inputBoxH, hex(it.byte), sub, style);
+        }
+
+        // Encoded row
+        encoded.forEach((e, i) => {
+          const style = styleFor(e.role);
+          let sub = null;
+          if (e.role === 'frame') sub = 'END';
+          else if (e.role === 'esc' && e.escFirst) sub = 'ESC';
+          else if (e.role === 'esc' && !e.escFirst) sub = (e.byte === ESC_END ? '→ C0' : '→ DB');
+          drawByteBox(svg, encX[i], encRowY, BOX_W, encBoxH, hex(e.byte), sub, style);
+        });
+
+        // Connections from input → encoded (centered top of encoded box → centered bottom of input box)
+        for (let i = 0; i < inputLayout.length; i++) {
+          const it = inputLayout[i];
+          const ix = it.x + it.w/2;
+          const iy = inputRowY + inputBoxH;
+          // Find encoded indices for this src
+          const encIdxs = encoded.map((e, j) => e.srcIdx === i ? j : -1).filter(j => j >= 0);
+          // Top-of-output center
+          if (it.special) {
+            // Two children: split arc
+            const cx1 = encX[encIdxs[0]] + BOX_W/2;
+            const cx2 = encX[encIdxs[1]] + BOX_W/2;
+            const oy = encRowY;
+            // Trunk down from input
+            svg.appendChild(mkLine(ix, iy + 2, ix, iy + 14, '#E8B923', 1.6));
+            // Two angled lines down to children
+            svg.appendChild(mkPath(`M ${ix} ${iy+14} Q ${ix} ${oy-8} ${cx1} ${oy-2}`, 'none', '#E8B923', 1.6));
+            svg.appendChild(mkPath(`M ${ix} ${iy+14} Q ${ix} ${oy-8} ${cx2} ${oy-2}`, 'none', '#E8B923', 1.6));
+            // Tiny "×2" badge near trunk
+            const badge = mkRect(ix - 11, iy + 16, 22, 14, '#fff', '#E8B923', 7);
+            svg.appendChild(badge);
+            svg.appendChild(mkText(ix, iy + 26, '×2', {
+              anchor: 'middle', size: 9, weight: 900, color: '#5a4500',
+              family: 'Roboto, sans-serif',
+            }));
+          } else {
+            // 1-to-1
+            const cx = encX[encIdxs[0]] + BOX_W/2;
+            const oy = encRowY;
+            svg.appendChild(mkLine(ix, iy + 2, cx, oy - 2, '#9aa0a8', 1.1));
+          }
+        }
+
+        // The leading and trailing END markers have no input source; label them.
+        // Already drawn with sub="END". Add small arrow above pointing nowhere (or a "frame start" tag)?
+        // We add a subtle bracket above each END to mark "frame boundary".
+        const firstX = encX[0];
+        const lastX  = encX[encX.length - 1];
+        for (const ex of [firstX, lastX]) {
+          const cx = ex + BOX_W/2;
+          svg.appendChild(mkText(cx, encRowY - 6, '|', {
+            anchor: 'middle', size: 14, weight: 900, color: 'var(--red)',
+            family: 'Roboto, sans-serif',
+          }));
+        }
+      }
+
+      // ---------- Stats ----------
+      function renderStats(bytes) {
+        const root = $('stats');
+        const encoded = slipEncode(bytes);
+        const escapedBytes = bytes.filter(b => b === END || b === ESC).length;
+        const overhead = encoded.length - bytes.length;
+        const pct = bytes.length === 0
+          ? '—'
+          : ((overhead / bytes.length) * 100).toFixed(0) + '%';
+        const cells = [
+          { num: bytes.length,    label: 'payload bytes',  cls: '' },
+          { num: encoded.length,  label: 'encoded bytes',  cls: '' },
+          { num: overhead,        label: 'overhead bytes', cls: overhead <= 2 ? 'ok' : (overhead < bytes.length ? 'warn' : 'bad') },
+          { num: pct,             label: 'overhead',       cls: '' },
+          { num: escapedBytes,    label: 'escapes used',   cls: escapedBytes === 0 ? 'ok' : 'warn' },
+        ];
+        root.innerHTML = '';
+        for (const c of cells) {
+          const div = document.createElement('div');
+          div.className = 'stat';
+          div.innerHTML = `<div class="stat-num ${c.cls}">${c.num}</div><div class="stat-label">${c.label}</div>`;
+          root.appendChild(div);
+        }
+      }
+
+      // ---------- Multi-frame stream view ----------
+      function renderStream(bytes) {
+        const svg = $('stream-svg');
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        // Three small frames: the payload, then "ACK" (06), then a small mixed packet
+        const payloads = [
+          bytes.length ? bytes : [0x48, 0x69], // fall back to "Hi" if empty
+          [0x06],                              // ACK
+          [0xDE, 0xAD, 0xC0, 0xFF, 0xEE],
+        ];
+
+        // Concatenate encoded frames, but elide adjacent ENDs into one
+        // (RFC convention: lone ENDs between frames are fine; but in practice many encoders use one END between).
+        const stream = [];
+        const frameRanges = []; // [{start, end, srcLen}]
+        for (let f = 0; f < payloads.length; f++) {
+          const enc = slipEncode(payloads[f]);
+          const start = stream.length;
+          if (f === 0) {
+            for (const e of enc) stream.push({...e, frameId: f});
+          } else {
+            // Adjacent ENDs collapse: skip the leading END since previous frame's trailing END suffices.
+            for (let k = 1; k < enc.length; k++) stream.push({...enc[k], frameId: f});
+          }
+          const end = stream.length - 1;
+          frameRanges.push({start, end, srcLen: payloads[f].length});
+        }
+
+        const padX = 12, padY = 8;
+        const labelW = 0;
+        const N = stream.length;
+        const totalW = padX*2 + N * COL - GAP;
+        const rowY = padY + 24;
+        const rowH = BOX_H;
+        const totalH = padY*2 + 24 + rowH + 38;
+
+        svg.setAttribute('viewBox', `0 0 ${Math.max(totalW, 380)} ${totalH}`);
+        svg.setAttribute('width', Math.max(totalW, 380));
+
+        // Frame brackets and labels above
+        for (let f = 0; f < frameRanges.length; f++) {
+          const {start, end, srcLen} = frameRanges[f];
+          const x0 = padX + start * COL;
+          const x1 = padX + end * COL + BOX_W;
+          const cx = (x0 + x1) / 2;
+          const yLabel = padY + 14;
+          // Bracket
+          const br = mkPath(`M ${x0+2} ${rowY-4} L ${x0+2} ${rowY-12} L ${x1-2} ${rowY-12} L ${x1-2} ${rowY-4}`,
+                            'none', 'var(--blue)', 1.2);
+          svg.appendChild(br);
+          svg.appendChild(mkText(cx, padY + 10, `Frame ${f+1} · ${srcLen} byte${srcLen===1?'':'s'} payload`, {
+            anchor: 'middle', size: 10, weight: 700, color: 'var(--blue)',
+            family: 'Roboto, sans-serif', letter: 0.6,
+          }));
+        }
+
+        // Bytes
+        stream.forEach((e, i) => {
+          const x = padX + i * COL;
+          const style = styleFor(e.role);
+          let sub = null;
+          if (e.role === 'frame') sub = 'END';
+          drawByteBox(svg, x, rowY, BOX_W, rowH, hex(e.byte), sub, style);
+        });
+
+        // Receiver "tape head" annotation underneath END bytes
+        const tapeY = rowY + rowH + 22;
+        svg.appendChild(mkText(padX, tapeY, 'Receiver: each ', {
+          anchor: 'start', size: 11, weight: 700, color: 'var(--grey-text)',
+          family: 'Roboto, sans-serif',
+        }));
+        svg.appendChild(mkText(padX + 86, tapeY, 'C0', {
+          anchor: 'start', size: 11, weight: 900, color: 'var(--red)',
+          family: 'ui-monospace, Menlo, monospace',
+        }));
+        svg.appendChild(mkText(padX + 105, tapeY, ' is a frame boundary — no length field, no header.', {
+          anchor: 'start', size: 11, weight: 700, color: 'var(--grey-text)',
+          family: 'Roboto, sans-serif',
+        }));
+      }
+
+      // ---------- Main render ----------
+      function render() {
+        const text = $('payload-input').value;
+        const errEl = $('err-msg');
+        const inputEl = $('payload-input');
+        let bytes;
+        try {
+          bytes = parseHex(text);
+          for (const b of bytes) {
+            if (!Number.isInteger(b) || b < 0 || b > 255) throw new Error('byte out of range 0–255');
+          }
+        } catch (e) {
+          errEl.textContent = e.message;
+          inputEl.classList.add('invalid');
+          return;
+        }
+        errEl.textContent = '';
+        inputEl.classList.remove('invalid');
+
+        renderEncoded(bytes);
+        renderStats(bytes);
+        renderStream(bytes);
+      }
+
+      // ---------- Boot ----------
+      function boot() {
+        renderPresets();
+        $('payload-input').addEventListener('input', render);
+        render();
+      }
+      boot();
+    </script>
+  </body>
+</html>
