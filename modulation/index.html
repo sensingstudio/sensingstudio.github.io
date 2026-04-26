@@ -1,0 +1,2315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Digital Modulation &middot; Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+        --blue: #1f6feb;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 980px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 28px;
+        max-width: 64ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 18px;
+      }
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel.teach { background: #fffdf6; border-color: #ecdda3; }
+      .panel.teach h2 { color: #8a6d12; }
+      .panel.teach p, .panel.teach li {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #3a3a3a;
+      }
+      .panel.teach p { margin: 0 0 10px; }
+      .panel.teach p:last-child { margin-bottom: 0; }
+      .panel.teach ul { margin: 6px 0 10px; padding-left: 22px; }
+      .panel.teach code {
+        font-family: 'Roboto Mono', monospace;
+        background: rgba(0,0,0,0.04);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12.5px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 88px;
+      }
+      input[type="range"] {
+        flex: 1 1 200px;
+        min-width: 200px;
+      }
+      input[type="text"] {
+        flex: 1 1 220px;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px;
+        padding: 9px 12px;
+        border: 1px solid var(--grey-line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--black);
+      }
+      input[type="text"]:focus {
+        outline: none;
+        border-color: var(--red);
+      }
+      .val {
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 500;
+        font-size: 14px;
+        min-width: 84px;
+        text-align: right;
+        color: var(--black);
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.big { font-size: 14px; padding: 14px 28px; }
+      .scheme-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .scheme-pills button {
+        background: #fff;
+        color: var(--grey-text);
+        border-color: var(--grey-line);
+        font-size: 12px;
+        padding: 8px 14px;
+        text-transform: none;
+        letter-spacing: 0.2px;
+        font-weight: 500;
+      }
+      .scheme-pills button.active {
+        background: var(--red);
+        color: #fff;
+        border-color: var(--red);
+        font-weight: 700;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 14px 18px;
+      }
+      .stat .label {
+        font-size: 11px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .stat .num {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 4px;
+        letter-spacing: -0.5px;
+      }
+      .stat .num .unit {
+        font-size: 12px;
+        color: var(--grey-text);
+        font-weight: 500;
+        margin-left: 4px;
+      }
+      .stat .num.ok { color: var(--green); }
+      .stat .num.bad { color: var(--red); }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 6;
+        margin-bottom: 8px;
+      }
+      .canvas-wrap.tall { aspect-ratio: 16 / 7; }
+      .canvas-wrap.square { aspect-ratio: 1 / 1; }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .canvas-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--black);
+        margin: 18px 0 8px;
+      }
+      .canvas-title .sub {
+        font-weight: 400;
+        color: var(--grey-text);
+        font-size: 12px;
+        margin-left: 8px;
+      }
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 6px;
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      .legend .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 3px;
+        vertical-align: 2px;
+        margin-right: 6px;
+        border-radius: 1px;
+      }
+      .status {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin-top: 8px;
+      }
+      .status.error { color: var(--red); }
+      .status.busy { color: var(--gold); }
+      .status.ok { color: var(--green); }
+      .note {
+        font-size: 12.5px;
+        color: var(--grey-text);
+        margin-top: 14px;
+        line-height: 1.5;
+      }
+      .decoded {
+        background: #0c0c0e;
+        color: #e8e8ea;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px;
+        padding: 14px 18px;
+        border-radius: 6px;
+        min-height: 22px;
+        word-break: break-all;
+        line-height: 1.45;
+      }
+      .decoded.bad { color: #ff8a99; }
+      .frame-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .frame-grid .cell {
+        background: #f4f5f7;
+        border: 1px solid var(--grey-line);
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      .frame-grid .cell .k {
+        color: var(--grey-text);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 700;
+        font-size: 10.5px;
+      }
+      .frame-grid .cell .v {
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 500;
+        font-size: 13px;
+        margin-top: 3px;
+      }
+      .twocol {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 720px) {
+        .twocol { grid-template-columns: 1fr; }
+      }
+      details summary {
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--grey-text);
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+      details[open] summary { margin-bottom: 12px; }
+      .attribution {
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid var(--grey-line);
+        width: 100%;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        color: var(--grey-text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .attribution a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 700;
+        transition: color 0.15s, opacity 0.15s;
+      }
+      .attribution a img {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        display: block;
+      }
+      .attribution a:hover { color: var(--red); }
+      .attribution a:hover img { opacity: 0.85; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">Digital Modulation</span>
+    </header>
+
+    <main>
+      <h1>Digital Modulation</h1>
+      <p class="lead">Type a message, pick a modulation scheme (ASK, FSK, BPSK, QPSK, 16-QAM, OFDM), and transmit it as audible sound. Open this same page on another device, hold its mic toward the speaker, and watch the bits come back. Every modern radio link &mdash; Wi-Fi, LTE, Bluetooth &mdash; is some flavour of what you can play with here, just at a faster clock and a higher carrier.</p>
+
+      <section class="panel teach">
+        <h2>The idea in one minute</h2>
+        <p>Digital modulation is the art of carrying <em>bits</em> on a <em>continuous waveform</em>. You start with a sine wave at some carrier frequency &mdash; here, around 4&nbsp;kHz so you can actually <em>hear</em> it &mdash; and you change one of its three knobs (<strong>amplitude</strong>, <strong>frequency</strong>, or <strong>phase</strong>) every symbol period to encode bits. Or you do all three at once (QAM). Or you stack many narrow carriers in parallel (OFDM).</p>
+        <p>The physics is identical for radio waves at 2.4&nbsp;GHz, light pulses through a fibre, or sound bouncing around your room. The DSP is identical too. So this page is a working model of every digital link in your life &mdash; just slowed down enough to look at.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Modulation scheme</h2>
+        <div class="scheme-pills" id="schemePills">
+          <button data-scheme="ASK" class="active">ASK &middot; on/off keying</button>
+          <button data-scheme="FSK">FSK &middot; 2 tones</button>
+          <button data-scheme="BPSK">BPSK &middot; 2 phases</button>
+          <button data-scheme="QPSK">QPSK &middot; 4 phases</button>
+          <button data-scheme="QAM16">16-QAM &middot; 16 points</button>
+          <button data-scheme="OFDM">OFDM &middot; parallel BPSK</button>
+        </div>
+        <p class="note" id="schemeNote">ASK (on/off keying): the carrier is on for a 1, attenuated for a 0. The simplest possible scheme &mdash; literally Morse code. 1 bit per symbol.</p>
+
+        <div class="row" style="margin-top: 18px;">
+          <label for="symRate">Symbol rate</label>
+          <input type="range" id="symRate" min="50" max="1000" step="10" value="200" />
+          <span class="val" id="symRateVal">200 baud</span>
+        </div>
+        <p class="note">Symbols per second on the air. Faster = more bits/sec but less time per symbol, so noise and room reflections (multipath) start eating you. <strong>The receiver must use the same rate.</strong> OFDM uses its own rate (set by FFT size + cyclic prefix) and ignores this slider.</p>
+
+        <div class="frame-grid" id="frameInfo"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Transmit</h2>
+        <div class="row">
+          <label for="msg">Message</label>
+          <input type="text" id="msg" maxlength="32" value="hello world" />
+          <button id="randBtn" class="secondary" title="Replace with random text">Random</button>
+        </div>
+        <div class="row">
+          <label for="vol">Volume</label>
+          <input type="range" id="vol" min="0" max="0.9" step="0.01" value="0.5" />
+          <span class="val" id="volVal">0.50</span>
+        </div>
+        <div class="row" style="margin-top: 8px;">
+          <button id="txBtn" class="big">Transmit</button>
+          <button id="loopBtn" class="secondary">Loop transmit</button>
+          <span class="status" id="txStatus">Type a message and press Transmit.</span>
+        </div>
+        <div class="canvas-title">Transmitted waveform <span class="sub">what your speaker is about to play</span></div>
+        <div class="canvas-wrap"><canvas id="txWaveCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:rgba(232,185,35,0.85)"></span>preamble chirp</span>
+          <span><span class="swatch" style="background:#1f6feb"></span>pilot</span>
+          <span><span class="swatch" style="background:#bc122a"></span>payload</span>
+        </div>
+        <p class="note">Use your phone&rsquo;s speaker pointed at the laptop mic, or vice versa. <strong>Do not use headphones</strong> &mdash; the sound has to travel through air. Get within a foot or two for clean decoding.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Receive</h2>
+        <div class="row">
+          <button id="micBtn">Enable microphone</button>
+          <button id="rxBtn" class="secondary" disabled>Start listening</button>
+          <span class="status" id="rxStatus">Click &ldquo;Enable microphone&rdquo; to begin.</span>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="label">Decoded frames</div><div class="num" id="frameCount">0</div></div>
+          <div class="stat"><div class="label">CRC pass rate</div><div class="num" id="crcRate">&mdash;</div></div>
+          <div class="stat"><div class="label">Last SNR</div><div class="num" id="snrStat">&mdash; <span class="unit">dB</span></div></div>
+          <div class="stat"><div class="label">Bit errors (vs TX)</div><div class="num" id="berStat">&mdash;</div></div>
+        </div>
+
+        <div class="canvas-title">Decoded message
+          <span class="sub" id="decodedSub">awaiting first frame</span>
+        </div>
+        <div class="decoded" id="decoded">&mdash;</div>
+
+        <div class="twocol" style="margin-top: 18px;">
+          <div>
+            <div class="canvas-title" style="margin-top:0;">Constellation
+              <span class="sub" id="constSub">received I/Q after equalization</span>
+            </div>
+            <div class="canvas-wrap square"><canvas id="constCanvas"></canvas></div>
+          </div>
+          <div>
+            <div class="canvas-title" style="margin-top:0;">Live spectrum
+              <span class="sub">FFT of mic input</span>
+            </div>
+            <div class="canvas-wrap square"><canvas id="specCanvas"></canvas></div>
+          </div>
+        </div>
+
+        <div class="canvas-title">Live mic waveform
+          <span class="sub">last 1.5 s &middot; red ticks = detected preambles</span>
+        </div>
+        <div class="canvas-wrap"><canvas id="rxWaveCanvas"></canvas></div>
+      </section>
+
+      <section class="panel">
+        <h2>Simulation &middot; software channel</h2>
+        <p style="font-size: 14px; color: var(--grey-text); margin: 0 0 16px; line-height: 1.5;">No mic, no speaker, no room. The TX waveform goes through a software channel you control: additive Gaussian noise, plus an optional delayed echo (a primitive form of multipath). Pick a scheme above, choose the channel knobs below, hit <em>Run simulation</em>. Drag the SNR slider to watch each scheme&rsquo;s constellation collapse from clean dots into noise.</p>
+
+        <div class="row">
+          <label for="simSnr">SNR</label>
+          <input type="range" id="simSnr" min="-30" max="30" step="1" value="10" />
+          <span class="val" id="simSnrVal">10 dB</span>
+        </div>
+        <div class="row">
+          <label for="simEchoMs">Echo delay</label>
+          <input type="range" id="simEchoMs" min="0" max="50" step="1" value="0" />
+          <span class="val" id="simEchoMsVal">0 ms</span>
+        </div>
+        <div class="row">
+          <label for="simEchoGain">Echo gain</label>
+          <input type="range" id="simEchoGain" min="-40" max="0" step="1" value="-20" />
+          <span class="val" id="simEchoGainVal">&minus;20 dB</span>
+        </div>
+        <div class="row" style="margin-top: 8px;">
+          <button id="simBtn" class="big">Run simulation</button>
+          <label style="font-size:13px; color:var(--grey-text); text-transform:none; letter-spacing:0; min-width:0; cursor:pointer;">
+            <input type="checkbox" id="simAuto" checked style="vertical-align:-2px;" />
+            re-run on slider change
+          </label>
+          <span class="status" id="simStatus">Ready.</span>
+        </div>
+
+        <div class="stats" style="margin-top: 18px;">
+          <div class="stat"><div class="label">CRC</div><div class="num" id="simCrc">&mdash;</div></div>
+          <div class="stat"><div class="label">Bit errors</div><div class="num" id="simBer">&mdash;</div></div>
+          <div class="stat"><div class="label">Effective SNR</div><div class="num" id="simSnrEff">&mdash; <span class="unit">dB</span></div></div>
+          <div class="stat"><div class="label">Frame</div><div class="num" id="simSchemeOut" style="font-size:14px;">&mdash;</div></div>
+        </div>
+
+        <div class="canvas-title">Decoded message
+          <span class="sub">at the simulated receiver output</span>
+        </div>
+        <div class="decoded" id="simDecoded">&mdash;</div>
+
+        <div class="twocol" style="margin-top: 18px;">
+          <div>
+            <div class="canvas-title" style="margin-top:0;">Constellation
+              <span class="sub">simulated received I/Q</span>
+            </div>
+            <div class="canvas-wrap square"><canvas id="simConstCanvas"></canvas></div>
+          </div>
+          <div>
+            <div class="canvas-title" style="margin-top:0;">Channel output spectrum
+              <span class="sub">FFT of TX after channel</span>
+            </div>
+            <div class="canvas-wrap square"><canvas id="simSpecCanvas"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>BER vs SNR &middot; Monte Carlo sweep</h2>
+        <p style="font-size: 14px; color: var(--grey-text); margin: 0 0 14px; line-height: 1.5;">For each scheme, transmit many random frames at each SNR through an AWGN-only channel and count bit errors. The result is the canonical BER&ndash;vs&ndash;SNR curve: the higher-order schemes (16-QAM) need much higher SNR to reach the same error rate as the simpler ones (BPSK), because their constellation points are packed closer together. This is the single most important plot in digital communications.</p>
+        <div class="row">
+          <button id="sweepBtn">Sweep SNR &minus;25 to +5 dB</button>
+          <button id="sweepStopBtn" class="secondary" disabled>Stop</button>
+          <span class="status" id="sweepStatus">Idle.</span>
+        </div>
+        <div class="canvas-wrap tall" style="aspect-ratio: 16/9; margin-top: 14px;"><canvas id="berCanvas"></canvas></div>
+        <div class="legend" id="berLegend"></div>
+      </section>
+
+      <section class="panel teach">
+        <h2>What you&rsquo;re looking at, scheme by scheme</h2>
+        <p><strong>ASK (Amplitude Shift Keying).</strong> One bit per symbol &mdash; carrier on for 1, near-off for 0. You can literally hear the bits as ticks. Simple, but easily fooled by any amplitude noise (a cough, the dishwasher, distance from the speaker).</p>
+        <p><strong>FSK (Frequency Shift Keying).</strong> Two tones, 3&nbsp;kHz for 0 and 5&nbsp;kHz for 1. Robust to amplitude noise &mdash; what matters is which frequency has more energy in each symbol slot. The original Bluetooth, the audio modems of the 1980s, and most low-power IoT radios are some flavour of FSK.</p>
+        <p><strong>BPSK / QPSK (Phase Shift Keying).</strong> The carrier&rsquo;s amplitude never changes; only its phase does. BPSK is 0&deg; vs 180&deg; (1 bit/symbol). QPSK is the four corners of a square (2 bits/symbol). On the constellation plot you should see two dots clump up for BPSK and four for QPSK &mdash; the tighter the clumps, the cleaner the channel.</p>
+        <p><strong>16-QAM.</strong> Quadrature Amplitude Modulation: vary <em>both</em> amplitude and phase. 16 distinct constellation points = 4 bits per symbol. Same symbol rate as BPSK, but four times the data rate. Wi-Fi&rsquo;s slowest rate is BPSK; the fastest go all the way up to 1024-QAM (10 bits/symbol).</p>
+        <p><strong>OFDM (Orthogonal Frequency Division Multiplexing).</strong> Eight narrow BPSK sub-carriers running in parallel between 3 and 8.25&nbsp;kHz. Each sub-carrier is slow (so multipath echoes are a small fraction of a symbol &mdash; multipath becomes harmless), but you have eight of them, so the aggregate rate is fast. Every modern Wi-Fi/LTE/5G/DVB system is OFDM. The constellation here shows the equalized BPSK on each sub-carrier overlaid.</p>
+      </section>
+
+      <section class="panel teach">
+        <h2>How the receiver finds your message</h2>
+        <p><strong>1. Preamble chirp.</strong> Every frame starts with a 100&nbsp;ms linear chirp from 1.5 to 6.5&nbsp;kHz. The receiver continuously cross-correlates its mic stream against this known chirp. Chirps have a sharp autocorrelation peak (this is also why every radar uses them), so when the message arrives the correlation spikes and the receiver knows exactly where the frame starts &mdash; sample-accurate, even with reverberation. <code>conv(chirp, chirp_rev) &asymp; &delta;(t)</code>.</p>
+        <p><strong>2. Pilot symbols.</strong> Right after the preamble we send a known sequence (the 13-bit Barker code for non-OFDM, or one all-ones OFDM symbol for OFDM). The receiver knows what the pilot <em>should</em> be, so by comparing what it received to the known pattern it can solve for the channel&rsquo;s gain and phase rotation, and undo them on every following symbol. This is the same idea as Wi-Fi&rsquo;s Long Training Field.</p>
+        <p><strong>3. Demodulate.</strong> Multiply the received signal by <code>cos(2&pi; f<sub>c</sub> t)</code> and <code>&minus;sin(2&pi; f<sub>c</sub> t)</code> to bring it down to baseband I/Q. Integrate over each symbol period (matched filter for a rectangular pulse). Apply the channel correction from the pilot. Map the resulting (I, Q) point to the nearest constellation point. Done.</p>
+        <p><strong>4. Check.</strong> A CRC-8 byte at the end verifies the bits. If it fails the frame is discarded; if it passes you see the message and the running pass rate climbs.</p>
+      </section>
+
+      <section class="panel teach">
+        <h2>Things to try</h2>
+        <ul>
+          <li>Run the same message through ASK, BPSK, and 16-QAM. They take very different times to play &mdash; BPSK and 16-QAM use the same symbol rate but 16-QAM packs 4&times; the bits per symbol.</li>
+          <li>Move the phone slowly away from the laptop. Watch the constellation points smear outward. ASK fails first (amplitude is the most fragile dimension), then 16-QAM (tightly packed points), then QPSK, then BPSK. FSK and OFDM are usually last to die.</li>
+          <li>Cup your hand around the mic to dampen the room. Reflections show up as constellation spread; in real Wi-Fi this is what the cyclic prefix in OFDM is for.</li>
+          <li>Type a known repeating message and turn on Loop transmit. Watch the bit-error rate count update in real time.</li>
+          <li>Put two laptops side by side, both listening, both transmitting different messages on a loop. They will collide. This is why MAC protocols exist (see the MAC Protocols module).</li>
+        </ul>
+      </section>
+
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      // ============================================================
+      // Constants & frame format
+      // ============================================================
+      const SR_DEFAULT = 48000;           // we adapt to actual context.sampleRate
+      const FC = 4000;                    // carrier frequency (Hz)
+      let SYM_RATE = 200;                 // symbols per second (single-carrier; user-adjustable)
+      const FSK_F0 = 3000;                // FSK bit-0 tone
+      const FSK_F1 = 5000;                // FSK bit-1 tone
+
+      const PREAMBLE_DUR = 0.100;         // 100 ms chirp
+      const PREAMBLE_F0 = 1500;
+      const PREAMBLE_F1 = 6500;
+      const POST_PREAMBLE_GAP = 0.040;    // 40 ms silence after chirp
+
+      // Barker-13 BPSK pilot (excellent autocorrelation, but used as phase reference)
+      const PILOT_BITS = [1,1,1,1,1,0,0,1,1,0,1,0,1];
+      const PILOT_BPSK = PILOT_BITS.map(b => b ? 1 : -1);
+
+      // OFDM
+      const OFDM_N = 64;                  // FFT size
+      const OFDM_CP = 16;                 // cyclic prefix
+      const OFDM_ACTIVE_K = [4,5,6,7,8,9,10,11];  // 8 subcarriers, 3.0 - 8.25 kHz at 48 kHz
+      const OFDM_PILOT_PATTERN = OFDM_ACTIVE_K.map(() => 1);  // all-ones BPSK pilot
+
+      // CRC-8 polynomial 0x07 (CCITT)
+      function crc8(bytes) {
+        let crc = 0;
+        for (const b of bytes) {
+          crc ^= b & 0xFF;
+          for (let i = 0; i < 8; i++) {
+            crc = (crc & 0x80) ? ((crc << 1) ^ 0x07) & 0xFF : (crc << 1) & 0xFF;
+          }
+        }
+        return crc & 0xFF;
+      }
+
+      // Bits/bytes
+      function textToBytes(s) {
+        const out = [];
+        for (let i = 0; i < s.length; i++) out.push(s.charCodeAt(i) & 0xFF);
+        return out;
+      }
+      function bytesToText(b) {
+        let s = '';
+        for (const x of b) s += String.fromCharCode(x & 0xFF);
+        return s;
+      }
+      function bytesToBits(bytes) {
+        const bits = new Uint8Array(bytes.length * 8);
+        for (let i = 0; i < bytes.length; i++) {
+          const b = bytes[i];
+          for (let j = 0; j < 8; j++) bits[i*8 + j] = (b >> (7 - j)) & 1;
+        }
+        return bits;
+      }
+      function bitsToBytes(bits) {
+        const out = new Uint8Array(Math.floor(bits.length / 8));
+        for (let i = 0; i < out.length; i++) {
+          let b = 0;
+          for (let j = 0; j < 8; j++) b = (b << 1) | (bits[i*8 + j] & 1);
+          out[i] = b;
+        }
+        return out;
+      }
+
+      // Build a frame from a text message: [length:1] [payload:N] [crc:1] -> bits
+      function buildFrameBits(msg) {
+        const payload = textToBytes(msg);
+        const length = payload.length & 0xFF;
+        const all = [length, ...payload];
+        const crc = crc8(all);
+        return bytesToBits([...all, crc]);
+      }
+
+      // ============================================================
+      // DSP utilities
+      // ============================================================
+
+      // Hann taper (in-place) at both ends, n samples each side
+      function tukey(buf, n) {
+        const N = buf.length;
+        n = Math.min(n, Math.floor(N/2));
+        for (let i = 0; i < n; i++) {
+          const w = 0.5 - 0.5 * Math.cos(Math.PI * i / n);
+          buf[i] *= w;
+          buf[N - 1 - i] *= w;
+        }
+      }
+
+      // Generate the preamble linear chirp
+      function makePreamble(sr) {
+        const N = Math.round(sr * PREAMBLE_DUR);
+        const out = new Float32Array(N);
+        const k = (PREAMBLE_F1 - PREAMBLE_F0) / PREAMBLE_DUR;
+        for (let n = 0; n < N; n++) {
+          const t = n / sr;
+          const phase = 2 * Math.PI * (PREAMBLE_F0 * t + 0.5 * k * t * t);
+          out[n] = Math.cos(phase);
+        }
+        tukey(out, Math.round(N * 0.05));
+        return out;
+      }
+
+      // Make I/Q chirp templates (for sync correlation, magnitude detection)
+      function makeChirpTemplates(sr) {
+        const N = Math.round(sr * PREAMBLE_DUR);
+        const I = new Float32Array(N);
+        const Q = new Float32Array(N);
+        const k = (PREAMBLE_F1 - PREAMBLE_F0) / PREAMBLE_DUR;
+        for (let n = 0; n < N; n++) {
+          const t = n / sr;
+          const phase = 2 * Math.PI * (PREAMBLE_F0 * t + 0.5 * k * t * t);
+          I[n] = Math.cos(phase);
+          Q[n] = Math.sin(phase);
+        }
+        // Normalize energy to 1 so threshold has a stable meaning
+        let e = 0;
+        for (let n = 0; n < N; n++) e += I[n]*I[n];
+        const inv = 1 / Math.sqrt(e);
+        for (let n = 0; n < N; n++) { I[n] *= inv; Q[n] *= inv; }
+        return { I, Q, N };
+      }
+
+      // ---- Cooley-Tukey radix-2 FFT (in-place, complex) ----
+      // re, im are Float64Array of length N (must be power of 2)
+      function fft(re, im, inverse) {
+        const N = re.length;
+        // Bit-reverse
+        let j = 0;
+        for (let i = 0; i < N - 1; i++) {
+          if (i < j) {
+            let t = re[i]; re[i] = re[j]; re[j] = t;
+            t = im[i]; im[i] = im[j]; im[j] = t;
+          }
+          let m = N >> 1;
+          while (m >= 1 && j >= m) { j -= m; m >>= 1; }
+          j += m;
+        }
+        // Butterflies
+        for (let size = 2; size <= N; size <<= 1) {
+          const half = size >> 1;
+          const ang = (inverse ? 2 : -2) * Math.PI / size;
+          const wRe = Math.cos(ang);
+          const wIm = Math.sin(ang);
+          for (let start = 0; start < N; start += size) {
+            let curRe = 1, curIm = 0;
+            for (let k = 0; k < half; k++) {
+              const i1 = start + k;
+              const i2 = start + k + half;
+              const tRe = curRe * re[i2] - curIm * im[i2];
+              const tIm = curRe * im[i2] + curIm * re[i2];
+              re[i2] = re[i1] - tRe;
+              im[i2] = im[i1] - tIm;
+              re[i1] += tRe;
+              im[i1] += tIm;
+              const nRe = curRe * wRe - curIm * wIm;
+              const nIm = curRe * wIm + curIm * wRe;
+              curRe = nRe; curIm = nIm;
+            }
+          }
+        }
+        if (inverse) {
+          for (let i = 0; i < N; i++) { re[i] /= N; im[i] /= N; }
+        }
+      }
+
+      // ============================================================
+      // Modulation: bits -> waveform (single carrier)
+      // ============================================================
+
+      // Raised-cosine envelope on a single symbol slot to soften ASK transitions
+      function symbolEnvelope(n, sps) {
+        // slight rise/fall over 10% of symbol on each end
+        const r = Math.floor(sps * 0.10);
+        if (n < r) return 0.5 - 0.5 * Math.cos(Math.PI * n / r);
+        if (n > sps - 1 - r) return 0.5 - 0.5 * Math.cos(Math.PI * (sps - 1 - n) / r);
+        return 1.0;
+      }
+
+      // Map bits to constellation symbols [I, Q] for the given scheme.
+      function bitsToSymbols(scheme, bits) {
+        const out = [];
+        if (scheme === 'ASK') {
+          for (let i = 0; i < bits.length; i++) out.push([bits[i] ? 1.0 : 0.15, 0]);
+        } else if (scheme === 'BPSK') {
+          for (let i = 0; i < bits.length; i++) out.push([bits[i] ? 1 : -1, 0]);
+        } else if (scheme === 'QPSK') {
+          // Gray-coded: bit[i] -> I-axis sign (0=+, 1=-), bit[i+1] -> Q-axis sign.
+          // Adjacent constellation points differ in exactly one bit.
+          for (let i = 0; i + 2 <= bits.length; i += 2) {
+            const I = bits[i]   ? -1 :  1;
+            const Q = bits[i+1] ? -1 :  1;
+            out.push([I/Math.SQRT2, Q/Math.SQRT2]);
+          }
+        } else if (scheme === 'QAM16') {
+          // Gray-coded 16-QAM, levels [-3,-1,1,3] / sqrt(10)
+          const lvl = [-3, -1, 1, 3];
+          const grayToIdx = {0:0, 1:1, 3:2, 2:3};
+          const norm = 1 / Math.sqrt(10);
+          for (let i = 0; i + 4 <= bits.length; i += 4) {
+            const ii = grayToIdx[(bits[i]<<1) | bits[i+1]];
+            const qi = grayToIdx[(bits[i+2]<<1) | bits[i+3]];
+            out.push([lvl[ii] * norm, lvl[qi] * norm]);
+          }
+        }
+        return out;
+      }
+
+      // bits per symbol for each scheme (single carrier)
+      function bitsPerSymbol(scheme) {
+        switch (scheme) {
+          case 'ASK': case 'BPSK': case 'FSK': return 1;
+          case 'QPSK': return 2;
+          case 'QAM16': return 4;
+          case 'OFDM': return OFDM_ACTIVE_K.length;  // bits per OFDM symbol (BPSK each subcarrier)
+        }
+        return 1;
+      }
+
+      // Effective carrier frequency: snap so the carrier completes an integer
+      // number of cycles per symbol period. This eliminates the inter-symbol
+      // leakage you'd otherwise get when sr/SYM_RATE isn't a multiple of FC's period
+      // (e.g. at 44.1 kHz). The snap shifts FC by at most ~ SYM_RATE/2 Hz.
+      function effectiveFc(sr) {
+        const sps = Math.round(sr / SYM_RATE);
+        const cycles = Math.max(1, Math.round(FC * sps / sr));
+        return cycles * sr / sps;
+      }
+
+      // Symbols (already shaped) -> passband audio
+      function symbolsToWaveform(symbols, sr, sps) {
+        const N = symbols.length * sps;
+        const out = new Float32Array(N);
+        const w = 2 * Math.PI * effectiveFc(sr) / sr;
+        for (let i = 0; i < symbols.length; i++) {
+          const [re, im] = symbols[i];
+          for (let n = 0; n < sps; n++) {
+            const idx = i * sps + n;
+            const env = symbolEnvelope(n, sps);
+            const ph = w * idx;
+            // s(t) = I cos - Q sin
+            out[idx] = env * (re * Math.cos(ph) - im * Math.sin(ph));
+          }
+        }
+        return out;
+      }
+
+      // FSK: continuous-phase 2-FSK
+      function fskWaveform(bits, sr, sps) {
+        const N = bits.length * sps;
+        const out = new Float32Array(N);
+        let phase = 0;
+        for (let i = 0; i < bits.length; i++) {
+          const f = bits[i] ? FSK_F1 : FSK_F0;
+          const dphi = 2 * Math.PI * f / sr;
+          for (let n = 0; n < sps; n++) {
+            const env = symbolEnvelope(n, sps);
+            out[i*sps + n] = env * Math.cos(phase);
+            phase += dphi;
+          }
+        }
+        return out;
+      }
+
+      // OFDM: bits -> N + CP samples per OFDM symbol, real-valued via Hermitian symmetry.
+      // For each OFDM symbol we take OFDM_ACTIVE_K.length BPSK bits.
+      function ofdmModulate(bits, sr) {
+        const bpsr = OFDM_ACTIVE_K.length;
+        const nSym = Math.ceil(bits.length / bpsr);
+        const padded = new Uint8Array(nSym * bpsr);
+        padded.set(bits);
+        const totalLen = nSym * (OFDM_N + OFDM_CP);
+        const out = new Float32Array(totalLen);
+        const reBuf = new Float64Array(OFDM_N);
+        const imBuf = new Float64Array(OFDM_N);
+        for (let s = 0; s < nSym; s++) {
+          // Build frequency-domain symbol with Hermitian symmetry -> real time-domain
+          for (let k = 0; k < OFDM_N; k++) { reBuf[k] = 0; imBuf[k] = 0; }
+          for (let j = 0; j < OFDM_ACTIVE_K.length; j++) {
+            const k = OFDM_ACTIVE_K[j];
+            const bit = padded[s * bpsr + j];
+            const v = bit ? 1 : -1;
+            // BPSK on real axis
+            reBuf[k] = v;
+            // Conjugate mirror
+            reBuf[OFDM_N - k] = v;
+            imBuf[OFDM_N - k] = 0;
+          }
+          fft(reBuf, imBuf, true);  // inverse FFT
+          // copy real time-domain symbol with cyclic prefix
+          const base = s * (OFDM_N + OFDM_CP);
+          // CP = last CP samples
+          for (let n = 0; n < OFDM_CP; n++) out[base + n] = reBuf[OFDM_N - OFDM_CP + n];
+          for (let n = 0; n < OFDM_N; n++) out[base + OFDM_CP + n] = reBuf[n];
+        }
+        // Normalize to ~1 peak
+        let m = 0;
+        for (let i = 0; i < totalLen; i++) if (Math.abs(out[i]) > m) m = Math.abs(out[i]);
+        if (m > 0) for (let i = 0; i < totalLen; i++) out[i] /= m;
+        // Light envelope at edges to soften
+        tukey(out, Math.min(64, Math.floor(totalLen * 0.02)));
+        return { audio: out, nSym };
+      }
+
+      // Build full TX waveform for a frame.
+      // Returns { audio, sections: [{label, start, end, color}] } so we can colour the TX preview.
+      function buildTxWaveform(scheme, msg, sr) {
+        const sps = Math.round(sr / SYM_RATE);
+        const preamble = makePreamble(sr);
+        const gapLen = Math.round(POST_PREAMBLE_GAP * sr);
+        const gap = new Float32Array(gapLen);
+
+        const dataBits = buildFrameBits(msg);
+
+        let pilotAudio, dataAudio;
+        const sections = [];
+
+        if (scheme === 'OFDM') {
+          // OFDM pilot symbol: known BPSK pattern on all subcarriers
+          const pilotBits = OFDM_PILOT_PATTERN.map(v => v > 0 ? 1 : 0);
+          const pilotMod = ofdmModulate(pilotBits, sr);
+          pilotAudio = pilotMod.audio;
+          const dataMod = ofdmModulate(dataBits, sr);
+          dataAudio = dataMod.audio;
+        } else if (scheme === 'FSK') {
+          pilotAudio = fskWaveform(PILOT_BITS, sr, sps);
+          dataAudio = fskWaveform(dataBits, sr, sps);
+        } else {
+          const pilotSyms = bitsToSymbols('BPSK', PILOT_BITS);
+          const dataSyms = bitsToSymbols(scheme, dataBits);
+          pilotAudio = symbolsToWaveform(pilotSyms, sr, sps);
+          dataAudio = symbolsToWaveform(dataSyms, sr, sps);
+        }
+
+        const total = preamble.length + gap.length + pilotAudio.length + dataAudio.length;
+        const audio = new Float32Array(total);
+        let off = 0;
+        audio.set(preamble, off);
+        sections.push({ label: 'preamble', start: off, end: off + preamble.length, color: 'rgba(232,185,35,0.85)' });
+        off += preamble.length;
+        off += gap.length; // silent
+        audio.set(pilotAudio, off);
+        sections.push({ label: 'pilot', start: off, end: off + pilotAudio.length, color: '#1f6feb' });
+        off += pilotAudio.length;
+        audio.set(dataAudio, off);
+        sections.push({ label: 'payload', start: off, end: off + dataAudio.length, color: '#bc122a' });
+
+        return { audio, sections, dataBits, sps, scheme, totalDur: total / sr };
+      }
+
+      // ============================================================
+      // Demodulation
+      // ============================================================
+
+      // Coherent down-mix and matched-filter to symbol I/Q.
+      // x: input samples, start: first sample of first symbol, sps, nSyms
+      function downmix(x, start, sps, nSyms, sr) {
+        const out = new Array(nSyms);
+        const w = 2 * Math.PI * effectiveFc(sr) / sr;
+        for (let s = 0; s < nSyms; s++) {
+          let sumI = 0, sumQ = 0;
+          for (let n = 0; n < sps; n++) {
+            const idx = start + s * sps + n;
+            const ph = w * idx;
+            sumI += x[idx] * Math.cos(ph);
+            sumQ += x[idx] * (-Math.sin(ph));
+          }
+          out[s] = [sumI / sps * 2, sumQ / sps * 2];
+        }
+        return out;
+      }
+
+      // FSK demod: per-symbol Goertzel-style energy at F0 and F1
+      function fskDemod(x, start, sps, nSyms, sr) {
+        const bits = new Uint8Array(nSyms);
+        const e0 = new Float32Array(nSyms);
+        const e1 = new Float32Array(nSyms);
+        const w0 = 2 * Math.PI * FSK_F0 / sr;
+        const w1 = 2 * Math.PI * FSK_F1 / sr;
+        for (let s = 0; s < nSyms; s++) {
+          let i0 = 0, q0 = 0, i1 = 0, q1 = 0;
+          for (let n = 0; n < sps; n++) {
+            const idx = start + s * sps + n;
+            const v = x[idx];
+            const ph0 = w0 * idx;
+            const ph1 = w1 * idx;
+            i0 += v * Math.cos(ph0); q0 += v * Math.sin(ph0);
+            i1 += v * Math.cos(ph1); q1 += v * Math.sin(ph1);
+          }
+          const m0 = i0*i0 + q0*q0;
+          const m1 = i1*i1 + q1*q1;
+          e0[s] = Math.sqrt(m0);
+          e1[s] = Math.sqrt(m1);
+          bits[s] = m1 > m0 ? 1 : 0;
+        }
+        return { bits, e0, e1 };
+      }
+
+      // Estimate channel as a single complex gain h such that received_pilot ~= h * sent_pilot
+      function estimateChannel(rxSyms, txBpsk) {
+        // h = sum(rx * conj(tx)) / sum(|tx|^2)
+        let nRe = 0, nIm = 0, d = 0;
+        for (let i = 0; i < txBpsk.length; i++) {
+          const tRe = txBpsk[i], tIm = 0;
+          const [rRe, rIm] = rxSyms[i];
+          // rx * conj(tx)
+          nRe += rRe * tRe + rIm * tIm;
+          nIm += rIm * tRe - rRe * tIm;
+          d   += tRe * tRe + tIm * tIm;
+        }
+        if (d === 0) return [1, 0];
+        return [nRe / d, nIm / d];
+      }
+
+      // Demap a single equalized constellation point to bits
+      function demap(scheme, p) {
+        const [I, Q] = p;
+        if (scheme === 'ASK') {
+          // ASK pilot reference is BPSK (+1/-1 only). Data is +1.0 or +0.15.
+          // After equalization with BPSK pilot, "1" -> ~+1, "0" -> ~+0.15.
+          // But the BPSK pilot ranges [-1,+1] while the ASK signal is unipolar [0.15, 1].
+          // To make detection robust, threshold around 0.5 in absolute value of I.
+          return [Math.abs(I) > 0.5 ? 1 : 0];
+        } else if (scheme === 'BPSK') {
+          return [I > 0 ? 1 : 0];
+        } else if (scheme === 'QPSK') {
+          // Inverse Gray map
+          const i = I > 0 ? 0 : 1;  // first bit (I-axis sign maps via Gray)
+          const q = Q > 0 ? 0 : 1;
+          return [i, q];
+        } else if (scheme === 'QAM16') {
+          // Levels at +/- 1/sqrt(10), +/- 3/sqrt(10).
+          // Gray map: idx 0->-3, 1->-1, 2->+3 (via gray order [0,1,3,2]), 3->+1
+          // (matches the encoding above)
+          const idxToBits = [[0,0],[0,1],[1,1],[1,0]]; // gray index -> 2 bits
+          const norm = Math.sqrt(10);
+          function nearest(v) {
+            const x = v * norm; // back to ~[-3..3]
+            // pick from {-3,-1,1,3} -> gray idx {0,1,3,2}
+            if (x < -2) return 0;       // -3 -> idx 0
+            if (x < 0)  return 1;       // -1 -> idx 1
+            if (x < 2)  return 2;       // +1 -> idx 3 in gray order? See below
+            return 3;                   // +3
+          }
+          // Mapping from "natural" idx (above) to the gray-encoded bit pair we wrote on TX:
+          // TX used grayToIdx = {0:0, 1:1, 3:2, 2:3}, meaning:
+          //   bits 00 -> level idx 0 (-3), bits 01 -> level idx 1 (-1),
+          //   bits 11 -> level idx 2 (+1), bits 10 -> level idx 3 (+3).
+          const idxToBitsGray = [[0,0],[0,1],[1,1],[1,0]];
+          const bI = idxToBitsGray[nearest(I)];
+          const bQ = idxToBitsGray[nearest(Q)];
+          return [bI[0], bI[1], bQ[0], bQ[1]];
+        }
+        return [];
+      }
+
+      // OFDM demod for one OFDM symbol; returns array of complex subcarrier values
+      function ofdmDemodSymbol(x, start) {
+        const re = new Float64Array(OFDM_N);
+        const im = new Float64Array(OFDM_N);
+        // Skip CP, take next OFDM_N samples
+        for (let n = 0; n < OFDM_N; n++) {
+          re[n] = x[start + OFDM_CP + n];
+          im[n] = 0;
+        }
+        fft(re, im, false);
+        const subs = new Array(OFDM_ACTIVE_K.length);
+        for (let j = 0; j < OFDM_ACTIVE_K.length; j++) {
+          const k = OFDM_ACTIVE_K[j];
+          subs[j] = [re[k], im[k]];
+        }
+        return subs;
+      }
+
+      // ============================================================
+      // Audio I/O
+      // ============================================================
+      let audioCtx = null;
+      let micStream = null;
+      let workletReady = null;
+      let recorder = null;
+      let listening = false;
+
+      const recorderWorkletSrc = `
+        class ModRecorderProcessor extends AudioWorkletProcessor {
+          constructor() {
+            super();
+            this.recording = false;
+            this.port.onmessage = (e) => {
+              if (e.data.cmd === 'start') this.recording = true;
+              else if (e.data.cmd === 'stop') this.recording = false;
+            };
+          }
+          process(inputs) {
+            if (!this.recording) return true;
+            const input = inputs[0];
+            if (input && input.length > 0 && input[0] && input[0].length > 0) {
+              const copy = new Float32Array(input[0].length);
+              copy.set(input[0]);
+              this.port.postMessage(copy, [copy.buffer]);
+            }
+            return true;
+          }
+        }
+        registerProcessor('mod-recorder', ModRecorderProcessor);
+      `;
+
+      async function ensureAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        return audioCtx;
+      }
+
+      async function ensureMic() {
+        await ensureAudio();
+        if (!micStream) {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              channelCount: 1
+            }
+          });
+        }
+        if (!workletReady) {
+          const blob = new Blob([recorderWorkletSrc], { type: 'application/javascript' });
+          const url = URL.createObjectURL(blob);
+          workletReady = audioCtx.audioWorklet.addModule(url);
+        }
+        await workletReady;
+        return { audioCtx, micStream };
+      }
+
+      // ============================================================
+      // Receiver state: rolling buffer, sync detector, decoder
+      // ============================================================
+      const RX_BUF_SECONDS = 6;
+      let rxBuf = null;          // Float32Array, ring buffer
+      let pendingDetections = [];
+      let lastDetections = [];
+      let rxBufLen = 0;
+      let totalSamples = 0;      // absolute index
+      let lastScannedAbs = 0;    // last absolute sample index we've checked for preamble
+      let lastDetectionAbs = -1; // sample index where last preamble was confirmed
+      let chirpTpl = null;       // {I, Q, N}
+      let preambleLenSamples = 0;
+      let lastTxFrame = null;    // for BER
+      const rxStats = { frames: 0, crcOk: 0, lastSnrDb: null };
+
+      function setupRxBuffers(sr) {
+        rxBufLen = Math.round(sr * RX_BUF_SECONDS);
+        rxBuf = new Float32Array(rxBufLen);
+        totalSamples = 0;
+        lastScannedAbs = 0;
+        lastDetectionAbs = -1;
+        chirpTpl = makeChirpTemplates(sr);
+        preambleLenSamples = chirpTpl.N;
+      }
+
+      function pushSamples(arr) {
+        for (let i = 0; i < arr.length; i++) {
+          rxBuf[(totalSamples + i) % rxBufLen] = arr[i];
+        }
+        totalSamples += arr.length;
+      }
+
+      function rxAt(absIdx) {
+        if (absIdx < 0) return 0;
+        if (absIdx < totalSamples - rxBufLen) return 0;
+        return rxBuf[absIdx % rxBufLen];
+      }
+
+      function rxRange(absStart, len) {
+        const out = new Float32Array(len);
+        for (let i = 0; i < len; i++) out[i] = rxAt(absStart + i);
+        return out;
+      }
+
+      // Compute correlation magnitude with chirp at one absolute offset (returns mag)
+      function corrAt(absStart) {
+        const I = chirpTpl.I, Q = chirpTpl.Q, N = chirpTpl.N;
+        let sI = 0, sQ = 0;
+        for (let n = 0; n < N; n++) {
+          const v = rxAt(absStart + n);
+          sI += v * I[n];
+          sQ += v * Q[n];
+        }
+        return Math.sqrt(sI*sI + sQ*sQ);
+      }
+
+      // Local energy (per sample) over a window for SNR estimate
+      function rmsRange(absStart, len) {
+        let s = 0;
+        for (let i = 0; i < len; i++) {
+          const v = rxAt(absStart + i);
+          s += v * v;
+        }
+        return Math.sqrt(s / Math.max(1, len));
+      }
+
+      // Sliding sync detector. Scans newly-arrived samples, returns array of NEW detection absIdx.
+      // Suppresses any candidate within preambleLenSamples*2 of a recently-seen one (success or pending).
+      function findPreambles() {
+        const detections = [];
+        const scanEnd = totalSamples - preambleLenSamples;
+        if (scanEnd <= lastScannedAbs) return detections;
+
+        const minStart = Math.max(0, totalSamples - rxBufLen + preambleLenSamples + 16);
+        let s = Math.max(lastScannedAbs, minStart);
+        const stride = 4;
+
+        const corr = [];
+        const positions = [];
+        for (let p = s; p <= scanEnd; p += stride) {
+          corr.push(corrAt(p));
+          positions.push(p);
+        }
+        if (corr.length === 0) { lastScannedAbs = scanEnd; return detections; }
+        let mean = 0;
+        for (const c of corr) mean += c;
+        mean /= corr.length;
+        const threshold = Math.max(0.02, mean * 5);
+
+        const dedupGap = preambleLenSamples * 2;
+        const isDuplicate = (pos) => {
+          if (lastDetectionAbs >= 0 && Math.abs(pos - lastDetectionAbs) < dedupGap) return true;
+          for (const p of pendingDetections) if (Math.abs(pos - p) < dedupGap) return true;
+          for (const p of detections) if (Math.abs(pos - p) < dedupGap) return true;
+          return false;
+        };
+
+        for (let i = 1; i < corr.length - 1; i++) {
+          if (corr[i] > threshold && corr[i] > corr[i-1] && corr[i] > corr[i+1]) {
+            let bestPos = positions[i];
+            let bestVal = corr[i];
+            for (let d = -stride + 1; d <= stride - 1; d++) {
+              const p = positions[i] + d;
+              if (p < s || p > scanEnd) continue;
+              const v = corrAt(p);
+              if (v > bestVal) { bestVal = v; bestPos = p; }
+            }
+            if (isDuplicate(bestPos)) continue;
+            detections.push(bestPos);
+          }
+        }
+        lastScannedAbs = scanEnd;
+        return detections;
+      }
+
+      // Pure decoder: given the captured audio starting AT dataStart (i.e. right after
+      // preamble + post-preamble gap), demodulate one frame. Used by both the live mic
+      // path and the simulation path.
+      function decodeFrameFromArray(scheme, x, sr, snrDb) {
+        const sps = Math.round(sr / SYM_RATE);
+        const maxBits = (1 + 32 + 1) * 8;
+
+        if (scheme === 'OFDM') {
+          const symLen = OFDM_N + OFDM_CP;
+          const pilot = ofdmDemodSymbol(x, 0);
+          const hRe = new Array(OFDM_ACTIVE_K.length);
+          const hIm = new Array(OFDM_ACTIVE_K.length);
+          for (let j = 0; j < OFDM_ACTIVE_K.length; j++) {
+            hRe[j] = pilot[j][0];
+            hIm[j] = pilot[j][1];
+          }
+          const bits = [];
+          const allConst = [];
+          const maxOfdmSymsData = Math.ceil(maxBits / OFDM_ACTIVE_K.length);
+          for (let s = 0; s < maxOfdmSymsData; s++) {
+            const off = (s + 1) * symLen;
+            if (off + symLen > x.length) break;
+            const subs = ofdmDemodSymbol(x, off);
+            for (let j = 0; j < OFDM_ACTIVE_K.length; j++) {
+              const [rR, rI] = subs[j];
+              const hMag2 = hRe[j]*hRe[j] + hIm[j]*hIm[j];
+              if (hMag2 < 1e-12) { bits.push(0); allConst.push([0,0]); continue; }
+              const eqRe = (rR * hRe[j] + rI * hIm[j]) / hMag2;
+              const eqIm = (rI * hRe[j] - rR * hIm[j]) / hMag2;
+              allConst.push([eqRe, eqIm]);
+              bits.push(eqRe > 0 ? 1 : 0);
+            }
+          }
+          return finalizeFrame(scheme, bits, allConst, snrDb);
+        }
+
+        const totalSymBits = PILOT_BITS.length + maxBits;
+
+        if (scheme === 'FSK') {
+          const allBits = fskDemod(x, 0, sps, totalSymBits, sr).bits;
+          return finalizeFrame(scheme, Array.from(allBits.slice(PILOT_BITS.length)), null, snrDb);
+        }
+
+        // Coherent: ASK / BPSK / QPSK / QAM16
+        const allSyms = downmix(x, 0, sps, totalSymBits, sr);
+        const pilotSyms = allSyms.slice(0, PILOT_BITS.length);
+        const h = estimateChannel(pilotSyms, PILOT_BPSK);
+        const hMag2 = h[0]*h[0] + h[1]*h[1];
+        if (hMag2 < 1e-12) return finalizeFrame(scheme, [], [], snrDb);
+        const dataSyms = allSyms.slice(PILOT_BITS.length);
+        const eqSyms = dataSyms.map(([re, im]) => [
+          (re * h[0] + im * h[1]) / hMag2,
+          (im * h[0] - re * h[1]) / hMag2
+        ]);
+        const bits = [];
+        for (const p of eqSyms) for (const b of demap(scheme, p)) bits.push(b);
+        return finalizeFrame(scheme, bits, eqSyms, snrDb);
+      }
+
+      // Live-path wrapper: pulls samples from the ring buffer and calls the pure decoder.
+      function tryDecodeFrame(scheme, absPreambleStart, sr) {
+        const sps = Math.round(sr / SYM_RATE);
+        const preEnd = absPreambleStart + preambleLenSamples;
+        const gap = Math.round(POST_PREAMBLE_GAP * sr);
+        const dataStart = preEnd + gap;
+        const maxBits = (1 + 32 + 1) * 8;
+
+        let needSamples;
+        if (scheme === 'OFDM') {
+          const maxOfdmSyms = 1 + Math.ceil(maxBits / OFDM_ACTIVE_K.length);
+          needSamples = maxOfdmSyms * (OFDM_N + OFDM_CP);
+        } else {
+          needSamples = (PILOT_BITS.length + maxBits) * sps;
+        }
+        if (totalSamples < dataStart + needSamples + 16) return null;
+
+        const sigRms = rmsRange(dataStart, Math.min(needSamples, sps * 32));
+        const noiseRms = rmsRange(absPreambleStart - Math.min(absPreambleStart, sps * 6), sps * 6);
+        let snrDb = null;
+        if (noiseRms > 1e-6) snrDb = 20 * Math.log10(sigRms / noiseRms);
+
+        const x = rxRange(dataStart, needSamples + (OFDM_N + OFDM_CP));
+        return decodeFrameFromArray(scheme, x, sr, snrDb);
+      }
+
+      // ============================================================
+      // Software channel (for the simulation panel)
+      // ============================================================
+      // Echo only. Returns a new Float32Array.
+      function applyEcho(audio, sr, echoMs, echoGainDb) {
+        const out = new Float32Array(audio.length);
+        for (let i = 0; i < audio.length; i++) out[i] = audio[i];
+        if (echoMs > 0 && echoGainDb > -80) {
+          const delay = Math.max(1, Math.round(echoMs * sr / 1000));
+          const gain = Math.pow(10, echoGainDb / 20);
+          for (let i = delay; i < audio.length; i++) out[i] += audio[i - delay] * gain;
+        }
+        return out;
+      }
+      // Adds AWGN with amplitude such that 10*log10(refPower / noisePower) = snrDb.
+      function addAwgn(audio, snrDb, refPower) {
+        if (snrDb >= 60) return;
+        const noisePow = refPower / Math.pow(10, snrDb / 10);
+        const noiseAmp = Math.sqrt(noisePow);
+        for (let i = 0; i < audio.length; i++) {
+          const u1 = Math.max(1e-12, Math.random()), u2 = Math.random();
+          const g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+          audio[i] += g * noiseAmp;
+        }
+      }
+      // Back-compat shim used by existing call sites.
+      function applyChannel(audio, sr, params) {
+        const out = applyEcho(audio, sr, params.echoMs, params.echoGainDb);
+        if (params.snrDb < 60) {
+          // Reference power = mean square of out (rough; used only by the back-compat path)
+          let p = 0;
+          for (const v of out) p += v * v;
+          p /= Math.max(1, out.length);
+          addAwgn(out, params.snrDb, p);
+        }
+        return out;
+      }
+
+      // Run one simulated TX -> channel -> RX. SNR is referenced to the *data section*
+      // RMS power, so it doesn't get inflated by the loud chirp preamble. This gives
+      // BER curves that rank the schemes the way textbooks rank them.
+      function simulateOnce(scheme, msg, channelParams, sr) {
+        const frame = buildTxWaveform(scheme, msg, sr);
+        const pilotSection = frame.sections.find(s => s.label === 'pilot');
+        const dataStartIdx = pilotSection.start;
+
+        // Reference power = mean square of the post-preamble (pilot+payload) section.
+        let refPow = 0;
+        const refLen = frame.audio.length - dataStartIdx;
+        for (let i = dataStartIdx; i < frame.audio.length; i++) refPow += frame.audio[i] * frame.audio[i];
+        refPow = refPow / Math.max(1, refLen);
+
+        // Echo first (deterministic), then AWGN against the data-section reference.
+        const ch = applyEcho(frame.audio, sr, channelParams.echoMs, channelParams.echoGainDb);
+        addAwgn(ch, channelParams.snrDb, refPow);
+
+        const x = ch.slice(dataStartIdx);
+        const result = decodeFrameFromArray(scheme, x, sr, channelParams.snrDb);
+        let bitErr = 0, bitTotal = 0;
+        if (result.bitsRx) {
+          const tx = frame.dataBits;
+          const n = Math.min(tx.length, result.bitsRx.length);
+          for (let i = 0; i < n; i++) if (tx[i] !== result.bitsRx[i]) bitErr++;
+          bitTotal = n;
+        }
+        return Object.assign({}, result, { bitErr, bitTotal, channelOut: ch, frame });
+      }
+
+      // Given a stream of decoded bits (length+payload+crc, padded), parse into a frame
+      function finalizeFrame(scheme, bits, constellation, snrDb) {
+        if (bits.length < 16) return { ok: false, scheme, snrDb, constellation, bitsRx: bits };
+        const lengthBit = bits.slice(0, 8);
+        let length = 0;
+        for (let i = 0; i < 8; i++) length = (length << 1) | (lengthBit[i] & 1);
+        if (length > 32) length = 32;  // sanity
+        const totalBits = (1 + length + 1) * 8;
+        if (bits.length < totalBits) return { ok: false, scheme, snrDb, constellation, bitsRx: bits };
+        const useBits = bits.slice(0, totalBits);
+        const bytes = bitsToBytes(new Uint8Array(useBits));
+        const headerAndPayload = bytes.slice(0, 1 + length);
+        const rxCrc = bytes[1 + length];
+        const calcCrc = crc8(headerAndPayload);
+        const ok = (rxCrc === calcCrc);
+        const msg = bytesToText(bytes.slice(1, 1 + length));
+        return { ok, scheme, msg, snrDb, constellation, bitsRx: useBits, length };
+      }
+
+      // ============================================================
+      // UI state
+      // ============================================================
+      const $ = (id) => document.getElementById(id);
+      const msgEl = $('msg');
+      const volEl = $('vol');
+      const volVal = $('volVal');
+      const txBtn = $('txBtn');
+      const loopBtn = $('loopBtn');
+      const txStatus = $('txStatus');
+      const micBtn = $('micBtn');
+      const rxBtn = $('rxBtn');
+      const rxStatus = $('rxStatus');
+      const decoded = $('decoded');
+      const decodedSub = $('decodedSub');
+      const frameCount = $('frameCount');
+      const crcRate = $('crcRate');
+      const snrStat = $('snrStat');
+      const berStat = $('berStat');
+      const schemePills = $('schemePills');
+      const schemeNote = $('schemeNote');
+      const frameInfo = $('frameInfo');
+
+      let currentScheme = 'ASK';
+
+      const SCHEME_NOTES = {
+        ASK: 'ASK (on/off keying): the carrier is on for a 1, attenuated for a 0. The simplest possible scheme — literally Morse code. 1 bit per symbol.',
+        FSK: 'FSK (2-FSK): bit 0 → 3 kHz tone, bit 1 → 5 kHz tone. Robust to amplitude noise; the foundation of early modems and Bluetooth.',
+        BPSK: 'BPSK: phase 0° vs 180°. Two constellation points. The most reliable phase scheme — the slowest Wi-Fi rate is BPSK.',
+        QPSK: 'QPSK: four phases, two bits per symbol. Same robustness as BPSK in the same noise but twice the data rate.',
+        QAM16: '16-QAM: 16 distinct (amplitude, phase) points. Four bits per symbol. Needs a clean channel — the constellation points are close together.',
+        OFDM: 'OFDM: 8 narrow BPSK sub-carriers between 3 and 8.25 kHz, run in parallel. The pattern Wi-Fi/LTE/5G all use.'
+      };
+
+      function fmtRateBits(scheme) {
+        if (scheme === 'OFDM') return (OFDM_ACTIVE_K.length / ((OFDM_N + OFDM_CP) / SR_DEFAULT)).toFixed(0) + ' bps';
+        return (SYM_RATE * bitsPerSymbol(scheme)) + ' bps';
+      }
+
+      function refreshFrameInfo() {
+        const sps = Math.round(SR_DEFAULT / SYM_RATE);
+        const bps = bitsPerSymbol(currentScheme);
+        const cells = [
+          { k: 'Carrier', v: (currentScheme === 'FSK') ? '3 kHz / 5 kHz' : (currentScheme === 'OFDM' ? '3 - 8.25 kHz' : (FC/1000) + ' kHz') },
+          { k: 'Symbol rate', v: (currentScheme === 'OFDM' ? (1 / ((OFDM_N + OFDM_CP) / SR_DEFAULT)).toFixed(0) + ' /s' : SYM_RATE + ' baud') },
+          { k: 'Bits / symbol', v: bps + '' },
+          { k: 'Raw bit rate', v: fmtRateBits(currentScheme) },
+        ];
+        frameInfo.innerHTML = cells.map(c =>
+          `<div class="cell"><div class="k">${c.k}</div><div class="v">${c.v}</div></div>`).join('');
+      }
+
+      schemePills.addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-scheme]');
+        if (!b) return;
+        for (const c of schemePills.children) c.classList.remove('active');
+        b.classList.add('active');
+        currentScheme = b.dataset.scheme;
+        schemeNote.textContent = SCHEME_NOTES[currentScheme];
+        refreshFrameInfo();
+        drawTxPreview();
+        constSubUpdate();
+      });
+      refreshFrameInfo();
+
+      function constSubUpdate() {
+        const cs = $('constSub');
+        if (!cs) return;
+        if (currentScheme === 'FSK') cs.textContent = 'FSK has no constellation — see two-tone spectrum';
+        else if (currentScheme === 'OFDM') cs.textContent = 'OFDM: equalized BPSK on each sub-carrier overlaid';
+        else cs.textContent = 'received I/Q after equalization';
+      }
+
+      volEl.addEventListener('input', () => { volVal.textContent = (+volEl.value).toFixed(2); });
+
+      const symRateEl = $('symRate');
+      const symRateVal = $('symRateVal');
+      symRateEl.addEventListener('input', () => {
+        SYM_RATE = +symRateEl.value;
+        symRateVal.textContent = SYM_RATE + ' baud';
+        refreshFrameInfo();
+        drawTxPreview();
+        // Drop in-flight detections that were captured assuming the old rate.
+        pendingDetections = [];
+      });
+
+      // ============================================================
+      // TX flow
+      // ============================================================
+      let txInFlight = false;
+      let loopOn = false;
+
+      function drawTxPreview() {
+        // Generate a representative frame for the current scheme + message and draw waveform
+        const sr = audioCtx ? audioCtx.sampleRate : SR_DEFAULT;
+        const msg = msgEl.value || '';
+        if (!msg) { clearCanvas('txWaveCanvas'); return; }
+        let frame;
+        try { frame = buildTxWaveform(currentScheme, msg, sr); }
+        catch (e) { console.error(e); return; }
+        drawWaveformWithSections('txWaveCanvas', frame.audio, frame.sections);
+      }
+
+      msgEl.addEventListener('input', () => drawTxPreview());
+
+      const randBtn = $('randBtn');
+      // Pool of printable ASCII the receiver can render unambiguously.
+      const RAND_POOL = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
+      function randomMessage() {
+        // Length 8–24 to keep transmissions snappy at low symbol rates.
+        const len = 8 + Math.floor(Math.random() * 17);
+        let s = '';
+        for (let i = 0; i < len; i++) {
+          s += RAND_POOL[Math.floor(Math.random() * RAND_POOL.length)];
+        }
+        return s;
+      }
+      randBtn.addEventListener('click', () => {
+        msgEl.value = randomMessage();
+        drawTxPreview();
+      });
+
+      async function transmitOnce() {
+        if (txInFlight) return;
+        txInFlight = true;
+        try {
+          await ensureAudio();
+          const sr = audioCtx.sampleRate;
+          const msg = msgEl.value || '';
+          if (!msg) { txStatus.textContent = 'Type a message first.'; txStatus.className = 'status error'; return; }
+          const frame = buildTxWaveform(currentScheme, msg, sr);
+          lastTxFrame = { scheme: currentScheme, dataBits: frame.dataBits, msg };
+          // Update BER reset visual
+          berStat.textContent = '—';
+
+          const buf = audioCtx.createBuffer(1, frame.audio.length, sr);
+          buf.copyToChannel(frame.audio, 0);
+          const src = audioCtx.createBufferSource();
+          src.buffer = buf;
+          const g = audioCtx.createGain();
+          g.gain.value = +volEl.value;
+          src.connect(g).connect(audioCtx.destination);
+          txStatus.textContent = `Transmitting ${currentScheme} · ${frame.totalDur.toFixed(2)} s · ${frame.dataBits.length} bits`;
+          txStatus.className = 'status busy';
+          src.start();
+          await new Promise(res => { src.onended = () => res(); });
+          txStatus.textContent = 'Transmit complete.';
+          txStatus.className = 'status ok';
+        } catch (e) {
+          txStatus.textContent = 'TX error: ' + e.message;
+          txStatus.className = 'status error';
+        } finally {
+          txInFlight = false;
+        }
+      }
+
+      txBtn.addEventListener('click', transmitOnce);
+      loopBtn.addEventListener('click', async () => {
+        loopOn = !loopOn;
+        loopBtn.textContent = loopOn ? 'Stop loop' : 'Loop transmit';
+        loopBtn.classList.toggle('secondary', !loopOn);
+        if (loopOn) {
+          while (loopOn) {
+            await transmitOnce();
+            // brief gap so two frames are clearly distinct in the air
+            await new Promise(r => setTimeout(r, 300));
+          }
+        }
+      });
+
+      // ============================================================
+      // RX flow
+      // ============================================================
+      micBtn.addEventListener('click', async () => {
+        try {
+          await ensureMic();
+          micBtn.textContent = 'Mic enabled';
+          micBtn.disabled = true;
+          rxBtn.disabled = false;
+          rxStatus.textContent = 'Mic ready · ' + Math.round(audioCtx.sampleRate) + ' Hz. Click Start listening.';
+          rxStatus.className = 'status';
+          // Refresh TX preview now that we know the real sample rate
+          drawTxPreview();
+        } catch (e) {
+          rxStatus.textContent = 'Mic error: ' + e.message;
+          rxStatus.className = 'status error';
+        }
+      });
+
+      rxBtn.addEventListener('click', async () => {
+        if (listening) {
+          // stop
+          if (recorder) { recorder.port.postMessage({ cmd: 'stop' }); }
+          listening = false;
+          rxBtn.textContent = 'Start listening';
+          rxStatus.textContent = 'Stopped.';
+          rxStatus.className = 'status';
+          return;
+        }
+        await ensureMic();
+        const sr = audioCtx.sampleRate;
+        setupRxBuffers(sr);
+        rxStats.frames = 0;
+        rxStats.crcOk = 0;
+        rxStats.lastSnrDb = null;
+        updateStats();
+
+        // Build mic graph
+        const micSource = audioCtx.createMediaStreamSource(micStream);
+        recorder = new AudioWorkletNode(audioCtx, 'mod-recorder');
+        const sink = audioCtx.createGain();
+        sink.gain.value = 0;
+        micSource.connect(recorder).connect(sink).connect(audioCtx.destination);
+        recorder.port.onmessage = (e) => {
+          pushSamples(e.data);
+        };
+        recorder.port.postMessage({ cmd: 'start' });
+        listening = true;
+        rxBtn.textContent = 'Stop listening';
+        rxBtn.classList.remove('secondary');
+        rxStatus.textContent = 'Listening… hold the mic toward the speaker.';
+        rxStatus.className = 'status busy';
+      });
+
+      function updateStats() {
+        frameCount.textContent = rxStats.frames + '';
+        if (rxStats.frames === 0) crcRate.textContent = '—';
+        else crcRate.textContent = ((rxStats.crcOk / rxStats.frames) * 100).toFixed(0) + '%';
+        if (rxStats.lastSnrDb == null) snrStat.firstChild.textContent = '— ';
+        else snrStat.firstChild.textContent = rxStats.lastSnrDb.toFixed(1) + ' ';
+      }
+
+      function recordDecoded(result, absIdx) {
+        if (!result) return;
+        rxStats.frames++;
+        if (result.ok) rxStats.crcOk++;
+        if (result.snrDb != null) rxStats.lastSnrDb = result.snrDb;
+        updateStats();
+
+        // Show decoded message
+        decoded.textContent = result.msg || '(empty)';
+        decoded.classList.toggle('bad', !result.ok);
+        decodedSub.textContent = result.ok
+          ? `${result.scheme} · ${result.length || 0} chars · CRC OK`
+          : `${result.scheme} · CRC FAIL · likely garbled`;
+
+        // BER vs last TX (if scheme matches)
+        if (lastTxFrame && lastTxFrame.scheme === result.scheme && result.bitsRx) {
+          const refBits = lastTxFrame.dataBits;
+          const n = Math.min(refBits.length, result.bitsRx.length);
+          let err = 0;
+          for (let i = 0; i < n; i++) if (refBits[i] !== result.bitsRx[i]) err++;
+          berStat.textContent = `${err} / ${n}`;
+          berStat.classList.toggle('bad', err > 0);
+          berStat.classList.toggle('ok', err === 0);
+        }
+
+        lastDetections.push(absIdx);
+        if (lastDetections.length > 8) lastDetections.shift();
+
+        if (result.constellation) lastConstellation = { scheme: result.scheme, points: result.constellation };
+      }
+
+      // Periodic decode loop (in addition to the rAF visualization loop)
+      let lastConstellation = null;
+      let lastDetTried = -1;
+
+      function decodeLoop() {
+        if (listening) {
+          // 1) find new preambles
+          const dets = findPreambles();
+          for (const d of dets) {
+            // try decode if enough samples have arrived (we'll retry next tick if not)
+            const r = tryDecodeFrame(currentScheme, d, audioCtx.sampleRate);
+            if (r) {
+              lastDetectionAbs = d;
+              recordDecoded(r, d);
+            } else {
+              // remember to retry
+              pendingDetections.push(d);
+            }
+          }
+          // 2) retry pending
+          if (pendingDetections.length > 0) {
+            const stillPending = [];
+            for (const d of pendingDetections) {
+              const r = tryDecodeFrame(currentScheme, d, audioCtx.sampleRate);
+              if (r) {
+                lastDetectionAbs = d;
+                recordDecoded(r, d);
+              } else {
+                // give up if too old
+                if (totalSamples - d > audioCtx.sampleRate * 2.5) continue;
+                stillPending.push(d);
+              }
+            }
+            pendingDetections = stillPending;
+          }
+        }
+        setTimeout(decodeLoop, 60);
+      }
+      decodeLoop();
+
+      // ============================================================
+      // Visualizations
+      // ============================================================
+      function clearCanvas(id) {
+        const c = $(id);
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, c.width, c.height);
+      }
+
+      function ensureCanvasSize(c) {
+        const dpr = window.devicePixelRatio || 1;
+        const w = c.clientWidth;
+        const h = c.clientHeight;
+        if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+          c.width = Math.round(w * dpr);
+          c.height = Math.round(h * dpr);
+        }
+        const ctx = c.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { ctx, w, h };
+      }
+
+      function drawWaveformWithSections(id, audio, sections) {
+        const c = $(id);
+        const { ctx, w, h } = ensureCanvasSize(c);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+        ctx.stroke();
+
+        const N = audio.length;
+        const samplesPerPx = N / w;
+
+        // Decimate: per pixel, draw min/max
+        function colorAtSample(i) {
+          for (const sec of sections) {
+            if (i >= sec.start && i < sec.end) return sec.color;
+          }
+          return '#5b6068';
+        }
+
+        for (let x = 0; x < w; x++) {
+          const i0 = Math.floor(x * samplesPerPx);
+          const i1 = Math.min(N, Math.floor((x + 1) * samplesPerPx));
+          if (i1 <= i0) continue;
+          let mn = 1e9, mx = -1e9;
+          for (let i = i0; i < i1; i++) {
+            const v = audio[i];
+            if (v < mn) mn = v;
+            if (v > mx) mx = v;
+          }
+          const y0 = (1 - mx) * 0.5 * h;
+          const y1 = (1 - mn) * 0.5 * h;
+          ctx.strokeStyle = colorAtSample(i0);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x + 0.5, y0);
+          ctx.lineTo(x + 0.5, Math.max(y0 + 1, y1));
+          ctx.stroke();
+        }
+      }
+
+      function drawRxWaveform() {
+        const c = $('rxWaveCanvas');
+        const { ctx, w, h } = ensureCanvasSize(c);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+        if (!rxBuf || totalSamples === 0) return;
+        const sr = audioCtx ? audioCtx.sampleRate : SR_DEFAULT;
+        const winSec = 1.5;
+        const winSamples = Math.min(rxBufLen, Math.round(sr * winSec));
+        const startAbs = Math.max(0, totalSamples - winSamples);
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+        // waveform
+        const samplesPerPx = winSamples / w;
+        ctx.strokeStyle = '#bc122a';
+        ctx.lineWidth = 1;
+        // Find peak for normalization
+        let peak = 0.05;
+        for (let i = 0; i < winSamples; i += 8) {
+          const v = Math.abs(rxAt(startAbs + i));
+          if (v > peak) peak = v;
+        }
+        for (let x = 0; x < w; x++) {
+          const i0 = Math.floor(x * samplesPerPx);
+          const i1 = Math.min(winSamples, Math.floor((x + 1) * samplesPerPx));
+          if (i1 <= i0) continue;
+          let mn = 1e9, mx = -1e9;
+          for (let i = i0; i < i1; i++) {
+            const v = rxAt(startAbs + i) / peak;
+            if (v < mn) mn = v;
+            if (v > mx) mx = v;
+          }
+          ctx.beginPath();
+          ctx.moveTo(x + 0.5, (1 - mx) * 0.5 * h);
+          ctx.lineTo(x + 0.5, Math.max((1 - mx) * 0.5 * h + 1, (1 - mn) * 0.5 * h));
+          ctx.stroke();
+        }
+        // Detection markers
+        ctx.strokeStyle = 'rgba(232,185,35,0.85)';
+        ctx.lineWidth = 1.5;
+        for (const d of lastDetections) {
+          if (d < startAbs || d > startAbs + winSamples) continue;
+          const x = ((d - startAbs) / winSamples) * w;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+      }
+
+      function drawSpectrum() {
+        const c = $('specCanvas');
+        const { ctx, w, h } = ensureCanvasSize(c);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+        if (!rxBuf || totalSamples < 2048) return;
+        const sr = audioCtx.sampleRate;
+        const NFFT = 1024;
+        const re = new Float64Array(NFFT);
+        const im = new Float64Array(NFFT);
+        const startAbs = Math.max(0, totalSamples - NFFT);
+        for (let i = 0; i < NFFT; i++) {
+          const win = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NFFT - 1));
+          re[i] = rxAt(startAbs + i) * win;
+          im[i] = 0;
+        }
+        fft(re, im, false);
+        // Show 0 - 10 kHz
+        const maxFreq = 10000;
+        const maxBin = Math.min(NFFT/2, Math.round(maxFreq / sr * NFFT));
+        // grid lines at 1 kHz
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '10px Roboto Mono, monospace';
+        for (let f = 1000; f <= maxFreq; f += 1000) {
+          const x = (f / maxFreq) * w;
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+          ctx.fillText((f/1000)+'k', x + 2, h - 4);
+        }
+        // Bars
+        ctx.fillStyle = '#bc122a';
+        let peak = 1e-6;
+        for (let k = 1; k < maxBin; k++) {
+          const m = Math.sqrt(re[k]*re[k] + im[k]*im[k]);
+          if (m > peak) peak = m;
+        }
+        for (let x = 0; x < w; x++) {
+          const k = Math.floor((x / w) * maxBin);
+          if (k < 1) continue;
+          const m = Math.sqrt(re[k]*re[k] + im[k]*im[k]) / peak;
+          const db = 20 * Math.log10(Math.max(1e-6, m));
+          // map -60..0 dB to 0..h
+          const norm = Math.max(0, Math.min(1, (db + 60) / 60));
+          const barH = norm * (h - 12);
+          ctx.fillRect(x, h - barH, 1, barH);
+        }
+      }
+
+      function drawConstellation() {
+        const c = $('constCanvas');
+        const { ctx, w, h } = ensureCanvasSize(c);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '10px Roboto Mono, monospace';
+        ctx.fillText('I', w - 10, h/2 - 4);
+        ctx.fillText('Q', w/2 + 4, 10);
+
+        if (currentScheme === 'FSK') {
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.font = '12px Roboto, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('FSK uses 2 tones — see spectrum', w/2, h/2 + 24);
+          ctx.textAlign = 'start';
+          return;
+        }
+
+        // Reference constellation points (faint)
+        const refPts = referenceConstellation(currentScheme);
+        const scale = Math.min(w, h) * 0.36;
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        for (const p of refPts) {
+          ctx.beginPath();
+          ctx.arc(w/2 + p[0]*scale, h/2 - p[1]*scale, 8, 0, Math.PI*2);
+          ctx.fill();
+        }
+
+        // Latest received points
+        if (lastConstellation && lastConstellation.scheme === currentScheme) {
+          ctx.fillStyle = 'rgba(232,185,35,0.85)';
+          for (const [I, Q] of lastConstellation.points) {
+            const x = w/2 + I*scale;
+            const y = h/2 - Q*scale;
+            if (x < 0 || x > w || y < 0 || y > h) continue;
+            ctx.beginPath();
+            ctx.arc(x, y, 2.5, 0, Math.PI*2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function referenceConstellation(scheme) {
+        if (scheme === 'ASK') return [[0.15, 0], [1, 0]];
+        if (scheme === 'BPSK') return [[-1, 0], [1, 0]];
+        if (scheme === 'QPSK') {
+          const v = 1/Math.SQRT2;
+          return [[v,v],[-v,v],[-v,-v],[v,-v]];
+        }
+        if (scheme === 'QAM16') {
+          const lvl = [-3,-1,1,3];
+          const out = [];
+          const norm = 1/Math.sqrt(10);
+          for (const i of lvl) for (const q of lvl) out.push([i*norm, q*norm]);
+          return out;
+        }
+        if (scheme === 'OFDM') return [[-1,0],[1,0]];
+        return [];
+      }
+
+      function vizLoop() {
+        drawRxWaveform();
+        drawSpectrum();
+        drawConstellation();
+        requestAnimationFrame(vizLoop);
+      }
+      requestAnimationFrame(vizLoop);
+
+      // Initial paint of constellation labels & TX preview
+      constSubUpdate();
+      drawConstellation();
+
+      // ResizeObserver to redraw TX preview on layout changes
+      window.addEventListener('resize', () => { drawTxPreview(); drawSimAll(); drawBerCurves(); });
+      // First TX preview after a tick (so layout is complete)
+      setTimeout(() => drawTxPreview(), 0);
+
+      // ============================================================
+      // Simulation panel
+      // ============================================================
+      const simSnr = $('simSnr');
+      const simSnrVal = $('simSnrVal');
+      const simEchoMs = $('simEchoMs');
+      const simEchoMsVal = $('simEchoMsVal');
+      const simEchoGain = $('simEchoGain');
+      const simEchoGainVal = $('simEchoGainVal');
+      const simBtn = $('simBtn');
+      const simAuto = $('simAuto');
+      const simStatus = $('simStatus');
+      const simCrc = $('simCrc');
+      const simBer = $('simBer');
+      const simSnrEff = $('simSnrEff');
+      const simSchemeOut = $('simSchemeOut');
+      const simDecoded = $('simDecoded');
+
+      let lastSimResult = null;
+
+      function readSimParams() {
+        return {
+          snrDb: +simSnr.value,
+          echoMs: +simEchoMs.value,
+          echoGainDb: +simEchoGain.value
+        };
+      }
+
+      function updateSimLabels() {
+        const p = readSimParams();
+        simSnrVal.textContent = p.snrDb + ' dB';
+        simEchoMsVal.textContent = p.echoMs + ' ms';
+        simEchoGainVal.innerHTML = (p.echoGainDb < 0 ? '&minus;' : '') + Math.abs(p.echoGainDb) + ' dB';
+      }
+      updateSimLabels();
+
+      function runSim() {
+        const sr = audioCtx ? audioCtx.sampleRate : SR_DEFAULT;
+        const msg = msgEl.value || 'sim';
+        const r = simulateOnce(currentScheme, msg, readSimParams(), sr);
+        lastSimResult = r;
+        simStatus.textContent = 'Done.';
+        simStatus.className = 'status ok';
+        simCrc.textContent = r.ok ? 'OK' : 'FAIL';
+        simCrc.className = 'num ' + (r.ok ? 'ok' : 'bad');
+        simBer.textContent = r.bitTotal > 0 ? `${r.bitErr} / ${r.bitTotal}` : '—';
+        simBer.className = 'num ' + (r.bitErr === 0 ? 'ok' : (r.bitErr > 0 ? 'bad' : ''));
+        simSnrEff.firstChild.textContent = (r.snrDb != null ? r.snrDb.toFixed(1) : (+simSnr.value).toFixed(1)) + ' ';
+        simSchemeOut.textContent = currentScheme;
+        simDecoded.textContent = r.msg || '(empty)';
+        simDecoded.classList.toggle('bad', !r.ok);
+        drawSimAll();
+      }
+
+      function debounce(fn, ms) {
+        let t = null;
+        return (...args) => {
+          if (t) clearTimeout(t);
+          t = setTimeout(() => fn(...args), ms);
+        };
+      }
+      const runSimDebounced = debounce(runSim, 80);
+
+      [simSnr, simEchoMs, simEchoGain].forEach(el => {
+        el.addEventListener('input', () => {
+          updateSimLabels();
+          if (simAuto.checked) runSimDebounced();
+        });
+      });
+      simBtn.addEventListener('click', runSim);
+      // Re-run when scheme/symbol-rate/message change too
+      schemePills.addEventListener('click', () => { if (simAuto.checked) runSimDebounced(); });
+      symRateEl.addEventListener('input', () => { if (simAuto.checked) runSimDebounced(); });
+      msgEl.addEventListener('input', () => { if (simAuto.checked) runSimDebounced(); });
+
+      function drawSimConstellation() {
+        const c = $('simConstCanvas');
+        const { ctx, w, h } = ensureCanvasSize(c);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke();
+
+        if (currentScheme === 'FSK') {
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.font = '12px Roboto, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('FSK uses 2 tones — see spectrum →', w/2, h/2 + 24);
+          ctx.textAlign = 'start';
+          return;
+        }
+
+        const refPts = referenceConstellation(currentScheme);
+        const scale = Math.min(w, h) * 0.36;
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        for (const p of refPts) {
+          ctx.beginPath();
+          ctx.arc(w/2 + p[0]*scale, h/2 - p[1]*scale, 8, 0, Math.PI*2);
+          ctx.fill();
+        }
+
+        if (lastSimResult && lastSimResult.constellation && lastSimResult.scheme === currentScheme) {
+          ctx.fillStyle = 'rgba(232,185,35,0.85)';
+          for (const [I, Q] of lastSimResult.constellation) {
+            const x = w/2 + I*scale;
+            const y = h/2 - Q*scale;
+            if (x < 0 || x > w || y < 0 || y > h) continue;
+            ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI*2); ctx.fill();
+          }
+        }
+      }
+
+      function drawSimSpectrum() {
+        const c = $('simSpecCanvas');
+        const { ctx, w, h } = ensureCanvasSize(c);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+        if (!lastSimResult) return;
+        const audio = lastSimResult.channelOut;
+        const sr = audioCtx ? audioCtx.sampleRate : SR_DEFAULT;
+        const NFFT = 1024;
+        if (audio.length < NFFT) return;
+        const re = new Float64Array(NFFT);
+        const im = new Float64Array(NFFT);
+        // Use a window centred in the signal
+        const start = Math.max(0, Math.floor(audio.length / 2) - NFFT/2);
+        for (let i = 0; i < NFFT; i++) {
+          const win = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NFFT - 1));
+          re[i] = (audio[start + i] || 0) * win;
+          im[i] = 0;
+        }
+        fft(re, im, false);
+        const maxFreq = 10000;
+        const maxBin = Math.min(NFFT/2, Math.round(maxFreq / sr * NFFT));
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '10px Roboto Mono, monospace';
+        for (let f = 1000; f <= maxFreq; f += 1000) {
+          const x = (f / maxFreq) * w;
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+          ctx.fillText((f/1000)+'k', x + 2, h - 4);
+        }
+        ctx.fillStyle = '#bc122a';
+        let peak = 1e-6;
+        for (let k = 1; k < maxBin; k++) {
+          const m = Math.sqrt(re[k]*re[k] + im[k]*im[k]);
+          if (m > peak) peak = m;
+        }
+        for (let x = 0; x < w; x++) {
+          const k = Math.floor((x / w) * maxBin);
+          if (k < 1) continue;
+          const m = Math.sqrt(re[k]*re[k] + im[k]*im[k]) / peak;
+          const db = 20 * Math.log10(Math.max(1e-6, m));
+          const norm = Math.max(0, Math.min(1, (db + 60) / 60));
+          const barH = norm * (h - 12);
+          ctx.fillRect(x, h - barH, 1, barH);
+        }
+      }
+
+      function drawSimAll() {
+        drawSimConstellation();
+        drawSimSpectrum();
+      }
+      drawSimAll();
+      // Initial sim run so the panel isn't empty.
+      setTimeout(runSim, 50);
+
+      // ============================================================
+      // BER vs SNR sweep (Monte Carlo, async)
+      // ============================================================
+      const SCHEME_COLORS = {
+        ASK:   '#bc122a',
+        FSK:   '#E8B923',
+        BPSK:  '#1f6feb',
+        QPSK:  '#2a8b2a',
+        QAM16: '#9b59b6',
+        OFDM:  '#e67e22'
+      };
+      const SCHEME_DASH = {
+        ASK:   [],
+        FSK:   [4, 4],
+        BPSK:  [],
+        QPSK:  [6, 3],
+        QAM16: [2, 3],
+        OFDM:  [8, 3, 2, 3]
+      };
+
+      const sweepBtn = $('sweepBtn');
+      const sweepStopBtn = $('sweepStopBtn');
+      const sweepStatus = $('sweepStatus');
+      let sweepRunning = false;
+      let sweepData = null; // { snrs: [...], curves: { scheme: [ber, ber, ...] } }
+
+      function buildBerLegend() {
+        const legend = $('berLegend');
+        legend.innerHTML = ['ASK','FSK','BPSK','QPSK','QAM16','OFDM']
+          .map(s => `<span><span class="swatch" style="background:${SCHEME_COLORS[s]}"></span>${s}</span>`).join('');
+      }
+      buildBerLegend();
+
+      function drawBerCurves() {
+        const c = $('berCanvas');
+        const { ctx, w, h } = ensureCanvasSize(c);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+
+        const PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 32;
+        const plotW = w - PAD_L - PAD_R;
+        const plotH = h - PAD_T - PAD_B;
+
+        // Y axis: log10(BER) from 0 (=10^0=1) down to -4 (=1e-4)
+        const yMinLog = -4, yMaxLog = 0;
+        function yToPx(berLog) {
+          const t = (berLog - yMinLog) / (yMaxLog - yMinLog);
+          return PAD_T + (1 - t) * plotH;
+        }
+        // X axis: SNR
+        const xMin = -25, xMax = 5;
+        function xToPx(snr) {
+          const t = (snr - xMin) / (xMax - xMin);
+          return PAD_L + t * plotW;
+        }
+
+        // Grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '10px Roboto Mono, monospace';
+        ctx.lineWidth = 1;
+        for (let snr = xMin; snr <= xMax; snr += 5) {
+          const x = xToPx(snr);
+          ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T + plotH); ctx.stroke();
+          ctx.fillText(snr + '', x - 10, PAD_T + plotH + 14);
+        }
+        const yLabels = ['10⁰', '10⁻¹', '10⁻²', '10⁻³', '10⁻⁴'];
+        for (let p = yMinLog; p <= yMaxLog; p++) {
+          const y = yToPx(p);
+          ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(PAD_L + plotW, y); ctx.stroke();
+          ctx.fillText(yLabels[Math.abs(p)] || '', 6, y + 4);
+        }
+        // Axis labels
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.font = '11px Roboto, sans-serif';
+        ctx.fillText('SNR (dB)', PAD_L + plotW/2 - 24, h - 8);
+        ctx.save();
+        ctx.translate(14, PAD_T + plotH/2 + 12);
+        ctx.rotate(-Math.PI/2);
+        ctx.fillText('Bit error rate', 0, 0);
+        ctx.restore();
+
+        if (!sweepData) {
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.font = '12px Roboto, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Click "Sweep SNR" to populate', PAD_L + plotW/2, PAD_T + plotH/2);
+          ctx.textAlign = 'start';
+          return;
+        }
+
+        // Curves
+        for (const scheme of Object.keys(sweepData.curves)) {
+          const ys = sweepData.curves[scheme];
+          ctx.strokeStyle = SCHEME_COLORS[scheme];
+          ctx.lineWidth = 1.8;
+          ctx.setLineDash(SCHEME_DASH[scheme] || []);
+          ctx.beginPath();
+          let first = true;
+          for (let i = 0; i < ys.length; i++) {
+            if (ys[i] == null) continue;
+            const ber = ys[i];
+            const yLog = ber > 0 ? Math.log10(ber) : yMinLog - 1;
+            const yClamped = Math.max(yMinLog, yLog);
+            const x = xToPx(sweepData.snrs[i]);
+            const y = yToPx(yClamped);
+            if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+          // Markers
+          ctx.fillStyle = SCHEME_COLORS[scheme];
+          for (let i = 0; i < ys.length; i++) {
+            if (ys[i] == null) continue;
+            const ber = ys[i];
+            const yLog = ber > 0 ? Math.log10(ber) : yMinLog - 1;
+            const yClamped = Math.max(yMinLog, yLog);
+            const x = xToPx(sweepData.snrs[i]);
+            const y = yToPx(yClamped);
+            ctx.beginPath(); ctx.arc(x, y, 2.4, 0, Math.PI*2); ctx.fill();
+          }
+        }
+      }
+      drawBerCurves();
+
+      async function runBerSweep() {
+        if (sweepRunning) return;
+        sweepRunning = true;
+        sweepBtn.disabled = true;
+        sweepStopBtn.disabled = false;
+        sweepStatus.className = 'status busy';
+
+        const sr = audioCtx ? audioCtx.sampleRate : SR_DEFAULT;
+        const snrs = [];
+        for (let s = -25; s <= 5; s += 2) snrs.push(s);
+        const schemes = ['ASK','FSK','BPSK','QPSK','QAM16','OFDM'];
+        const trialsPerPoint = 8;
+        const messages = [];
+        for (let i = 0; i < trialsPerPoint; i++) messages.push(randomMessage());
+
+        sweepData = { snrs, curves: {} };
+        for (const sc of schemes) sweepData.curves[sc] = new Array(snrs.length).fill(null);
+
+        let totalSteps = schemes.length * snrs.length;
+        let stepDone = 0;
+
+        for (let si = 0; si < snrs.length; si++) {
+          for (const scheme of schemes) {
+            if (!sweepRunning) break;
+            let totErr = 0, totBits = 0;
+            for (let t = 0; t < trialsPerPoint; t++) {
+              const r = simulateOnce(scheme, messages[t], { snrDb: snrs[si], echoMs: 0, echoGainDb: -80 }, sr);
+              totErr += r.bitErr;
+              totBits += r.bitTotal;
+            }
+            sweepData.curves[scheme][si] = totBits > 0 ? totErr / totBits : null;
+            stepDone++;
+            sweepStatus.textContent = `Sweeping… ${Math.round(stepDone / totalSteps * 100)}% (SNR=${snrs[si]} dB, ${scheme})`;
+            drawBerCurves();
+            // Yield to the event loop so the UI repaints + Stop is responsive
+            await new Promise(r => setTimeout(r, 0));
+          }
+          if (!sweepRunning) break;
+        }
+
+        sweepRunning = false;
+        sweepBtn.disabled = false;
+        sweepStopBtn.disabled = true;
+        sweepStatus.className = 'status ok';
+        sweepStatus.textContent = sweepRunning === false && stepDone < totalSteps ? 'Stopped.' : 'Done.';
+      }
+
+      sweepBtn.addEventListener('click', runBerSweep);
+      sweepStopBtn.addEventListener('click', () => {
+        sweepRunning = false;
+        sweepStatus.textContent = 'Stopping…';
+      });
+
+    </script>
+  </body>
+</html>

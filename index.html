@@ -45,9 +45,18 @@
         display: flex;
         align-items: center;
         gap: clamp(20px, 4vw, 36px);
-        padding: 96px 0 56px;
+        padding: 96px 0 24px;
         max-width: 100%;
         box-sizing: border-box;
+      }
+      .tagline {
+        margin: 0 auto 56px;
+        max-width: 56ch;
+        font-size: clamp(15px, 1.6vw, 18px);
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--grey-text);
+        text-align: center;
       }
       .links {
         display: grid;
@@ -55,6 +64,55 @@
         gap: 20px;
         width: 100%;
       }
+      .tool-section { width: 100%; }
+      .tool-section + .tool-section { margin-top: 44px; }
+      .section-head {
+        margin: 0 0 22px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--grey-line);
+      }
+      .section-title {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--black);
+      }
+      .section-intro {
+        margin: 8px 0 0;
+        max-width: 64ch;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--grey-text);
+      }
+      .setup-chip {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px 3px 9px;
+        border-radius: 999px;
+        background: #f1f2f4;
+        color: var(--grey-text);
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        margin: 0;
+      }
+      .setup-chip::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.45;
+      }
+      .setup-chip.single::before { background: #1f6feb; opacity: 1; }
+      .setup-chip.pair::before   { background: var(--red); opacity: 1; }
+      .setup-chip.two::before    { background: #b87600; opacity: 1; }
+      .setup-chip.sim::before    { background: #2a8b2a; opacity: 1; }
       .card-link {
         display: flex;
         flex-direction: column;
@@ -86,7 +144,7 @@
         padding: 24px 28px 22px;
         flex: 1;
       }
-      .card-link h2 {
+      .card-link h3 {
         margin: 0;
         font-size: 22px;
         font-weight: 900;
@@ -233,7 +291,13 @@
         <div class="institution">Carnegie Mellon University</div>
       </div>
       </div>
-      <section class="links" aria-label="Tools">
+      <p class="tagline">Hands-on, browser-based labs for sensing systems &mdash; acoustics, radios, cameras, and motion. Pick a concept, open it in your browser, and play with the math behind it.</p>
+      <section class="tool-section" aria-labelledby="sec-sensors">
+        <div class="section-head">
+          <h2 class="section-title" id="sec-sensors">Sensors</h2>
+          <p class="section-intro">Live data straight from this device&rsquo;s microphone, camera, or motion sensors &mdash; or from a paired phone.</p>
+        </div>
+        <div class="links">
         <a class="card-link" href="tone/">
           <div class="cover" aria-hidden="true">
             <svg viewBox="0 0 200 100" preserveAspectRatio="none">
@@ -250,7 +314,8 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Tone &amp; Spectrum</h2>
+            <span class="setup-chip single">Single device</span>
+            <h3>Tone &amp; Spectrum</h3>
             <p>Generate a sine tone through your speakers and watch the live FFT of what your microphone hears.</p>
             <span class="arrow">Open</span>
           </div>
@@ -285,7 +350,7 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Tone &amp; Spectrum · Remote</h2>
+            <h3>Tone &amp; Spectrum · Remote</h3>
             <p>Pair your phone via QR code. The phone is the speaker and microphone; this laptop displays the spectrum.</p>
             <span class="arrow">Open</span>
           </div>
@@ -315,40 +380,8 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Back Camera</h2>
+            <h3>Back Camera</h3>
             <p>Use this device&rsquo;s rear camera directly. Live feed plus per-channel red, green, and blue averages, all on-device.</p>
-            <span class="arrow">Open</span>
-          </div>
-        </a>
-        <a class="card-link" href="camera-front/">
-          <div class="cover" aria-hidden="true">
-            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
-              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
-                <line x1="40"  y1="0" x2="40"  y2="100"/>
-                <line x1="80"  y1="0" x2="80"  y2="100"/>
-                <line x1="120" y1="0" x2="120" y2="100"/>
-                <line x1="160" y1="0" x2="160" y2="100"/>
-              </g>
-              <!-- phone (front) with selfie lens at top, earpiece slot, screen -->
-              <g transform="translate(28 18)">
-                <rect x="0" y="0" width="32" height="64" rx="5" fill="none" stroke="#bc122a" stroke-width="1.6"/>
-                <rect x="3" y="9" width="26" height="48" rx="2" fill="rgba(188,18,42,0.18)"/>
-                <rect x="11" y="3.6" width="10" height="1.8" rx="0.9" fill="#bc122a"/>
-                <circle cx="25" cy="4.5" r="1.4" fill="none" stroke="#bc122a" stroke-width="0.9"/>
-                <circle cx="25" cy="4.5" r="0.6" fill="#bc122a"/>
-                <circle cx="16" cy="58" r="1.6" fill="#bc122a"/>
-              </g>
-              <!-- three RGB channel traces emanating from the device -->
-              <g fill="none" stroke-width="1.4" stroke-linejoin="round">
-                <path d="M 80 28 Q 100 20 120 30 T 160 26 T 196 30" stroke="#e63946"/>
-                <path d="M 80 50 Q 100 58 120 48 T 160 54 T 196 50" stroke="#2a8b2a"/>
-                <path d="M 80 72 Q 100 66 120 76 T 160 70 T 196 74" stroke="#1f6feb"/>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <h2>Front Camera</h2>
-            <p>Use this device&rsquo;s front-facing (selfie) camera directly. Live feed plus pose tracking, breathing waveform, and RGB averages, all on-device.</p>
             <span class="arrow">Open</span>
           </div>
         </a>
@@ -385,8 +418,40 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Back Camera &middot; Remote</h2>
+            <h3>Back Camera &middot; Remote</h3>
             <p>Pair your phone via a 4-digit code and stream its rear-facing camera live to this laptop over WebRTC.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="camera-front/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- phone (front) with selfie lens at top, earpiece slot, screen -->
+              <g transform="translate(28 18)">
+                <rect x="0" y="0" width="32" height="64" rx="5" fill="none" stroke="#bc122a" stroke-width="1.6"/>
+                <rect x="3" y="9" width="26" height="48" rx="2" fill="rgba(188,18,42,0.18)"/>
+                <rect x="11" y="3.6" width="10" height="1.8" rx="0.9" fill="#bc122a"/>
+                <circle cx="25" cy="4.5" r="1.4" fill="none" stroke="#bc122a" stroke-width="0.9"/>
+                <circle cx="25" cy="4.5" r="0.6" fill="#bc122a"/>
+                <circle cx="16" cy="58" r="1.6" fill="#bc122a"/>
+              </g>
+              <!-- three RGB channel traces emanating from the device -->
+              <g fill="none" stroke-width="1.4" stroke-linejoin="round">
+                <path d="M 80 28 Q 100 20 120 30 T 160 26 T 196 30" stroke="#e63946"/>
+                <path d="M 80 50 Q 100 58 120 48 T 160 54 T 196 50" stroke="#2a8b2a"/>
+                <path d="M 80 72 Q 100 66 120 76 T 160 70 T 196 74" stroke="#1f6feb"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <h3>Front Camera</h3>
+            <p>Use this device&rsquo;s front-facing (selfie) camera directly. Live feed plus pose tracking, breathing waveform, and RGB averages, all on-device.</p>
             <span class="arrow">Open</span>
           </div>
         </a>
@@ -425,7 +490,7 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Front Camera &middot; Remote</h2>
+            <h3>Front Camera &middot; Remote</h3>
             <p>Pair your phone via a 4-digit code and stream its front-facing (selfie) camera live to this laptop over WebRTC.</p>
             <span class="arrow">Open</span>
           </div>
@@ -464,7 +529,7 @@
             </svg>
           </div>
           <div class="body">
-            <h2>IMU</h2>
+            <h3>IMU</h3>
             <p>Stream this device's own accelerometer, gyroscope, and magnetometer to live charts. No pairing required.</p>
             <span class="arrow">Open</span>
           </div>
@@ -503,11 +568,19 @@
             </svg>
           </div>
           <div class="body">
-            <h2>IMU · Remote</h2>
+            <h3>IMU · Remote</h3>
             <p>Pair your phone via QR code and stream its accelerometer, gyroscope, and magnetometer to live charts here.</p>
             <span class="arrow">Open</span>
           </div>
         </a>
+        </div>
+      </section>
+      <section class="tool-section" aria-labelledby="sec-wireless">
+        <div class="section-head">
+          <h2 class="section-title" id="sec-wireless">Wireless &amp; Networking</h2>
+          <p class="section-intro">Watch radio behavior at the link layer &mdash; from raw signal strength to channel-access protocols.</p>
+        </div>
+        <div class="links">
         <a class="card-link" href="wifi-rssi/">
           <div class="cover" aria-hidden="true">
             <svg viewBox="0 0 200 100" preserveAspectRatio="none">
@@ -547,7 +620,7 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Wi-Fi RSSI</h2>
+            <h3>Wi-Fi RSSI</h3>
             <p>Connect this laptop to your phone's hotspot, run the local helper, and watch the radio signal track in real time as you move the phone.</p>
             <span class="arrow">Open</span>
           </div>
@@ -594,11 +667,19 @@
             </svg>
           </div>
           <div class="body">
-            <h2>MAC Protocols</h2>
+            <h3>MAC Protocols</h3>
             <p>Simulate a shared radio channel under ALOHA, slotted ALOHA, CSMA, and p-persistent CSMA. Watch successes, collisions, and the throughput curve in real time.</p>
             <span class="arrow">Open</span>
           </div>
         </a>
+        </div>
+      </section>
+      <section class="tool-section" aria-labelledby="sec-waves">
+        <div class="section-head">
+          <h2 class="section-title" id="sec-waves">Waves &amp; Acoustics</h2>
+          <p class="section-intro">Acoustic propagation in a simulated room, and the impulse response of the real one you&rsquo;re sitting in.</p>
+        </div>
+        <div class="links">
         <a class="card-link" href="wave-sim/">
           <div class="cover" aria-hidden="true">
             <svg viewBox="0 0 200 100" preserveAspectRatio="none">
@@ -633,139 +714,9 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Wave Propagation</h2>
+            <span class="setup-chip sim">Simulation</span>
+            <h3>Wave Propagation</h3>
             <p>Drop sources, paint walls, and watch reflection, diffraction, and standing waves form on a 2D acoustic FDTD simulation.</p>
-            <span class="arrow">Open</span>
-          </div>
-        </a>
-        <a class="card-link" href="acoustic-ranging/">
-          <div class="cover" aria-hidden="true">
-            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
-              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
-                <line x1="40"  y1="0" x2="40"  y2="100"/>
-                <line x1="80"  y1="0" x2="80"  y2="100"/>
-                <line x1="120" y1="0" x2="120" y2="100"/>
-                <line x1="160" y1="0" x2="160" y2="100"/>
-              </g>
-              <!-- laptop on left emitting chirp arcs -->
-              <g transform="translate(14 30)">
-                <rect x="0" y="0" width="48" height="30" rx="3" fill="none" stroke="#bc122a" stroke-width="1.6"/>
-                <rect x="-4" y="30" width="56" height="3" rx="1.2" fill="#bc122a"/>
-              </g>
-              <g fill="none" stroke="#bc122a" stroke-width="1.2" stroke-linecap="round" opacity="0.85">
-                <path d="M 66 50 Q 76 38 86 50"/>
-                <path d="M 66 50 Q 80 32 94 50"/>
-                <path d="M 66 50 Q 84 26 102 50"/>
-              </g>
-              <!-- phone on right emitting chirp arcs -->
-              <g transform="translate(160 22)">
-                <rect x="0" y="0" width="26" height="56" rx="4" fill="none" stroke="#bc122a" stroke-width="1.6"/>
-                <circle cx="13" cy="50" r="1.4" fill="#bc122a"/>
-              </g>
-              <g fill="none" stroke="#bc122a" stroke-width="1.2" stroke-linecap="round" opacity="0.85">
-                <path d="M 158 50 Q 148 38 138 50"/>
-                <path d="M 158 50 Q 144 32 130 50"/>
-                <path d="M 158 50 Q 140 26 122 50"/>
-              </g>
-              <!-- chirp waveform sketch in the middle -->
-              <g fill="none" stroke="rgba(232,185,35,0.85)" stroke-width="1.3" stroke-linejoin="round">
-                <path d="M 104 64 L 106 56 L 108 72 L 110 50 L 112 76 L 114 46 L 117 78 L 120 44"/>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <h2>Acoustic Ranging</h2>
-            <p>Pair your phone, then both devices record while the laptop and phone each emit a 200 ms 1&ndash;4 kHz chirp two seconds apart.</p>
-            <span class="arrow">Open</span>
-          </div>
-        </a>
-        <a class="card-link" href="beamforming/">
-          <div class="cover" aria-hidden="true">
-            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
-              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
-                <line x1="40"  y1="0" x2="40"  y2="100"/>
-                <line x1="80"  y1="0" x2="80"  y2="100"/>
-                <line x1="120" y1="0" x2="120" y2="100"/>
-                <line x1="160" y1="0" x2="160" y2="100"/>
-              </g>
-              <!-- DOA half-circle -->
-              <g fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.7">
-                <path d="M 28 84 A 72 72 0 0 1 172 84"/>
-              </g>
-              <!-- angle lines to two sources -->
-              <g stroke="#bc122a" stroke-width="1" stroke-dasharray="3 3" opacity="0.9">
-                <line x1="100" y1="84" x2="62"  y2="22"/>
-                <line x1="100" y1="84" x2="146" y2="32"/>
-              </g>
-              <!-- ULA elements along the bottom -->
-              <g>
-                <line x1="64" y1="84" x2="136" y2="84" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
-                <g fill="#fafafa" stroke="#bc122a" stroke-width="1">
-                  <circle cx="68"  cy="84" r="2.4"/>
-                  <circle cx="78"  cy="84" r="2.4"/>
-                  <circle cx="88"  cy="84" r="2.4"/>
-                  <circle cx="98"  cy="84" r="2.4"/>
-                  <circle cx="108" cy="84" r="2.4"/>
-                  <circle cx="118" cy="84" r="2.4"/>
-                  <circle cx="128" cy="84" r="2.4"/>
-                </g>
-              </g>
-              <!-- source pucks -->
-              <g stroke="#fff" stroke-width="1.2">
-                <circle cx="62"  cy="22" r="5" fill="#2a8b2a"/>
-                <circle cx="146" cy="32" r="5" fill="#bc122a"/>
-              </g>
-              <!-- mini spatial spectrum across the top: three overlaid curves -->
-              <g fill="none" stroke-width="1.1">
-                <path d="M 28 18 Q 50 16 62 6 Q 80 16 110 14 Q 140 12 146 4 Q 170 16 178 18"
-                      stroke="#bc122a"/>
-                <path d="M 28 18 Q 50 17 62 9 Q 80 17 110 16 Q 140 14 146 7 Q 170 17 178 18"
-                      stroke="#2c6fbb" opacity="0.85"/>
-                <path d="M 28 18 Q 60 14 92 12 Q 124 10 156 12 Q 168 14 178 18"
-                      stroke="#E8B923" opacity="0.85"/>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <h2>Beamforming</h2>
-            <p>Drag sound sources past a uniform linear array. Watch Bartlett, MVDR, and MUSIC argue about where they are &mdash; and how spacing, frequency, and grating lobes change everything.</p>
-            <span class="arrow">Open</span>
-          </div>
-        </a>
-        <a class="card-link" href="range-resolution/">
-          <div class="cover" aria-hidden="true">
-            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
-              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
-                <line x1="40"  y1="0" x2="40"  y2="100"/>
-                <line x1="80"  y1="0" x2="80"  y2="100"/>
-                <line x1="120" y1="0" x2="120" y2="100"/>
-                <line x1="160" y1="0" x2="160" y2="100"/>
-              </g>
-              <!-- baseline -->
-              <line x1="14" y1="74" x2="186" y2="74" stroke="rgba(255,255,255,0.18)" stroke-width="0.7"/>
-              <!-- two true target markers -->
-              <g stroke="rgba(232,185,35,0.7)" stroke-width="0.9" stroke-dasharray="2 2">
-                <line x1="86"  y1="22" x2="86"  y2="74"/>
-                <line x1="116" y1="22" x2="116" y2="74"/>
-              </g>
-              <!-- c/(2B) calibration bar -->
-              <g stroke="#E8B923" stroke-width="1.6" stroke-linecap="round">
-                <line x1="86"  y1="16" x2="116" y2="16"/>
-                <line x1="86"  y1="13" x2="86"  y2="19"/>
-                <line x1="116" y1="13" x2="116" y2="19"/>
-              </g>
-              <!-- two compressed peaks at the dashed lines -->
-              <g fill="none" stroke="#bc122a" stroke-width="1.6" stroke-linejoin="round">
-                <path d="M 14 73
-                         L 60 72 L 70 71 L 78 60 L 84 38 L 86 30 L 88 38 L 94 60 L 102 71
-                         L 110 71 L 114 60 L 116 32 L 118 60 L 124 71 L 132 72
-                         L 186 73"/>
-              </g>
-            </svg>
-          </div>
-          <div class="body">
-            <h2>Range Resolution</h2>
-            <p>Slide the bandwidth and watch two nearby targets merge into one peak. Shows visually why a chirp&rsquo;s range resolution is c&nbsp;/&nbsp;(2B).</p>
             <span class="arrow">Open</span>
           </div>
         </a>
@@ -822,11 +773,258 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Room Impulse Response</h2>
+            <span class="setup-chip single">Single device</span>
+            <h3>Room Impulse Response</h3>
             <p>Play an exponential sine sweep through your speakers, deconvolve it from the mic recording, and recover the room&rsquo;s impulse response and RT60.</p>
             <span class="arrow">Open</span>
           </div>
         </a>
+        </div>
+      </section>
+      <section class="tool-section" aria-labelledby="sec-signals">
+        <div class="section-head">
+          <h2 class="section-title" id="sec-signals">Signal Processing</h2>
+          <p class="section-intro">Encode, decode, and resolve signals &mdash; the math behind microphone arrays, chirps, and digital modulation.</p>
+        </div>
+        <div class="links">
+        <a class="card-link" href="beamforming/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- DOA half-circle -->
+              <g fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.7">
+                <path d="M 28 84 A 72 72 0 0 1 172 84"/>
+              </g>
+              <!-- angle lines to two sources -->
+              <g stroke="#bc122a" stroke-width="1" stroke-dasharray="3 3" opacity="0.9">
+                <line x1="100" y1="84" x2="62"  y2="22"/>
+                <line x1="100" y1="84" x2="146" y2="32"/>
+              </g>
+              <!-- ULA elements along the bottom -->
+              <g>
+                <line x1="64" y1="84" x2="136" y2="84" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+                <g fill="#fafafa" stroke="#bc122a" stroke-width="1">
+                  <circle cx="68"  cy="84" r="2.4"/>
+                  <circle cx="78"  cy="84" r="2.4"/>
+                  <circle cx="88"  cy="84" r="2.4"/>
+                  <circle cx="98"  cy="84" r="2.4"/>
+                  <circle cx="108" cy="84" r="2.4"/>
+                  <circle cx="118" cy="84" r="2.4"/>
+                  <circle cx="128" cy="84" r="2.4"/>
+                </g>
+              </g>
+              <!-- source pucks -->
+              <g stroke="#fff" stroke-width="1.2">
+                <circle cx="62"  cy="22" r="5" fill="#2a8b2a"/>
+                <circle cx="146" cy="32" r="5" fill="#bc122a"/>
+              </g>
+              <!-- mini spatial spectrum across the top: three overlaid curves -->
+              <g fill="none" stroke-width="1.1">
+                <path d="M 28 18 Q 50 16 62 6 Q 80 16 110 14 Q 140 12 146 4 Q 170 16 178 18"
+                      stroke="#bc122a"/>
+                <path d="M 28 18 Q 50 17 62 9 Q 80 17 110 16 Q 140 14 146 7 Q 170 17 178 18"
+                      stroke="#2c6fbb" opacity="0.85"/>
+                <path d="M 28 18 Q 60 14 92 12 Q 124 10 156 12 Q 168 14 178 18"
+                      stroke="#E8B923" opacity="0.85"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip sim">Simulation</span>
+            <h3>Beamforming</h3>
+            <p>Drag sound sources past a uniform linear array. Watch Bartlett, MVDR, and MUSIC argue about where they are &mdash; and how spacing, frequency, and grating lobes change everything.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="acoustic-ranging/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- laptop on left emitting chirp arcs -->
+              <g transform="translate(14 30)">
+                <rect x="0" y="0" width="48" height="30" rx="3" fill="none" stroke="#bc122a" stroke-width="1.6"/>
+                <rect x="-4" y="30" width="56" height="3" rx="1.2" fill="#bc122a"/>
+              </g>
+              <g fill="none" stroke="#bc122a" stroke-width="1.2" stroke-linecap="round" opacity="0.85">
+                <path d="M 66 50 Q 76 38 86 50"/>
+                <path d="M 66 50 Q 80 32 94 50"/>
+                <path d="M 66 50 Q 84 26 102 50"/>
+              </g>
+              <!-- phone on right emitting chirp arcs -->
+              <g transform="translate(160 22)">
+                <rect x="0" y="0" width="26" height="56" rx="4" fill="none" stroke="#bc122a" stroke-width="1.6"/>
+                <circle cx="13" cy="50" r="1.4" fill="#bc122a"/>
+              </g>
+              <g fill="none" stroke="#bc122a" stroke-width="1.2" stroke-linecap="round" opacity="0.85">
+                <path d="M 158 50 Q 148 38 138 50"/>
+                <path d="M 158 50 Q 144 32 130 50"/>
+                <path d="M 158 50 Q 140 26 122 50"/>
+              </g>
+              <!-- chirp waveform sketch in the middle -->
+              <g fill="none" stroke="rgba(232,185,35,0.85)" stroke-width="1.3" stroke-linejoin="round">
+                <path d="M 104 64 L 106 56 L 108 72 L 110 50 L 112 76 L 114 46 L 117 78 L 120 44"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip pair">Phone + laptop</span>
+            <h3>Acoustic Ranging</h3>
+            <p>Pair your phone, then both devices record while the laptop and phone each emit a 200 ms 1&ndash;4 kHz chirp two seconds apart.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="range-resolution/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- baseline -->
+              <line x1="14" y1="74" x2="186" y2="74" stroke="rgba(255,255,255,0.18)" stroke-width="0.7"/>
+              <!-- two true target markers -->
+              <g stroke="rgba(232,185,35,0.7)" stroke-width="0.9" stroke-dasharray="2 2">
+                <line x1="86"  y1="22" x2="86"  y2="74"/>
+                <line x1="116" y1="22" x2="116" y2="74"/>
+              </g>
+              <!-- c/(2B) calibration bar -->
+              <g stroke="#E8B923" stroke-width="1.6" stroke-linecap="round">
+                <line x1="86"  y1="16" x2="116" y2="16"/>
+                <line x1="86"  y1="13" x2="86"  y2="19"/>
+                <line x1="116" y1="13" x2="116" y2="19"/>
+              </g>
+              <!-- two compressed peaks at the dashed lines -->
+              <g fill="none" stroke="#bc122a" stroke-width="1.6" stroke-linejoin="round">
+                <path d="M 14 73
+                         L 60 72 L 70 71 L 78 60 L 84 38 L 86 30 L 88 38 L 94 60 L 102 71
+                         L 110 71 L 114 60 L 116 32 L 118 60 L 124 71 L 132 72
+                         L 186 73"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip sim">Simulation</span>
+            <h3>Range Resolution</h3>
+            <p>Slide the bandwidth and watch two nearby targets merge into one peak. Shows visually why a chirp&rsquo;s range resolution is c&nbsp;/&nbsp;(2B).</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="cdma-autocorrelation/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- chip stems on the left (the spreading code) -->
+              <line x1="10" y1="42" x2="92" y2="42" stroke="rgba(255,255,255,0.18)" stroke-width="0.6"/>
+              <g stroke="#bc122a" stroke-width="1.6" stroke-linecap="square">
+                <line x1="14" y1="42" x2="14" y2="30"/>
+                <line x1="22" y1="42" x2="22" y2="54"/>
+                <line x1="30" y1="42" x2="30" y2="30"/>
+                <line x1="38" y1="42" x2="38" y2="30"/>
+                <line x1="46" y1="42" x2="46" y2="54"/>
+                <line x1="54" y1="42" x2="54" y2="30"/>
+                <line x1="62" y1="42" x2="62" y2="54"/>
+                <line x1="70" y1="42" x2="70" y2="54"/>
+                <line x1="78" y1="42" x2="78" y2="30"/>
+                <line x1="86" y1="42" x2="86" y2="54"/>
+              </g>
+              <!-- autocorrelation: tall spike at center on the right -->
+              <line x1="108" y1="78" x2="190" y2="78" stroke="rgba(255,255,255,0.18)" stroke-width="0.6"/>
+              <g fill="none" stroke="#5cd7e0" stroke-width="1.4" stroke-linejoin="round">
+                <path d="M 108 78 L 118 77 L 124 79 L 132 78 L 138 77 L 144 79 L 148 78 L 150 76 L 152 24 L 154 76 L 156 78 L 162 77 L 168 79 L 174 78 L 182 77 L 190 78"/>
+              </g>
+              <circle cx="152" cy="24" r="2.6" fill="#5cd7e0"/>
+              <!-- captions -->
+              <text x="14"  y="20" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="6" fill="#bc122a" letter-spacing="0.5" font-weight="700">±1 chips</text>
+              <text x="190" y="20" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="6" fill="#5cd7e0" letter-spacing="0.5" font-weight="700">R(τ)</text>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip sim">Simulation</span>
+            <h3>CDMA &amp; Autocorrelation</h3>
+            <p>See why a Gold code&rsquo;s autocorrelation spike pulls a signal out of noise &mdash; and lets four acoustic beacons share the same band.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="modulation/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- 16-QAM constellation grid in the upper right -->
+              <g transform="translate(118 12)">
+                <g stroke="rgba(255,255,255,0.18)" stroke-width="0.5">
+                  <line x1="0" y1="20" x2="60" y2="20"/>
+                  <line x1="30" y1="0" x2="30" y2="40"/>
+                </g>
+                <g fill="#bc122a">
+                  <circle cx="12" cy="6"  r="1.6"/>
+                  <circle cx="22" cy="6"  r="1.6"/>
+                  <circle cx="38" cy="6"  r="1.6"/>
+                  <circle cx="48" cy="6"  r="1.6"/>
+                  <circle cx="12" cy="16" r="1.6"/>
+                  <circle cx="22" cy="16" r="1.6"/>
+                  <circle cx="38" cy="16" r="1.6"/>
+                  <circle cx="48" cy="16" r="1.6"/>
+                  <circle cx="12" cy="24" r="1.6"/>
+                  <circle cx="22" cy="24" r="1.6"/>
+                  <circle cx="38" cy="24" r="1.6"/>
+                  <circle cx="48" cy="24" r="1.6"/>
+                  <circle cx="12" cy="34" r="1.6"/>
+                  <circle cx="22" cy="34" r="1.6"/>
+                  <circle cx="38" cy="34" r="1.6"/>
+                  <circle cx="48" cy="34" r="1.6"/>
+                </g>
+              </g>
+              <!-- BPSK / QPSK / QAM modulated waveform across the bottom -->
+              <g fill="none" stroke="#bc122a" stroke-width="1.3" stroke-linejoin="round">
+                <path d="M 8 70
+                         L 14 50 L 20 90 L 26 50 L 32 90 L 38 50 L 44 90
+                         L 50 90 L 56 70 L 62 90 L 68 50 L 74 90
+                         L 80 60 L 86 80 L 92 60 L 98 80
+                         L 104 70 L 110 50 L 116 90 L 122 50 L 128 90 L 134 70"/>
+              </g>
+              <!-- speaker icon on the left -->
+              <g transform="translate(14 30)" fill="none" stroke="#bc122a" stroke-width="1.4">
+                <rect x="0" y="0" width="10" height="22" rx="1.5"/>
+                <circle cx="5" cy="7" r="1.6" fill="#bc122a"/>
+                <circle cx="5" cy="15" r="2.6"/>
+              </g>
+              <!-- wireless arc out of the speaker -->
+              <g fill="none" stroke="rgba(232,185,35,0.85)" stroke-width="1.1" stroke-linecap="round">
+                <path d="M 28 40 Q 38 32 50 40"/>
+                <path d="M 28 46 Q 42 28 56 46"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip two">Two devices</span>
+            <h3>Digital Modulation</h3>
+            <p>Type a message; encode it as ASK, FSK, BPSK, QPSK, 16-QAM, or OFDM; transmit it as audible sound. Receive on a second device, watch the constellation form, and decode the bits back.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        </div>
       </section>
       <footer class="attribution">
         Created by

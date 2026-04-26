@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CDMA &amp; Autocorrelation · Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+        --blue: #1f6feb;
+        --purple: #7a4ed8;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 980px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 64ch;
+        line-height: 1.55;
+      }
+      p.lead strong { color: var(--black); }
+      p.lead em { font-style: italic; color: var(--black); }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+      .canvas-label {
+        position: absolute;
+        top: 8px;
+        left: 12px;
+        color: rgba(255,255,255,0.65);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .canvas-label.right {
+        left: auto;
+        right: 12px;
+      }
+      .note {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin: 12px 0 0;
+        line-height: 1.5;
+      }
+      .slider-row {
+        display: grid;
+        grid-template-columns: 200px 1fr 120px;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+      .slider-row:last-child { margin-bottom: 0; }
+      .slider-row label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--black);
+      }
+      .slider-row input[type=range] {
+        width: 100%;
+        accent-color: var(--red);
+      }
+      .slider-row .slider-val {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 14px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--black);
+        text-align: right;
+      }
+      select.code-select {
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        padding: 4px 8px;
+        border: 1px solid var(--grey-line);
+        border-radius: 4px;
+        background: #fafafa;
+      }
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+      .result-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 14px 16px;
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        background: #fafafa;
+      }
+      .result-cell.highlight { background: #fff; }
+      .result-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .result-value {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 22px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--black);
+        line-height: 1.1;
+      }
+      .result-value.big { font-size: 28px; letter-spacing: -0.5px; }
+      .result-help { font-size: 11px; color: var(--grey-text); line-height: 1.4; }
+
+      /* multi-user grid */
+      .users-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .user-card {
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fafafa;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .user-card .user-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .user-card .user-name {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+      }
+      .user-card .swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        flex: 0 0 auto;
+      }
+      .bit-toggle {
+        display: flex;
+        gap: 4px;
+        margin-top: 4px;
+      }
+      .bit-toggle button {
+        flex: 1;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        padding: 6px 0;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--grey-text);
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.1s;
+      }
+      .bit-toggle button:hover { border-color: var(--black); }
+      .bit-toggle button.active { background: var(--black); color: #fff; border-color: var(--black); }
+      .user-card .decision {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+        padding: 6px 0;
+        margin-top: 4px;
+        border-radius: 4px;
+        background: #fff;
+        border: 1px solid var(--grey-line);
+      }
+      .user-card .decision.correct { color: var(--green); border-color: var(--green); }
+      .user-card .decision.wrong { color: var(--red); border-color: var(--red); }
+      .user-card .decision.muted { color: var(--grey-text); }
+
+      details.explainer { margin: 0; }
+      details.explainer summary {
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        list-style: none;
+      }
+      details.explainer summary::-webkit-details-marker { display: none; }
+      details.explainer summary::before {
+        content: '\25B8';
+        display: inline-block;
+        width: 14px;
+        transition: transform 0.15s;
+      }
+      details.explainer[open] summary::before { transform: rotate(90deg); }
+      details.explainer .body { padding-top: 14px; line-height: 1.6; color: var(--black); font-size: 14px; }
+      details.explainer .body p { margin: 0 0 12px; max-width: 64ch; }
+      details.explainer .body p:last-child { margin-bottom: 0; }
+      details.explainer .body em { font-style: italic; }
+      details.explainer .body code {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        background: #f5f5f5;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 13px;
+      }
+      details.explainer .body .step {
+        font-weight: 700;
+        color: var(--black);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 11px;
+        display: block;
+        margin-top: 4px;
+      }
+      .formula {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        background: #f5f5f5;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 8px 0;
+      }
+      .attribution { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--grey-line); width: 100%; font-size: 13px; letter-spacing: 0.5px; color: var(--grey-text); display: flex; align-items: center; justify-content: center; gap: 8px; }
+      .attribution a { display: inline-flex; align-items: center; gap: 8px; color: var(--black); text-decoration: none; font-weight: 700; transition: color 0.15s, opacity 0.15s; }
+      .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+      .attribution a:hover { color: var(--red); }
+      .attribution a:hover img { opacity: 0.85; }
+      @media (max-width: 720px) {
+        .slider-row { grid-template-columns: 1fr; gap: 6px; }
+        .slider-row .slider-val { text-align: left; }
+        .users-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">CDMA &amp; Autocorrelation</span>
+    </header>
+
+    <main>
+      <h1>CDMA &amp; Autocorrelation</h1>
+      <p class="lead">Imagine four ultrasonic beacons in the same room, all transmitting on the same frequency band at the same time. A microphone hears one tangled signal &mdash; yet a receiver who knows each beacon&rsquo;s <strong>spreading code</strong> can pull them apart cleanly. The trick is the <em>autocorrelation</em> of a pseudo-noise (PN) sequence: it has a single sharp peak at zero lag and stays near zero everywhere else. Different codes are nearly orthogonal, so each beacon&rsquo;s message survives despreading while the others wash out as noise.</p>
+
+      <section class="panel">
+        <h2>Controls</h2>
+        <div class="slider-row">
+          <label for="lenSelect">Code length&nbsp;N</label>
+          <input type="range" id="lenSelect" min="0" max="2" step="1" value="2" />
+          <span class="slider-val" id="lenVal">127 chips</span>
+        </div>
+        <div class="slider-row">
+          <label for="snrSlider">Channel noise σ</label>
+          <input type="range" id="snrSlider" min="0" max="8" step="0.05" value="1.0" />
+          <span class="slider-val" id="snrVal">1.00</span>
+        </div>
+        <div class="slider-row">
+          <label for="lagSlider">Lag for autocorrelation</label>
+          <input type="range" id="lagSlider" min="-126" max="126" step="1" value="0" />
+          <span class="slider-val" id="lagVal">0 chips</span>
+        </div>
+        <p class="note">Codes are <strong>Gold codes</strong> built from a preferred pair of maximum-length LFSR sequences &mdash; the same construction used for GPS C/A. With chip rate <em>f<sub>c</sub></em>&nbsp;=&nbsp;20&nbsp;kHz in air, one chip is c/f<sub>c</sub>&nbsp;&approx;&nbsp;1.7&nbsp;cm, and the spreading sequence repeats every N chips.</p>
+      </section>
+
+      <section class="panel">
+        <h2>The spreading codes</h2>
+        <div class="canvas-wrap" style="height: 130px;">
+          <canvas id="codeACanvas"></canvas>
+          <div class="canvas-label" id="codeALabel">Code A</div>
+        </div>
+        <div style="height: 8px;"></div>
+        <div class="canvas-wrap" style="height: 130px;">
+          <canvas id="codeBCanvas"></canvas>
+          <div class="canvas-label" id="codeBLabel">Code B</div>
+        </div>
+        <p class="note">Each chip is &plusmn;1. The sequences look random, but they are deterministic &mdash; the receiver knows the exact pattern, which is what makes despreading possible.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Autocorrelation of code&nbsp;A</h2>
+        <div class="canvas-wrap" style="height: 220px;">
+          <canvas id="autocorrCanvas"></canvas>
+          <div class="canvas-label">R<sub>AA</sub>(τ)&nbsp;&middot;&nbsp;circular</div>
+          <div class="canvas-label right" id="autocorrPeakLabel">—</div>
+        </div>
+        <div style="height: 12px;"></div>
+        <div class="result-grid">
+          <div class="result-cell highlight">
+            <span class="result-label">R<sub>AA</sub>(0)</span>
+            <span class="result-value big" id="autocorrZero">—</span>
+            <span class="result-help">peak at zero lag = N</span>
+          </div>
+          <div class="result-cell">
+            <span class="result-label">R<sub>AA</sub> at current lag</span>
+            <span class="result-value" id="autocorrAtLag">—</span>
+            <span class="result-help">drag the lag slider above</span>
+          </div>
+          <div class="result-cell">
+            <span class="result-label">Off-peak |R<sub>AA</sub>|</span>
+            <span class="result-value" id="autocorrOffPeak">—</span>
+            <span class="result-help">max for any τ ≠ 0</span>
+          </div>
+        </div>
+        <p class="note">Yellow line is the current lag. The cyan curve is the full circular autocorrelation. A clean PN code has one tall spike at τ&nbsp;=&nbsp;0 and a thin baseline elsewhere &mdash; that lone spike is what lets a correlator recover the code from noise and find its arrival time.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Cross-correlation between code&nbsp;A and code&nbsp;B</h2>
+        <div class="canvas-wrap" style="height: 220px;">
+          <canvas id="crosscorrCanvas"></canvas>
+          <div class="canvas-label">R<sub>AB</sub>(τ)</div>
+          <div class="canvas-label right" id="crosscorrPeakLabel">—</div>
+        </div>
+        <div style="height: 12px;"></div>
+        <div class="result-grid">
+          <div class="result-cell">
+            <span class="result-label">max |R<sub>AB</sub>|</span>
+            <span class="result-value" id="crosscorrMax">—</span>
+            <span class="result-help">over all lags</span>
+          </div>
+          <div class="result-cell highlight">
+            <span class="result-label">peak ratio R<sub>AA</sub>(0) / max&nbsp;|R<sub>AB</sub>|</span>
+            <span class="result-value big" id="crosscorrRatio">—</span>
+            <span class="result-help">how cleanly users separate</span>
+          </div>
+          <div class="result-cell">
+            <span class="result-label">processing gain</span>
+            <span class="result-value" id="procGain">—</span>
+            <span class="result-help">10&middot;log<sub>10</sub>(N) dB</span>
+          </div>
+        </div>
+        <p class="note">For Gold codes of length N&nbsp;=&nbsp;2<sup>n</sup>&minus;1, cross-correlation peaks are bounded by ~&radic;(2N), much smaller than the autocorrelation peak of N. That gap is what keeps users separable.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Multi-user CDMA &middot; four beacons in the same band</h2>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px;">
+          <p class="note" style="margin: 0; max-width: 56ch;">Each beacon sends a single &plusmn;1 bit by transmitting (bit) &times; (its code). Click to flip bits. The acoustic channel sums them and adds noise. The receiver despreads with each code in parallel.</p>
+          <button id="rerollNoise" style="font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 8px 14px; border: 1px solid var(--grey-line); background: #fafafa; cursor: pointer; border-radius: 6px; color: var(--black); flex: 0 0 auto;">↻ reroll noise</button>
+        </div>
+        <div class="users-grid" id="usersGrid"></div>
+        <div class="canvas-wrap" style="height: 110px;">
+          <canvas id="channelCanvas"></canvas>
+          <div class="canvas-label">received signal r[n] = Σ b<sub>k</sub>·c<sub>k</sub>[n] + noise</div>
+        </div>
+        <div style="height: 8px;"></div>
+        <div class="canvas-wrap" style="height: 200px;">
+          <canvas id="despreadCanvas"></canvas>
+          <div class="canvas-label">running correlator output (one trace per user)</div>
+        </div>
+        <p class="note">Each trace is the running dot product r·c<sub>k</sub> as it sweeps across the buffer. At the end of one code period it lands far above zero (bit&nbsp;=&nbsp;+1), far below (bit&nbsp;=&nbsp;&minus;1), or near zero (beacon off). Crank σ up: at some point the noise overwhelms the processing gain and decisions start flipping.</p>
+      </section>
+
+      <section class="panel">
+        <details class="explainer" open>
+          <summary>Why a single peak does all the work</summary>
+          <div class="body">
+            <span class="step">Step 1 &middot; spreading</span>
+            <p>The transmitter modulates a slow data symbol <em>b</em>&nbsp;&isin;&nbsp;{&plusmn;1} onto a fast pseudo-noise chip sequence <em>c</em>[<em>n</em>]&nbsp;&isin;&nbsp;{&plusmn;1}. The transmitted signal is <em>s</em>[<em>n</em>]&nbsp;=&nbsp;<em>b&middot;c</em>[<em>n</em>]. The bit lasts <em>N</em> chips, so the bandwidth widens by a factor of <em>N</em> &mdash; energy is "spread" across the whole band.</p>
+            <span class="step">Step 2 &middot; despreading is correlation</span>
+            <p>The receiver multiplies what it heard by the same code and sums:</p>
+            <div class="formula">y = Σₙ r[n]&middot;c[n] = Σₙ (b&middot;c[n] + noise)&middot;c[n] = b&middot;N + Σₙ noise&middot;c[n]</div>
+            <p>Because <em>c</em>[<em>n</em>]<sup>2</sup>&nbsp;=&nbsp;1, the signal term collapses to <em>bN</em> &mdash; coherent addition. The noise term is <em>incoherent</em>: positive and negative chips of <em>c</em>[<em>n</em>] randomize the noise samples, so they add like a random walk and grow only as &radic;<em>N</em>. Signal grows as <em>N</em>, noise as &radic;<em>N</em>, so SNR improves by a factor of <em>N</em>. That is the <strong>processing gain</strong>, 10&middot;log<sub>10</sub>(<em>N</em>) dB.</p>
+            <span class="step">Step 3 &middot; multi-user separation needs low cross-correlation</span>
+            <p>If two beacons share the band, the receiver computes <code>Σₙ (b&#x2081;c&#x2081;[n] + b&#x2082;c&#x2082;[n])&middot;c&#x2081;[n] = b&#x2081;&middot;N + b&#x2082;&middot;R<sub>12</sub></code>. The first term is the wanted bit. The second is interference proportional to the cross-correlation between the two codes. Pick codes whose cross-correlation is small for <em>all</em> relative shifts (Gold and Kasami codes are designed for exactly this) and the interference stays buried below the wanted signal.</p>
+            <span class="step">Step 4 &middot; the same mechanism gives ranging</span>
+            <p>The autocorrelation peak is also a clock. Whatever delay the channel adds, it shows up as a shift in the location of the correlation peak. Each chip of delay corresponds to <em>c</em>/<em>f<sub>c</sub></em> meters of path length &mdash; that is how GPS measures pseudo-ranges from satellites, and the same trick works for in-air or underwater acoustic positioning. Wider chip rate &rarr; sharper peak &rarr; finer range resolution.</p>
+            <span class="step">Implication</span>
+            <p>One sequence design buys three things at once: <em>multiple access</em> (low cross-correlation between users), <em>noise rejection</em> (processing gain), and <em>timing</em> (sharp autocorrelation peak). The whole magic trick is hidden in the shape of a single function, R<sub>AA</sub>(τ).</p>
+          </div>
+        </details>
+      </section>
+
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      // ============================================================
+      // CDMA & Autocorrelation simulation
+      //
+      // Generates Gold codes of length N = 2^n - 1 from a preferred
+      // pair of maximum-length LFSRs, computes autocorrelation and
+      // cross-correlation, and shows a four-user CDMA scenario where
+      // a noisy summed waveform is despread back into individual bits.
+      // ============================================================
+
+      // ---- Gold-code generation ------------------------------------------
+      // Right-shift Fibonacci LFSR: output is the LSB; feedback is XOR of
+      // the bits at the listed 0-indexed positions and is shifted into the
+      // MSB. For polynomial x^n + Σ x^{a_i} + 1, taps are {0} ∪ {n - a_i},
+      // which gives a maximum-length sequence of period 2^n - 1 with any
+      // non-zero seed. Each pair below is a known Gold-code preferred pair.
+      const PREFERRED_PAIRS = {
+        5: { a: [0, 3],       b: [0, 1, 2, 3] },    // x^5+x^2+1 ,  x^5+x^4+x^3+x^2+1
+        6: { a: [0, 5],       b: [0, 1, 4, 5] },    // x^6+x+1   ,  x^6+x^5+x^2+x+1
+        7: { a: [0, 4],       b: [0, 4, 5, 6] },    // x^7+x^3+1 ,  x^7+x^3+x^2+x+1
+      };
+
+      function lfsrSeq(n, taps, seed) {
+        const N = (1 << n) - 1;
+        let reg = seed & N;
+        if (reg === 0) reg = 1;
+        const out = new Int8Array(N);
+        for (let i = 0; i < N; i++) {
+          out[i] = reg & 1;
+          let fb = 0;
+          for (const t of taps) fb ^= (reg >> t) & 1;
+          reg = ((reg >> 1) | (fb << (n - 1))) & N;
+        }
+        return out;
+      }
+
+      // Returns array of length 2^n - 1 with values in {-1, +1}.
+      // index k selects which Gold-family sequence:
+      //   k = 0      -> a
+      //   k = 1      -> b
+      //   k = 2..N+1 -> a XOR cyclic_shift(b, k-2)
+      function goldCode(n, k) {
+        const N = (1 << n) - 1;
+        const { a: tapsA, b: tapsB } = PREFERRED_PAIRS[n];
+        const a = lfsrSeq(n, tapsA, 1);
+        const b = lfsrSeq(n, tapsB, 1);
+        const bits = new Int8Array(N);
+        if (k === 0) {
+          for (let i = 0; i < N; i++) bits[i] = a[i];
+        } else if (k === 1) {
+          for (let i = 0; i < N; i++) bits[i] = b[i];
+        } else {
+          const sh = (k - 2) % N;
+          for (let i = 0; i < N; i++) bits[i] = a[i] ^ b[(i + sh) % N];
+        }
+        const out = new Int8Array(N);
+        for (let i = 0; i < N; i++) out[i] = bits[i] ? 1 : -1;
+        return out;
+      }
+
+      // ---- correlation primitives -----------------------------------------
+      // Circular cross-correlation of equal-length ±1 sequences:
+      //   R[τ] = Σₙ a[n] * b[(n+τ) mod N], for τ ∈ [-(N-1), N-1]
+      function circXCorr(a, b) {
+        const N = a.length;
+        const out = new Float32Array(2 * N - 1);
+        for (let lag = -(N - 1); lag <= N - 1; lag++) {
+          let s = 0;
+          for (let n = 0; n < N; n++) {
+            const j = ((n + lag) % N + N) % N;
+            s += a[n] * b[j];
+          }
+          out[lag + N - 1] = s;
+        }
+        return out;
+      }
+
+      // ---- DOM helpers ----------------------------------------------------
+      const $ = (id) => document.getElementById(id);
+      const N_OPTIONS = [31, 63, 127];
+      const N_TO_n = { 31: 5, 63: 6, 127: 7 };
+
+      function setupCanvas(canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { ctx, w: rect.width, h: rect.height };
+      }
+
+      function drawChips(canvas, code, color, label) {
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+        const padL = 18, padR = 12, padT = 18, padB = 18;
+        const innerW = w - padL - padR;
+        const innerH = h - padT - padB;
+        const N = code.length;
+        const chipW = innerW / N;
+        const yMid = padT + innerH / 2;
+        const yHi  = padT + 4;
+        const yLo  = padT + innerH - 4;
+
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padL, yMid);
+        ctx.lineTo(w - padR, yMid);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.beginPath();
+        ctx.moveTo(padL, yHi); ctx.lineTo(w - padR, yHi);
+        ctx.moveTo(padL, yLo); ctx.lineTo(w - padR, yLo);
+        ctx.stroke();
+
+        // chips: stair-step waveform
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        for (let i = 0; i < N; i++) {
+          const x0 = padL + i * chipW;
+          const x1 = padL + (i + 1) * chipW;
+          const y = code[i] > 0 ? yHi : yLo;
+          if (i === 0) ctx.moveTo(x0, y);
+          else ctx.lineTo(x0, y);
+          ctx.lineTo(x1, y);
+          if (i + 1 < N) {
+            const yNext = code[i + 1] > 0 ? yHi : yLo;
+            if (yNext !== y) ctx.lineTo(x1, yNext);
+          }
+        }
+        ctx.stroke();
+
+        // axis tick at zero
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.font = '10px ui-monospace, Menlo, Consolas, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('0', padL + 2, h - 4);
+        ctx.textAlign = 'right';
+        ctx.fillText(`${N}`, w - padR - 2, h - 4);
+      }
+
+      // Plot a correlation function R(τ) over τ ∈ [-(N-1), N-1].
+      // peakLag, peakColor highlight the current lag marker and ±N peaks.
+      function drawCorrelation(canvas, R, opts) {
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+        const padL = 38, padR = 16, padT = 18, padB = 22;
+        const innerW = w - padL - padR;
+        const innerH = h - padT - padB;
+        const N = (R.length + 1) / 2;
+
+        // y-scale: ±N (autocorrelation peak)
+        const yMax = N;
+        const yMid = padT + innerH / 2;
+        const yPx = (v) => yMid - (v / yMax) * (innerH / 2 - 6);
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padL, yMid);
+        ctx.lineTo(w - padR, yMid);
+        ctx.stroke();
+
+        // y grid lines at 0, ±N/2, ±N
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = '10px ui-monospace, Menlo, Consolas, monospace';
+        ctx.textAlign = 'right';
+        const yLevels = [-N, -N/2, 0, N/2, N];
+        for (const lv of yLevels) {
+          const y = yPx(lv);
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(w - padR, y);
+          ctx.stroke();
+          ctx.fillText(lv.toFixed(0), padL - 4, y + 3);
+        }
+
+        // x ticks at -(N-1), 0, N-1
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        const xPx = (lag) => padL + ((lag + (N - 1)) / (2 * N - 2)) * innerW;
+        for (const lag of [-(N - 1), 0, N - 1]) {
+          ctx.fillText(`${lag}`, xPx(lag), h - 6);
+        }
+
+        // current-lag highlight (gold)
+        if (opts && opts.highlightLag !== undefined) {
+          const x = xPx(opts.highlightLag);
+          ctx.strokeStyle = 'rgba(232,185,35,0.8)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(x, padT);
+          ctx.lineTo(x, h - padB);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // correlation curve
+        ctx.strokeStyle = opts.color || '#5cd7e0';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        for (let i = 0; i < R.length; i++) {
+          const lag = i - (N - 1);
+          const x = xPx(lag);
+          const y = yPx(R[i]);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // peak dot at zero lag (only if value is large)
+        if (opts && opts.markZero) {
+          const x0 = xPx(0);
+          const y0 = yPx(R[N - 1]);
+          ctx.fillStyle = opts.color || '#5cd7e0';
+          ctx.beginPath();
+          ctx.arc(x0, y0, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawWaveform(canvas, signal, opts) {
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+        const padL = 18, padR = 12, padT = 18, padB = 14;
+        const innerW = w - padL - padR;
+        const innerH = h - padT - padB;
+        const yMid = padT + innerH / 2;
+        const M = signal.length;
+        if (M === 0) return;
+        let amax = 0;
+        for (let i = 0; i < M; i++) amax = Math.max(amax, Math.abs(signal[i]));
+        amax = Math.max(amax, opts && opts.minAmp || 1);
+        const yScale = (innerH / 2 - 6) / amax;
+
+        // mid line
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padL, yMid);
+        ctx.lineTo(w - padR, yMid);
+        ctx.stroke();
+
+        ctx.strokeStyle = opts.color || '#bc122a';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let i = 0; i < M; i++) {
+          const x = padL + (i / (M - 1)) * innerW;
+          const y = yMid - signal[i] * yScale;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      // Draws K running correlator outputs over time on the same axes.
+      // Each trace is yk[m] = (1/N) Σ_{n=0..m-1} r[n]·c_k[n].
+      function drawDespread(canvas, traces, opts) {
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+        const padL = 38, padR = 16, padT = 18, padB = 24;
+        const innerW = w - padL - padR;
+        const innerH = h - padT - padB;
+        const yMid = padT + innerH / 2;
+        const yMax = opts.yMax || 1.4;
+        const yPx = (v) => yMid - (v / yMax) * (innerH / 2 - 6);
+        const M = traces[0].length;
+        const xPx = (i) => padL + (i / (M - 1)) * innerW;
+
+        // y grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = '10px ui-monospace, Menlo, Consolas, monospace';
+        ctx.textAlign = 'right';
+        for (const lv of [-1, 0, 1]) {
+          const y = yPx(lv);
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(w - padR, y);
+          ctx.stroke();
+          ctx.fillText(lv.toFixed(1), padL - 4, y + 3);
+        }
+        // decision threshold band shaded around 0? skip — keep clean.
+
+        // traces
+        for (let k = 0; k < traces.length; k++) {
+          ctx.strokeStyle = opts.colors[k];
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          for (let i = 0; i < M; i++) {
+            const x = xPx(i);
+            const y = yPx(traces[k][i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+
+          // end-of-period marker: dot at final value
+          ctx.fillStyle = opts.colors[k];
+          ctx.beginPath();
+          ctx.arc(xPx(M - 1), yPx(traces[k][M - 1]), 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // x-axis label
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.textAlign = 'left';
+        ctx.fillText('chip 0', padL, h - 6);
+        ctx.textAlign = 'right';
+        ctx.fillText(`chip ${M - 1}`, w - padR, h - 6);
+      }
+
+      // ---- state -----------------------------------------------------------
+      const STATE = {
+        N: 127,
+        n: 7,
+        codeAIdx: 2,
+        codeBIdx: 3,
+        sigma: 1.0,
+        lag: 0,
+        users: [
+          { name: 'Beacon 1', codeIdx: 2, bit: +1, color: '#bc122a' },
+          { name: 'Beacon 2', codeIdx: 3, bit: -1, color: '#2a8b2a' },
+          { name: 'Beacon 3', codeIdx: 4, bit: +1, color: '#1f6feb' },
+          { name: 'Beacon 4', codeIdx: 5, bit:  0, color: '#E8B923' },
+        ],
+      };
+
+      // Cached codes, regenerated on N change.
+      let codeCache = new Map();
+      function getCode(idx) {
+        const key = `${STATE.n}:${idx}`;
+        if (!codeCache.has(key)) codeCache.set(key, goldCode(STATE.n, idx));
+        return codeCache.get(key);
+      }
+      function clearCodeCache() { codeCache = new Map(); }
+
+      // Cached noise sample so slider drags don't regenerate noise each frame.
+      // We freeze a unit-Gaussian buffer and scale by sigma at render time.
+      let noiseBuf = null;
+      function getNoise(M) {
+        if (!noiseBuf || noiseBuf.length !== M) {
+          noiseBuf = new Float32Array(M);
+          for (let i = 0; i < M; i++) {
+            // Box-Muller
+            const u1 = Math.max(1e-9, Math.random());
+            const u2 = Math.random();
+            noiseBuf[i] = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+          }
+        }
+        return noiseBuf;
+      }
+      function regenerateNoise() { noiseBuf = null; }
+
+      // ---- multi-user grid (DOM) ------------------------------------------
+      function renderUsersGrid() {
+        const grid = $('usersGrid');
+        grid.innerHTML = '';
+        STATE.users.forEach((u, i) => {
+          const card = document.createElement('div');
+          card.className = 'user-card';
+
+          const head = document.createElement('div');
+          head.className = 'user-head';
+          const name = document.createElement('span');
+          name.className = 'user-name';
+          name.textContent = u.name;
+          const swatch = document.createElement('span');
+          swatch.className = 'swatch';
+          swatch.style.background = u.color;
+          head.appendChild(name);
+          head.appendChild(swatch);
+          card.appendChild(head);
+
+          // code index selector
+          const selRow = document.createElement('div');
+          selRow.style.display = 'flex';
+          selRow.style.alignItems = 'center';
+          selRow.style.gap = '6px';
+          selRow.style.fontSize = '11px';
+          selRow.style.color = 'var(--grey-text)';
+          const selLabel = document.createElement('span');
+          selLabel.textContent = 'code';
+          const sel = document.createElement('select');
+          sel.className = 'code-select';
+          // Provide N+2 codes; cap at 12 entries to keep dropdown short
+          const optionCount = Math.min(STATE.N + 2, 12);
+          for (let k = 0; k < optionCount; k++) {
+            const opt = document.createElement('option');
+            opt.value = k;
+            opt.textContent = `#${k}`;
+            if (k === u.codeIdx) opt.selected = true;
+            sel.appendChild(opt);
+          }
+          sel.addEventListener('change', () => {
+            u.codeIdx = parseInt(sel.value, 10);
+            renderAll();
+          });
+          selRow.appendChild(selLabel);
+          selRow.appendChild(sel);
+          card.appendChild(selRow);
+
+          // bit toggle: -1 / off / +1
+          const toggle = document.createElement('div');
+          toggle.className = 'bit-toggle';
+          for (const v of [-1, 0, +1]) {
+            const btn = document.createElement('button');
+            btn.textContent = v === 0 ? 'off' : (v > 0 ? '+1' : '−1');
+            if (u.bit === v) btn.classList.add('active');
+            btn.addEventListener('click', () => {
+              u.bit = v;
+              renderAll();
+            });
+            toggle.appendChild(btn);
+          }
+          card.appendChild(toggle);
+
+          // decision placeholder, filled in by renderMultiUser
+          const dec = document.createElement('div');
+          dec.className = 'decision muted';
+          dec.id = `decision-${i}`;
+          dec.textContent = '—';
+          card.appendChild(dec);
+
+          grid.appendChild(card);
+        });
+      }
+
+      // ---- per-panel renders ----------------------------------------------
+      function renderCodes() {
+        const codeA = getCode(STATE.codeAIdx);
+        const codeB = getCode(STATE.codeBIdx);
+        drawChips($('codeACanvas'), codeA, '#bc122a');
+        drawChips($('codeBCanvas'), codeB, '#1f6feb');
+        $('codeALabel').innerHTML = `Code A &middot; Gold #${STATE.codeAIdx}`;
+        $('codeBLabel').innerHTML = `Code B &middot; Gold #${STATE.codeBIdx}`;
+      }
+
+      function renderAutocorr() {
+        const code = getCode(STATE.codeAIdx);
+        const N = code.length;
+        const R = circXCorr(code, code);
+        drawCorrelation($('autocorrCanvas'), R, {
+          color: '#5cd7e0',
+          highlightLag: STATE.lag,
+          markZero: true,
+        });
+        // peak label top-right
+        $('autocorrPeakLabel').innerHTML = `peak = ${R[N - 1].toFixed(0)}`;
+        // off-peak max
+        let offMax = 0;
+        for (let i = 0; i < R.length; i++) {
+          if (i === N - 1) continue;
+          offMax = Math.max(offMax, Math.abs(R[i]));
+        }
+        const lagIdx = STATE.lag + (N - 1);
+        $('autocorrZero').textContent = R[N - 1].toFixed(0);
+        $('autocorrAtLag').textContent = R[lagIdx].toFixed(0);
+        $('autocorrOffPeak').textContent = offMax.toFixed(0);
+      }
+
+      function renderCrosscorr() {
+        const codeA = getCode(STATE.codeAIdx);
+        const codeB = getCode(STATE.codeBIdx);
+        const N = codeA.length;
+        const R = circXCorr(codeA, codeB);
+        drawCorrelation($('crosscorrCanvas'), R, {
+          color: '#e895d2',
+          markZero: false,
+        });
+        let cmax = 0;
+        for (let i = 0; i < R.length; i++) cmax = Math.max(cmax, Math.abs(R[i]));
+        $('crosscorrPeakLabel').innerHTML = `max |R<sub>AB</sub>| = ${cmax.toFixed(0)}`;
+        $('crosscorrMax').textContent = cmax.toFixed(0);
+        const ratio = cmax > 0 ? (N / cmax) : Infinity;
+        $('crosscorrRatio').textContent = isFinite(ratio) ? ratio.toFixed(1) + '×' : '∞';
+        const dB = 10 * Math.log10(N);
+        $('procGain').textContent = dB.toFixed(1) + ' dB';
+      }
+
+      function renderMultiUser() {
+        const N = STATE.N;
+        const noise = getNoise(N);
+
+        // build received signal: r[n] = Σ b_k * c_k[n] + sigma * noise[n]
+        const r = new Float32Array(N);
+        for (const u of STATE.users) {
+          if (u.bit === 0) continue;
+          const c = getCode(u.codeIdx);
+          for (let n = 0; n < N; n++) r[n] += u.bit * c[n];
+        }
+        for (let n = 0; n < N; n++) r[n] += STATE.sigma * noise[n];
+
+        drawWaveform($('channelCanvas'), r, { color: '#9aa0a8', minAmp: 4 });
+
+        // running correlator for each user: y_k[m] = (1/N) Σ_{n=0..m} r[n]·c_k[n]
+        const traces = [];
+        const colors = [];
+        STATE.users.forEach((u, idx) => {
+          const c = getCode(u.codeIdx);
+          const tr = new Float32Array(N);
+          let acc = 0;
+          for (let n = 0; n < N; n++) {
+            acc += r[n] * c[n];
+            tr[n] = acc / N;
+          }
+          traces.push(tr);
+          colors.push(u.color);
+
+          // decision: sign of final accumulator
+          const final = tr[N - 1];
+          const decided = final > 0.5 ? +1 : (final < -0.5 ? -1 : 0);
+          const dec = $(`decision-${idx}`);
+          dec.classList.remove('correct', 'wrong', 'muted');
+          if (u.bit === 0) {
+            dec.classList.add('muted');
+            dec.textContent = `y = ${final.toFixed(2)} · off`;
+          } else {
+            const correct = decided === u.bit;
+            dec.classList.add(correct ? 'correct' : 'wrong');
+            const sym = decided > 0 ? '+1' : (decided < 0 ? '−1' : '?');
+            dec.textContent = `y = ${final.toFixed(2)} · ${sym}`;
+          }
+        });
+
+        // y-scale: 1.4 is a comfortable headroom over ±1
+        drawDespread($('despreadCanvas'), traces, { colors, yMax: 1.4 });
+      }
+
+      function renderAll() {
+        renderCodes();
+        renderAutocorr();
+        renderCrosscorr();
+        renderMultiUser();
+      }
+
+      // ---- event wiring ---------------------------------------------------
+      function setN(N) {
+        STATE.N = N;
+        STATE.n = N_TO_n[N];
+        clearCodeCache();
+        regenerateNoise();
+        // clamp lag slider
+        $('lagSlider').min = -(N - 1);
+        $('lagSlider').max = (N - 1);
+        if (STATE.lag > N - 1)  STATE.lag =  (N - 1);
+        if (STATE.lag < -(N - 1)) STATE.lag = -(N - 1);
+        $('lagSlider').value = STATE.lag;
+        $('lagVal').textContent = `${STATE.lag} chips`;
+        // clamp code indices
+        const maxIdx = N + 1;
+        if (STATE.codeAIdx > maxIdx) STATE.codeAIdx = 2;
+        if (STATE.codeBIdx > maxIdx) STATE.codeBIdx = 3;
+        for (const u of STATE.users) if (u.codeIdx > maxIdx) u.codeIdx = 2;
+        $('lenVal').textContent = `${N} chips`;
+        renderUsersGrid();
+        renderAll();
+      }
+
+      $('lenSelect').addEventListener('input', () => {
+        const idx = parseInt($('lenSelect').value, 10);
+        setN(N_OPTIONS[idx]);
+      });
+
+      $('snrSlider').addEventListener('input', () => {
+        STATE.sigma = parseFloat($('snrSlider').value);
+        $('snrVal').textContent = STATE.sigma.toFixed(2);
+        renderMultiUser();
+      });
+
+      $('lagSlider').addEventListener('input', () => {
+        STATE.lag = parseInt($('lagSlider').value, 10);
+        $('lagVal').textContent = `${STATE.lag} chips`;
+        renderAutocorr();
+      });
+
+      $('rerollNoise').addEventListener('click', () => {
+        regenerateNoise();
+        renderMultiUser();
+      });
+
+      // resize handling
+      window.addEventListener('resize', () => renderAll());
+
+      // initial render
+      renderUsersGrid();
+      // setN re-runs renderUsersGrid + renderAll with proper slider bounds
+      setN(127);
+    </script>
+  </body>
+</html>
