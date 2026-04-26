@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wave Propagation · Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 70ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+      }
+      input[type="range"] {
+        flex: 1 1 180px;
+        min-width: 160px;
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        padding: 9px 16px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary {
+        background: #fff;
+        color: var(--black);
+      }
+      button.danger {
+        background: var(--red);
+        border-color: var(--red);
+      }
+      .tools {
+        display: inline-flex;
+        gap: 0;
+        border: 1px solid var(--grey-line);
+        border-radius: 7px;
+        overflow: hidden;
+      }
+      .tool-btn {
+        background: #fff;
+        color: var(--black);
+        border: none;
+        border-right: 1px solid var(--grey-line);
+        border-radius: 0;
+        padding: 9px 14px;
+        font-size: 12px;
+      }
+      .tool-btn:last-child { border-right: none; }
+      .tool-btn.active {
+        background: var(--black);
+        color: #fff;
+      }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--black);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        touch-action: none;
+        user-select: none;
+        cursor: grab;
+      }
+      .canvas-wrap.draw-cursor { cursor: crosshair; }
+      .canvas-wrap.erase-cursor { cursor: cell; }
+      .canvas-wrap.dragging { cursor: grabbing; }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      canvas#overlay { pointer-events: none; }
+      .legend {
+        position: absolute;
+        left: 12px;
+        bottom: 10px;
+        font-size: 11px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.65);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        pointer-events: none;
+      }
+      .legend .swatch {
+        display: inline-block;
+        width: 60px;
+        height: 8px;
+        border-radius: 2px;
+        background: linear-gradient(90deg,
+          rgb(40, 110, 235) 0%,
+          rgb(20, 25, 35)  50%,
+          rgb(220, 50, 60)  100%);
+      }
+      .hint {
+        position: absolute;
+        right: 12px;
+        bottom: 10px;
+        font-size: 11px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.55);
+        pointer-events: none;
+      }
+      .status {
+        font-size: 13px;
+        color: var(--grey-text);
+        font-variant-numeric: tabular-nums;
+      }
+      .note {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 16px;
+        line-height: 1.5;
+      }
+      .note code {
+        background: rgba(0,0,0,0.05);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 11.5px;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 120px;
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: -0.3px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        background: rgba(188, 18, 42, 0.12);
+        color: var(--red);
+        border-radius: 999px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">Wave Propagation</span>
+    </header>
+    <main>
+      <h1>Wave Propagation</h1>
+      <p class="lead">A real-time 2D acoustic wave simulator. Drop sources, paint walls, and watch diffraction, reflection, interference, and standing waves form on the canvas. Solver: scalar wave equation on a staggered grid using leapfrog finite differences (FDTD), with sponge-layer absorbing boundaries.</p>
+
+      <section class="panel">
+        <h2>Controls</h2>
+        <div class="row">
+          <div class="tools" role="radiogroup" aria-label="Tool">
+            <button class="tool-btn active" data-tool="drag">Drag</button>
+            <button class="tool-btn" data-tool="source">Source</button>
+            <button class="tool-btn" data-tool="pulse">Pulse</button>
+            <button class="tool-btn" data-tool="wall">Wall</button>
+            <button class="tool-btn" data-tool="erase">Erase</button>
+          </div>
+          <button id="playBtn">Pause</button>
+          <button id="resetBtn" class="secondary">Reset</button>
+          <button id="clearWallsBtn" class="secondary">Clear walls</button>
+        </div>
+        <div class="row">
+          <label for="presetSel">Preset</label>
+          <select id="presetSel">
+            <option value="single">Single source · open room</option>
+            <option value="two">Two sources · interference</option>
+            <option value="slits">Double slit · diffraction</option>
+            <option value="reflector">Reflecting wall</option>
+            <option value="cavity">Rectangular cavity · standing waves</option>
+            <option value="corridor">Corridor · waveguide</option>
+            <option value="empty">Empty (custom)</option>
+          </select>
+          <label for="bcSel" style="margin-left: 8px;">Boundaries</label>
+          <select id="bcSel">
+            <option value="absorb" selected>Absorbing (open)</option>
+            <option value="rigid">Rigid (reflecting)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="freqSlider" style="min-width: 70px;">Frequency</label>
+          <input type="range" id="freqSlider" min="0.012" max="0.12" step="0.001" value="0.04" />
+          <span id="lambdaDisplay" class="status">λ ≈ 12.5 cells</span>
+        </div>
+        <div class="row">
+          <label for="ampSlider" style="min-width: 70px;">Amplitude</label>
+          <input type="range" id="ampSlider" min="0.1" max="2.0" step="0.05" value="1.0" />
+          <label for="brightSlider" style="margin-left: 8px;">Brightness</label>
+          <input type="range" id="brightSlider" min="0.5" max="6" step="0.1" value="2.5" />
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Simulation</h2>
+        <div class="canvas-wrap" id="wrap">
+          <canvas id="field"></canvas>
+          <canvas id="overlay"></canvas>
+          <span class="legend"><span class="swatch"></span><span>− pressure&nbsp;&nbsp;0&nbsp;&nbsp;+ pressure</span></span>
+          <span class="hint" id="hint">Drag the source to move</span>
+        </div>
+        <div class="row" style="margin-top: 16px;">
+          <div class="col">
+            <label>Grid</label>
+            <span class="num" id="gridStat">320 × 180</span>
+          </div>
+          <div class="col">
+            <label>Step</label>
+            <span class="num" id="stepStat">0</span>
+          </div>
+          <div class="col">
+            <label>Sources</label>
+            <span class="num" id="srcStat">1</span>
+          </div>
+          <div class="col">
+            <label>CFL</label>
+            <span class="num">0.500</span>
+          </div>
+          <div style="flex: 1;"></div>
+          <span class="badge">FDTD · 2D scalar wave</span>
+        </div>
+        <p class="note">
+          Tools: <code>Drag</code> moves existing sources. <code>Source</code> drops a continuous sinusoidal source where you click. <code>Pulse</code> fires a one-shot Gaussian pulse — best for seeing wavefronts and diffraction. <code>Wall</code> paints rigid walls (sound bounces off). <code>Erase</code> removes sources or walls under the cursor.
+          The grid is in arbitrary units; one cell ≈ a millimeter or two of air at the typical wavelengths used here.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      // -------------------- simulation grid --------------------
+      const W = 320, H = 180;
+      const C = 0.5;             // wave speed in cells/step (CFL: must be < sqrt(1/2) ≈ 0.707 in 2D)
+      const C2 = C * C;
+      const SUBSTEPS = 2;        // sim steps per render frame
+      const SPONGE = 18;         // absorbing sponge layer thickness (cells)
+
+      let p     = new Float32Array(W * H);
+      let pPrev = new Float32Array(W * H);
+      let pNext = new Float32Array(W * H);
+      let wall  = new Uint8Array(W * H);
+      let damp  = new Float32Array(W * H);   // multiplicative damping per cell
+
+      let sources = [];
+      let pulses = [];                       // {x, y, t0, sigma, amp}
+      let stepCount = 0;
+      let running = true;
+
+      function rebuildDamping(mode) {
+        for (let j = 0; j < H; j++) {
+          for (let i = 0; i < W; i++) {
+            const idx = j * W + i;
+            if (mode === 'rigid') {
+              damp[idx] = 1.0;
+            } else {
+              const d = Math.min(i, W - 1 - i, j, H - 1 - j);
+              if (d >= SPONGE) {
+                damp[idx] = 1.0;
+              } else {
+                const x = (SPONGE - d) / SPONGE;
+                damp[idx] = 1.0 - 0.06 * x * x;
+              }
+            }
+          }
+        }
+      }
+
+      function clearField() {
+        p.fill(0); pPrev.fill(0); pNext.fill(0);
+        stepCount = 0;
+      }
+
+      function clearWalls() { wall.fill(0); }
+
+      function step() {
+        // FDTD update (skip the 1-cell border so we don't read out of bounds).
+        // Walls use Neumann (no-flux) BC: a wall neighbor mirrors the cell's own pressure,
+        // so the wall reflects with no phase flip — i.e., behaves as a rigid surface.
+        for (let j = 1; j < H - 1; j++) {
+          const row = j * W;
+          for (let i = 1; i < W - 1; i++) {
+            const idx = row + i;
+            if (wall[idx]) { pNext[idx] = 0; continue; }
+            const c = p[idx];
+            const pl = wall[idx - 1] ? c : p[idx - 1];
+            const pr = wall[idx + 1] ? c : p[idx + 1];
+            const pu = wall[idx - W] ? c : p[idx - W];
+            const pd = wall[idx + W] ? c : p[idx + W];
+            const lap = pl + pr + pu + pd - 4 * c;
+            const v = 2 * c - pPrev[idx] + C2 * lap;
+            pNext[idx] = v * damp[idx];
+          }
+        }
+        // outer border: rigid (Neumann via mirror) by default — but with absorbing sponge,
+        // the wave is already attenuated long before reaching the border, so a hard zero is fine.
+        for (let i = 0; i < W; i++) { pNext[i] = 0; pNext[(H - 1) * W + i] = 0; }
+        for (let j = 0; j < H; j++) { pNext[j * W] = 0; pNext[j * W + W - 1] = 0; }
+
+        stepCount++;
+        const t = stepCount;
+
+        // continuous sources: hard-set the pressure (soft-source variant: add)
+        for (const s of sources) {
+          const xi = Math.max(1, Math.min(W - 2, s.x | 0));
+          const yi = Math.max(1, Math.min(H - 2, s.y | 0));
+          if (wall[yi * W + xi]) continue;
+          const env = Math.min(1, t / 24);   // gentle ramp-in to avoid clicks
+          pNext[yi * W + xi] = s.amp * env * Math.sin(2 * Math.PI * s.freq * t + s.phase);
+        }
+
+        // pulses (Gaussian in time)
+        for (let k = pulses.length - 1; k >= 0; k--) {
+          const pu = pulses[k];
+          const dt = t - pu.t0;
+          if (dt > pu.sigma * 6) { pulses.splice(k, 1); continue; }
+          const xi = Math.max(1, Math.min(W - 2, pu.x | 0));
+          const yi = Math.max(1, Math.min(H - 2, pu.y | 0));
+          if (wall[yi * W + xi]) continue;
+          const g = Math.exp(-0.5 * (dt / pu.sigma) ** 2) * Math.cos(2 * Math.PI * 0.05 * dt);
+          pNext[yi * W + xi] += pu.amp * g;
+        }
+
+        // rotate buffers
+        const tmp = pPrev;
+        pPrev = p;
+        p = pNext;
+        pNext = tmp;
+      }
+
+      // -------------------- presets --------------------
+      function setPreset(name) {
+        clearField();
+        clearWalls();
+        sources = [];
+        pulses = [];
+        const f = parseFloat(freqSlider.value);
+        const a = parseFloat(ampSlider.value);
+
+        if (name === 'single') {
+          sources.push({ x: W * 0.30, y: H * 0.5, freq: f, amp: a, phase: 0 });
+        } else if (name === 'two') {
+          sources.push({ x: W * 0.25, y: H * 0.32, freq: f, amp: a, phase: 0 });
+          sources.push({ x: W * 0.25, y: H * 0.68, freq: f, amp: a, phase: 0 });
+        } else if (name === 'slits') {
+          // vertical wall with two gaps + plane-wave-ish line of sources on the left
+          const xWall = (W * 0.40) | 0;
+          for (let j = 0; j < H; j++) wall[j * W + xWall] = 1;
+          // open two slits
+          const slitW = 4;
+          const cy1 = (H * 0.42) | 0;
+          const cy2 = (H * 0.58) | 0;
+          for (let dj = -slitW; dj <= slitW; dj++) {
+            wall[(cy1 + dj) * W + xWall] = 0;
+            wall[(cy2 + dj) * W + xWall] = 0;
+          }
+          // line array of sources on the left to approximate a plane wave
+          const xs = (W * 0.10) | 0;
+          for (let j = 12; j < H - 12; j++) {
+            sources.push({ x: xs, y: j, freq: f, amp: a * 0.35, phase: 0 });
+          }
+        } else if (name === 'reflector') {
+          sources.push({ x: W * 0.25, y: H * 0.5, freq: f, amp: a, phase: 0 });
+          // tilted reflector on the right
+          const x0 = (W * 0.70) | 0, y0 = (H * 0.20) | 0;
+          const x1 = (W * 0.85) | 0, y1 = (H * 0.80) | 0;
+          drawWallLine(x0, y0, x1, y1, 2);
+        } else if (name === 'cavity') {
+          // closed rectangular cavity → standing-wave modes
+          const x0 = (W * 0.20) | 0, x1 = (W * 0.80) | 0;
+          const y0 = (H * 0.25) | 0, y1 = (H * 0.75) | 0;
+          for (let i = x0; i <= x1; i++) { wall[y0 * W + i] = 1; wall[y1 * W + i] = 1; }
+          for (let j = y0; j <= y1; j++) { wall[j * W + x0] = 1; wall[j * W + x1] = 1; }
+          sources.push({ x: x0 + 8, y: (y0 + y1) / 2, freq: f, amp: a, phase: 0 });
+        } else if (name === 'corridor') {
+          // two horizontal walls forming a corridor
+          const y0 = (H * 0.35) | 0, y1 = (H * 0.65) | 0;
+          for (let i = (W * 0.20) | 0; i < W; i++) {
+            wall[y0 * W + i] = 1;
+            wall[y1 * W + i] = 1;
+          }
+          sources.push({ x: W * 0.10, y: H * 0.5, freq: f, amp: a, phase: 0 });
+        } else if (name === 'empty') {
+          // nothing
+        }
+      }
+
+      function drawWallLine(x0, y0, x1, y1, thickness) {
+        const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          const x = (x0 + (x1 - x0) * t) | 0;
+          const y = (y0 + (y1 - y0) * t) | 0;
+          paintWall(x, y, thickness, 1);
+        }
+      }
+
+      function paintWall(x, y, r, val) {
+        const r2 = r * r;
+        for (let dj = -r; dj <= r; dj++) {
+          for (let di = -r; di <= r; di++) {
+            if (di * di + dj * dj > r2) continue;
+            const xi = x + di, yi = y + dj;
+            if (xi < 1 || xi >= W - 1 || yi < 1 || yi >= H - 1) continue;
+            wall[yi * W + xi] = val;
+          }
+        }
+      }
+
+      // -------------------- rendering --------------------
+      const fieldCanvas   = document.getElementById('field');
+      const overlayCanvas = document.getElementById('overlay');
+      const wrap          = document.getElementById('wrap');
+      const fieldCtx      = fieldCanvas.getContext('2d');
+      const overlayCtx    = overlayCanvas.getContext('2d');
+
+      // small offscreen canvas at simulation resolution; we then drawImage-scale to display size.
+      const small = document.createElement('canvas');
+      small.width = W; small.height = H;
+      const smallCtx = small.getContext('2d');
+      const imgData = smallCtx.createImageData(W, H);
+
+      function resize() {
+        const rect = wrap.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        for (const c of [fieldCanvas, overlayCanvas]) {
+          c.width = Math.round(rect.width * dpr);
+          c.height = Math.round(rect.height * dpr);
+        }
+      }
+      window.addEventListener('resize', resize);
+
+      function render() {
+        const data = imgData.data;
+        const scale = parseFloat(brightSlider.value);
+        for (let i = 0; i < W * H; i++) {
+          if (wall[i]) {
+            data[i * 4]     = 70;
+            data[i * 4 + 1] = 72;
+            data[i * 4 + 2] = 80;
+            data[i * 4 + 3] = 255;
+            continue;
+          }
+          let v = p[i] * scale;
+          if (v > 1) v = 1; else if (v < -1) v = -1;
+          let r, g, b;
+          if (v >= 0) {
+            // black -> red
+            r = 12 + (220 - 12) * v;
+            g = 14 + (50 - 14) * v;
+            b = 18 + (60 - 18) * v;
+          } else {
+            // black -> blue
+            const a = -v;
+            r = 12 + (40 - 12) * a;
+            g = 14 + (110 - 14) * a;
+            b = 18 + (235 - 18) * a;
+          }
+          data[i * 4]     = r;
+          data[i * 4 + 1] = g;
+          data[i * 4 + 2] = b;
+          data[i * 4 + 3] = 255;
+        }
+        smallCtx.putImageData(imgData, 0, 0);
+
+        fieldCtx.imageSmoothingEnabled = true;
+        fieldCtx.imageSmoothingQuality = 'high';
+        fieldCtx.drawImage(small, 0, 0, fieldCanvas.width, fieldCanvas.height);
+
+        // overlay: source markers & hover ring
+        const ctx = overlayCtx;
+        const cw = overlayCanvas.width;
+        const ch = overlayCanvas.height;
+        const sx = cw / W;
+        const sy = ch / H;
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.lineWidth = Math.max(1.2, 1.4 * (window.devicePixelRatio || 1));
+        for (let k = 0; k < sources.length; k++) {
+          const s = sources[k];
+          const cx = s.x * sx;
+          const cy = s.y * sy;
+          ctx.strokeStyle = (k === hoverSrc || k === draggedSrc)
+            ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.55)';
+          ctx.beginPath(); ctx.arc(cx, cy, 7 * (window.devicePixelRatio || 1), 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = 'rgba(232,185,35,0.95)';
+          ctx.beginPath(); ctx.arc(cx, cy, 2.5 * (window.devicePixelRatio || 1), 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // -------------------- input --------------------
+      const wrapEl = wrap;
+      const tools = Array.from(document.querySelectorAll('.tool-btn'));
+      let tool = 'drag';
+      let hoverSrc = -1;
+      let draggedSrc = -1;
+      let mouseDown = false;
+      let lastGX = 0, lastGY = 0;
+      const HINT = {
+        drag:   'Drag a source to move it',
+        source: 'Click to drop a continuous source',
+        pulse:  'Click to fire a Gaussian pulse',
+        wall:   'Click and drag to paint walls',
+        erase:  'Click and drag to erase walls or sources',
+      };
+      const hintEl = document.getElementById('hint');
+
+      function setTool(t) {
+        tool = t;
+        for (const b of tools) b.classList.toggle('active', b.dataset.tool === t);
+        hintEl.textContent = HINT[t];
+        wrap.classList.toggle('draw-cursor', t === 'wall' || t === 'pulse' || t === 'source');
+        wrap.classList.toggle('erase-cursor', t === 'erase');
+      }
+      for (const b of tools) b.addEventListener('click', () => setTool(b.dataset.tool));
+
+      function clientToGrid(ev) {
+        const rect = wrap.getBoundingClientRect();
+        const x = (ev.clientX - rect.left) / rect.width * W;
+        const y = (ev.clientY - rect.top) / rect.height * H;
+        return { x, y };
+      }
+
+      function findNearestSource(gx, gy, maxDist) {
+        let best = -1, bd = maxDist * maxDist;
+        for (let i = 0; i < sources.length; i++) {
+          const dx = sources[i].x - gx, dy = sources[i].y - gy;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < bd) { bd = d2; best = i; }
+        }
+        return best;
+      }
+
+      wrap.addEventListener('pointerdown', (ev) => {
+        wrap.setPointerCapture(ev.pointerId);
+        mouseDown = true;
+        const { x, y } = clientToGrid(ev);
+        lastGX = x; lastGY = y;
+        if (tool === 'drag') {
+          const k = findNearestSource(x, y, 8);
+          if (k >= 0) { draggedSrc = k; wrap.classList.add('dragging'); }
+        } else if (tool === 'source') {
+          sources.push({
+            x, y,
+            freq: parseFloat(freqSlider.value),
+            amp:  parseFloat(ampSlider.value),
+            phase: 0,
+          });
+          draggedSrc = sources.length - 1;
+          wrap.classList.add('dragging');
+        } else if (tool === 'pulse') {
+          pulses.push({ x, y, t0: stepCount + 1, sigma: 8, amp: parseFloat(ampSlider.value) * 6 });
+        } else if (tool === 'wall') {
+          paintWall(x | 0, y | 0, 4, 1);
+        } else if (tool === 'erase') {
+          const k = findNearestSource(x, y, 8);
+          if (k >= 0) sources.splice(k, 1);
+          paintWall(x | 0, y | 0, 5, 0);
+        }
+        updateStats();
+      });
+
+      wrap.addEventListener('pointermove', (ev) => {
+        const { x, y } = clientToGrid(ev);
+        // hover highlight (only when not dragging)
+        if (!mouseDown && tool === 'drag') {
+          hoverSrc = findNearestSource(x, y, 8);
+        } else {
+          hoverSrc = -1;
+        }
+        if (!mouseDown) { lastGX = x; lastGY = y; return; }
+        if (draggedSrc >= 0) {
+          sources[draggedSrc].x = Math.max(1, Math.min(W - 2, x));
+          sources[draggedSrc].y = Math.max(1, Math.min(H - 2, y));
+        } else if (tool === 'wall' || tool === 'erase') {
+          // interpolate brush along the segment so fast drags don't leave gaps
+          const dx = x - lastGX, dy = y - lastGY;
+          const dist = Math.hypot(dx, dy);
+          const stepN = Math.max(1, dist | 0);
+          const r = tool === 'wall' ? 4 : 5;
+          const v = tool === 'wall' ? 1 : 0;
+          for (let s = 1; s <= stepN; s++) {
+            const t = s / stepN;
+            paintWall((lastGX + dx * t) | 0, (lastGY + dy * t) | 0, r, v);
+          }
+          if (tool === 'erase') {
+            // also remove sources we drag through
+            for (let k = sources.length - 1; k >= 0; k--) {
+              const sx = sources[k].x - x, sy = sources[k].y - y;
+              if (sx * sx + sy * sy < 36) sources.splice(k, 1);
+            }
+          }
+        }
+        lastGX = x; lastGY = y;
+        updateStats();
+      });
+
+      wrap.addEventListener('pointerup', () => {
+        mouseDown = false;
+        draggedSrc = -1;
+        wrap.classList.remove('dragging');
+      });
+      wrap.addEventListener('pointerleave', () => { hoverSrc = -1; });
+
+      // shift-click in drag mode: fire a pulse without leaving the default tool
+      wrap.addEventListener('pointerdown', (ev) => {
+        if (ev.shiftKey && tool === 'drag') {
+          const { x, y } = clientToGrid(ev);
+          pulses.push({ x, y, t0: stepCount + 1, sigma: 8, amp: parseFloat(ampSlider.value) * 6 });
+        }
+      });
+
+      // -------------------- bindings --------------------
+      const freqSlider   = document.getElementById('freqSlider');
+      const ampSlider    = document.getElementById('ampSlider');
+      const brightSlider = document.getElementById('brightSlider');
+      const lambdaDisp   = document.getElementById('lambdaDisplay');
+      const presetSel    = document.getElementById('presetSel');
+      const bcSel        = document.getElementById('bcSel');
+      const playBtn      = document.getElementById('playBtn');
+      const resetBtn     = document.getElementById('resetBtn');
+      const clearWallsBtn= document.getElementById('clearWallsBtn');
+      const stepStat     = document.getElementById('stepStat');
+      const srcStat      = document.getElementById('srcStat');
+      const gridStat     = document.getElementById('gridStat');
+      gridStat.textContent = `${W} × ${H}`;
+
+      function updateLambda() {
+        const f = parseFloat(freqSlider.value);
+        const lam = C / f;
+        lambdaDisp.textContent = `λ ≈ ${lam.toFixed(1)} cells`;
+      }
+      freqSlider.addEventListener('input', () => {
+        updateLambda();
+        const f = parseFloat(freqSlider.value);
+        for (const s of sources) s.freq = f;
+      });
+      ampSlider.addEventListener('input', () => {
+        const a = parseFloat(ampSlider.value);
+        for (const s of sources) s.amp = a;
+      });
+
+      presetSel.addEventListener('change', () => {
+        setPreset(presetSel.value);
+        updateStats();
+      });
+      bcSel.addEventListener('change', () => rebuildDamping(bcSel.value));
+
+      playBtn.addEventListener('click', () => {
+        running = !running;
+        playBtn.textContent = running ? 'Pause' : 'Play';
+        playBtn.classList.toggle('danger', running);
+      });
+      resetBtn.addEventListener('click', () => { setPreset(presetSel.value); updateStats(); });
+      clearWallsBtn.addEventListener('click', () => { clearWalls(); });
+
+      // keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
+        else if (e.key === '1') setTool('drag');
+        else if (e.key === '2') setTool('source');
+        else if (e.key === '3') setTool('pulse');
+        else if (e.key === '4') setTool('wall');
+        else if (e.key === '5') setTool('erase');
+        else if (e.key === 'r' || e.key === 'R') resetBtn.click();
+      });
+
+      function updateStats() { srcStat.textContent = sources.length; }
+
+      // -------------------- main loop --------------------
+      function frame() {
+        if (running) {
+          for (let s = 0; s < SUBSTEPS; s++) step();
+          stepStat.textContent = stepCount;
+        }
+        render();
+        requestAnimationFrame(frame);
+      }
+
+      // boot
+      resize();
+      rebuildDamping(bcSel.value);
+      updateLambda();
+      setPreset(presetSel.value);
+      updateStats();
+      playBtn.classList.add('danger');
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

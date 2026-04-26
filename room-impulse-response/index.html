@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Room Impulse Response &middot; Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 960px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 28px;
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 18px;
+      }
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel.teach {
+        background: #fffdf6;
+        border-color: #ecdda3;
+      }
+      .panel.teach h2 { color: #8a6d12; }
+      .panel.teach p, .panel.teach li {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #3a3a3a;
+      }
+      .panel.teach p { margin: 0 0 10px; }
+      .panel.teach p:last-child { margin-bottom: 0; }
+      .panel.teach ul { margin: 6px 0 10px; padding-left: 22px; }
+      .panel.teach code {
+        font-family: 'Roboto Mono', monospace;
+        background: rgba(0,0,0,0.04);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12.5px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 88px;
+      }
+      input[type="range"] {
+        flex: 1 1 200px;
+        min-width: 200px;
+      }
+      .val {
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 500;
+        font-size: 14px;
+        min-width: 84px;
+        text-align: right;
+        color: var(--black);
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.danger { background: var(--red); border-color: var(--red); }
+      button.big {
+        font-size: 14px;
+        padding: 14px 28px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 14px 18px;
+      }
+      .stat .label {
+        font-size: 11px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+        min-width: 0;
+      }
+      .stat .num {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 4px;
+        letter-spacing: -0.5px;
+      }
+      .stat .num .unit {
+        font-size: 12px;
+        color: var(--grey-text);
+        font-weight: 500;
+        margin-left: 4px;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 6;
+        margin-bottom: 8px;
+      }
+      .canvas-wrap.tall { aspect-ratio: 16 / 7; }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .canvas-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--black);
+        margin: 18px 0 8px;
+      }
+      .canvas-title .sub {
+        font-weight: 400;
+        color: var(--grey-text);
+        font-size: 12px;
+        margin-left: 8px;
+      }
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 6px;
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      .legend .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 3px;
+        vertical-align: 2px;
+        margin-right: 6px;
+        border-radius: 1px;
+      }
+      .status {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin-top: 8px;
+      }
+      .status.error { color: var(--red); }
+      .status.busy { color: var(--gold); }
+      .progress {
+        height: 6px;
+        background: var(--grey-line);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 12px;
+      }
+      .progress > div {
+        height: 100%;
+        background: var(--red);
+        width: 0%;
+        transition: width 0.1s linear;
+      }
+      .hidden { display: none !important; }
+      .countdown {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 56px;
+        font-weight: 700;
+        color: var(--red);
+        text-align: center;
+        line-height: 1;
+        margin: 8px 0 4px;
+        letter-spacing: -2px;
+      }
+      .countdown .lab {
+        display: block;
+        font-family: 'Roboto', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: var(--grey-text);
+        text-transform: uppercase;
+        margin-top: 6px;
+      }
+      .note {
+        font-size: 12.5px;
+        color: var(--grey-text);
+        margin-top: 14px;
+        line-height: 1.5;
+      }
+      details summary {
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--grey-text);
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+      details[open] summary { margin-bottom: 12px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">Room Impulse Response</span>
+    </header>
+
+    <main>
+      <h1>Room Impulse Response</h1>
+      <p class="lead">Play an exponential sine sweep through your speakers, record it with the mic, and recover the impulse response of the room. From the IR you get the direct path, the early reflections, and the reverberation tail &mdash; and from the Schroeder integration of that tail, the reverberation time RT60.</p>
+
+      <section class="panel teach">
+        <h2>The idea in one minute</h2>
+        <p>If you knew how a room responds to a single perfect <em>click</em> (a Dirac impulse), you would know everything &mdash; any sound played in that room is just that click&rsquo;s response convolved with the source signal. That click response is called the <strong>room impulse response</strong> (RIR).</p>
+        <p>You could try literally clapping or popping a balloon. The problem: a clap has tiny energy spread across the spectrum, the room is noisy, and your mic has limited dynamic range. So instead we play a long, well-known signal &mdash; an exponential sine sweep <code>s(t)</code> &mdash; and recover the impulse response by mathematically <em>deconvolving</em> the sweep out of the recording. That is Farina&rsquo;s method, and it is what this page does.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Sweep parameters</h2>
+        <div class="row">
+          <label for="f1">Start freq</label>
+          <input type="range" id="f1" min="20" max="2000" step="10" value="50" />
+          <span class="val" id="f1Val">50 Hz</span>
+        </div>
+        <div class="row">
+          <label for="f2">End freq</label>
+          <input type="range" id="f2" min="2000" max="22000" step="100" value="20000" />
+          <span class="val" id="f2Val">20 kHz</span>
+        </div>
+        <div class="row">
+          <label for="dur">Duration</label>
+          <input type="range" id="dur" min="0.5" max="6" step="0.1" value="2.5" />
+          <span class="val" id="durVal">2.5 s</span>
+        </div>
+        <div class="row">
+          <label for="tail">Tail</label>
+          <input type="range" id="tail" min="0.5" max="6" step="0.1" value="2.5" />
+          <span class="val" id="tailVal">2.5 s</span>
+        </div>
+        <div class="row">
+          <label for="gain">Volume</label>
+          <input type="range" id="gain" min="0" max="0.9" step="0.01" value="0.4" />
+          <span class="val" id="gainVal">0.40</span>
+        </div>
+        <div class="row" style="margin-top: 8px;">
+          <button id="runBtn" class="big">Run measurement</button>
+          <button id="micBtn" class="secondary">Enable microphone</button>
+          <span class="status" id="status">Click &ldquo;Run measurement&rdquo; to begin.</span>
+        </div>
+        <div class="progress hidden" id="progressWrap"><div id="progress"></div></div>
+        <p class="note">Use a quiet room and turn the speaker volume up. <strong>Headphones will not work</strong> &mdash; the sound has to travel through the air to the mic. The browser&rsquo;s echo cancellation, AGC, and noise suppression are all disabled so your mic captures the room honestly.</p>
+      </section>
+
+      <section class="panel hidden" id="resultPanel">
+        <h2>Measurement</h2>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">RT60</div>
+            <div class="num" id="rt60">&mdash; <span class="unit">s</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Direct sound</div>
+            <div class="num" id="directMs">&mdash; <span class="unit">ms</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Sample rate</div>
+            <div class="num" id="srStat">&mdash; <span class="unit">Hz</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">SNR</div>
+            <div class="num" id="snrStat">&mdash; <span class="unit">dB</span></div>
+          </div>
+        </div>
+
+        <div class="canvas-title">Recorded microphone signal
+          <span class="sub">what the room actually played back</span>
+        </div>
+        <div class="canvas-wrap"><canvas id="recCanvas"></canvas></div>
+        <div class="legend"><span><span class="swatch" style="background:#bc122a"></span>mic waveform</span></div>
+
+        <div class="canvas-title">Impulse response <em>h(t)</em>
+          <span class="sub">recording deconvolved with the inverse sweep</span>
+        </div>
+        <div class="canvas-wrap"><canvas id="irCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#bc122a"></span>|h(t)|, normalized</span>
+          <span><span class="swatch" style="background:rgba(232,185,35,0.55)"></span>early reflections (&le;50 ms)</span>
+          <span><span class="swatch" style="background:rgba(42,139,42,0.45)"></span>late reverberation</span>
+        </div>
+
+        <div class="canvas-title">Energy decay curve (Schroeder integration)
+          <span class="sub">reverberation time fit</span>
+        </div>
+        <div class="canvas-wrap tall"><canvas id="edcCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#bc122a"></span>EDC (dB)</span>
+          <span><span class="swatch" style="background:#E8B923"></span>linear fit on -5 to -25 dB</span>
+          <span><span class="swatch" style="background:rgba(255,255,255,0.5)"></span>extrapolation to -60 dB</span>
+        </div>
+
+        <details style="margin-top: 22px;">
+          <summary>Download the IR as a WAV file</summary>
+          <p class="note" style="margin-top: 4px;">You can use this IR in any convolution reverb plugin. The first non-zero sample roughly marks the direct sound; the rest is your room.</p>
+          <button id="dlBtn" class="secondary" style="margin-top: 4px;">Download impulse_response.wav</button>
+        </details>
+      </section>
+
+      <section class="panel teach">
+        <h2>How the math works</h2>
+        <p><strong>Step 1. The sweep.</strong> An exponential (logarithmic) sweep has instantaneous frequency growing as <code>f(t) = f&#8321; (f&#8322;/f&#8321;)^(t/T)</code>. Equal time per octave, which is acoustically &ldquo;flat&rdquo; to the ear. The closed form is</p>
+        <p style="text-align:center; font-family:'Roboto Mono',monospace; font-size:13px;">s(t) = sin( 2&pi; f&#8321; T / ln(f&#8322;/f&#8321;) &middot; ( exp(t&middot;ln(f&#8322;/f&#8321;)/T) &minus; 1 ) )</p>
+        <p><strong>Step 2. The inverse filter.</strong> Convolution by <code>s(t)</code> spreads energy in time. To collapse it back to an impulse we convolve the recording with a matched filter <code>i(t)</code>. For an exponential sweep, the right inverse is the time-reversed sweep with a +6&nbsp;dB/octave amplitude envelope (because the sweep spends more time at low frequencies than at high ones, so the high end needs boosting):</p>
+        <p style="text-align:center; font-family:'Roboto Mono',monospace; font-size:13px;">i(t) = s(T &minus; t) &middot; (f&#8322;/f&#8321;)^(&minus;t/T)</p>
+        <p>One nice consequence: distortion products from a non-linear loudspeaker land at <em>negative</em> times in the deconvolved signal &mdash; you can literally see them as ghosts before the main impulse. Try cranking the volume.</p>
+        <p><strong>Step 3. Schroeder backward integration.</strong> A clean reverb tail is statistically a noise burst with an exponentially decaying envelope. The squared-IR sample-by-sample is a noisy estimate of that envelope. Schroeder showed that integrating <code>h&sup2;</code> from <em>back to front</em> gives the smooth decay curve we want:</p>
+        <p style="text-align:center; font-family:'Roboto Mono',monospace; font-size:13px;">EDC(t) = &int;<sub>t</sub><sup>&infin;</sup> h&sup2;(&tau;) d&tau;,&nbsp; in dB: 10 log&#8321;&#8320; ( EDC(t) / EDC(0) )</p>
+        <p><strong>Step 4. RT60.</strong> Reverberation time is how long the sound takes to drop by 60&nbsp;dB. The direct measurement rarely reaches that depth above the noise floor, so we fit a line to a usable section &mdash; here, &minus;5&nbsp;dB to &minus;25&nbsp;dB (T20) &mdash; and extrapolate. <em>RT60 = 3 &middot; T20.</em></p>
+      </section>
+
+      <section class="panel teach">
+        <h2>Things to try</h2>
+        <ul>
+          <li>Run a measurement, then walk into a different room and run it again. Bathroom vs. carpeted bedroom is dramatic.</li>
+          <li>Drape a towel over the mic and re-measure: see the high-frequency RT shorten.</li>
+          <li>Shorten the sweep to 0.5&nbsp;s and watch the SNR collapse &mdash; longer sweeps spread test energy over time, which beats the noise floor.</li>
+          <li>Push the gain up enough to clip the speaker. Look for the &ldquo;ghost&rdquo; pre-impulses below zero on the time axis &mdash; harmonic distortion landing at negative time.</li>
+          <li>Compare your IR&rsquo;s reflection density (the spikes around 5&ndash;50&nbsp;ms after the direct sound) to the smooth diffuse tail after about 100&nbsp;ms. That transition is the &ldquo;mixing time.&rdquo;</li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      // ---------- DOM ----------
+      const f1El = document.getElementById('f1');
+      const f2El = document.getElementById('f2');
+      const durEl = document.getElementById('dur');
+      const tailEl = document.getElementById('tail');
+      const gainEl = document.getElementById('gain');
+      const f1Val = document.getElementById('f1Val');
+      const f2Val = document.getElementById('f2Val');
+      const durVal = document.getElementById('durVal');
+      const tailVal = document.getElementById('tailVal');
+      const gainVal = document.getElementById('gainVal');
+      const runBtn = document.getElementById('runBtn');
+      const micBtn = document.getElementById('micBtn');
+      const statusEl = document.getElementById('status');
+      const progWrap = document.getElementById('progressWrap');
+      const progBar = document.getElementById('progress');
+      const resultPanel = document.getElementById('resultPanel');
+      const rt60El = document.getElementById('rt60');
+      const directEl = document.getElementById('directMs');
+      const srStatEl = document.getElementById('srStat');
+      const snrEl = document.getElementById('snrStat');
+      const dlBtn = document.getElementById('dlBtn');
+
+      const fmtFreq = f => f >= 1000 ? (f / 1000).toFixed(f >= 10000 ? 0 : 1) + ' kHz' : f.toFixed(0) + ' Hz';
+      const refresh = () => {
+        f1Val.textContent = fmtFreq(+f1El.value);
+        f2Val.textContent = fmtFreq(+f2El.value);
+        durVal.textContent = (+durEl.value).toFixed(1) + ' s';
+        tailVal.textContent = (+tailEl.value).toFixed(1) + ' s';
+        gainVal.textContent = (+gainEl.value).toFixed(2);
+      };
+      [f1El, f2El, durEl, tailEl, gainEl].forEach(e => e.addEventListener('input', refresh));
+      refresh();
+
+      // ---------- Mic ----------
+      let audioCtx = null;
+      let micStream = null;
+
+      function setStatus(msg, kind) {
+        statusEl.textContent = msg;
+        statusEl.classList.remove('error', 'busy');
+        if (kind) statusEl.classList.add(kind);
+      }
+
+      async function ensureMic() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        if (!micStream) {
+          setStatus('Requesting microphone...', 'busy');
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              channelCount: 1
+            }
+          });
+          micBtn.textContent = 'Microphone enabled';
+          micBtn.disabled = true;
+        }
+        return { audioCtx, micStream };
+      }
+
+      micBtn.addEventListener('click', async () => {
+        try {
+          await ensureMic();
+          setStatus('Mic ready · ' + Math.round(audioCtx.sampleRate) + ' Hz sample rate.');
+        } catch (err) {
+          setStatus('Could not access mic: ' + err.message, 'error');
+        }
+      });
+
+      // ---------- Sweep generation ----------
+      function generateSweep(f1, f2, T, sr) {
+        const N = Math.round(T * sr);
+        const sweep = new Float32Array(N);
+        const inv = new Float32Array(N);
+        const R = Math.log(f2 / f1);
+        const K = (T * 2 * Math.PI * f1) / R;
+        for (let n = 0; n < N; n++) {
+          const t = n / sr;
+          sweep[n] = Math.sin(K * (Math.exp(t * R / T) - 1));
+        }
+        // Tukey-style 1% fade at each end
+        const fade = Math.max(64, Math.round(N * 0.01));
+        for (let n = 0; n < fade; n++) {
+          const w = 0.5 - 0.5 * Math.cos(Math.PI * n / fade);
+          sweep[n] *= w;
+          sweep[N - 1 - n] *= w;
+        }
+        // Inverse filter: time-reversed sweep, +6 dB/oct envelope to flatten 1/sqrt(f) spectrum
+        for (let n = 0; n < N; n++) {
+          const env = Math.exp(R * (N - 1 - n) / (N - 1));
+          inv[n] = sweep[N - 1 - n] * env;
+        }
+        // Normalize inverse so the deconvolved peak is sane
+        let invMax = 0;
+        for (let n = 0; n < N; n++) if (Math.abs(inv[n]) > invMax) invMax = Math.abs(inv[n]);
+        if (invMax > 0) for (let n = 0; n < N; n++) inv[n] /= invMax;
+        return { sweep, inv, N };
+      }
+
+      // ---------- Audio worklet for recording ----------
+      const recorderWorkletSrc = `
+        class RecorderProcessor extends AudioWorkletProcessor {
+          constructor() {
+            super();
+            this.recording = false;
+            this.port.onmessage = (e) => {
+              if (e.data.cmd === 'start') this.recording = true;
+              else if (e.data.cmd === 'stop') this.recording = false;
+            };
+          }
+          process(inputs) {
+            if (!this.recording) return true;
+            const input = inputs[0];
+            if (input && input.length > 0 && input[0] && input[0].length > 0) {
+              const copy = new Float32Array(input[0].length);
+              copy.set(input[0]);
+              this.port.postMessage(copy, [copy.buffer]);
+            }
+            return true;
+          }
+        }
+        registerProcessor('rir-recorder', RecorderProcessor);
+      `;
+
+      let workletReady = null;
+      async function loadWorklet() {
+        if (!workletReady) {
+          const blob = new Blob([recorderWorkletSrc], { type: 'application/javascript' });
+          const url = URL.createObjectURL(blob);
+          workletReady = audioCtx.audioWorklet.addModule(url);
+        }
+        return workletReady;
+      }
+
+      // ---------- One measurement ----------
+      async function runMeasurement() {
+        runBtn.disabled = true;
+        progWrap.classList.remove('hidden');
+        progBar.style.width = '0%';
+
+        try {
+          const f1 = +f1El.value;
+          const f2 = +f2El.value;
+          const T = +durEl.value;
+          const tail = +tailEl.value;
+          const vol = +gainEl.value;
+          if (f2 <= f1 + 100) throw new Error('End frequency must be above start frequency');
+
+          await ensureMic();
+          await loadWorklet();
+          const sr = audioCtx.sampleRate;
+          srStatEl.firstChild.textContent = sr.toFixed(0) + ' ';
+
+          const { sweep, inv, N } = generateSweep(f1, Math.min(f2, sr / 2 - 200), T, sr);
+
+          // Build sweep as AudioBuffer
+          const sweepBuf = audioCtx.createBuffer(1, N, sr);
+          sweepBuf.copyToChannel(sweep, 0);
+
+          // Mic source -> recorder worklet (no output)
+          const micSource = audioCtx.createMediaStreamSource(micStream);
+          const recorder = new AudioWorkletNode(audioCtx, 'rir-recorder');
+          const silentSink = audioCtx.createGain();
+          silentSink.gain.value = 0;
+          micSource.connect(recorder).connect(silentSink).connect(audioCtx.destination);
+
+          const chunks = [];
+          recorder.port.onmessage = (e) => chunks.push(e.data);
+
+          // Sweep playback chain
+          const src = audioCtx.createBufferSource();
+          src.buffer = sweepBuf;
+          const sweepGain = audioCtx.createGain();
+          sweepGain.gain.value = vol;
+          src.connect(sweepGain).connect(audioCtx.destination);
+
+          const startAt = audioCtx.currentTime + 0.2;
+          const stopAt = startAt + T + tail;
+
+          recorder.port.postMessage({ cmd: 'start' });
+          src.start(startAt);
+
+          setStatus('Recording sweep + tail...', 'busy');
+
+          // Progress UI
+          const progStart = performance.now();
+          const totalMs = (stopAt - audioCtx.currentTime) * 1000;
+          const progressTimer = setInterval(() => {
+            const t = (performance.now() - progStart) / totalMs;
+            progBar.style.width = Math.min(100, t * 100).toFixed(1) + '%';
+          }, 50);
+
+          await new Promise(r => setTimeout(r, totalMs + 200));
+
+          clearInterval(progressTimer);
+          recorder.port.postMessage({ cmd: 'stop' });
+          await new Promise(r => setTimeout(r, 60));
+
+          micSource.disconnect();
+          recorder.disconnect();
+          silentSink.disconnect();
+          try { src.stop(); } catch(e) {}
+          src.disconnect();
+          sweepGain.disconnect();
+
+          // Concatenate
+          let total = 0;
+          for (const c of chunks) total += c.length;
+          const recording = new Float32Array(total);
+          let off = 0;
+          for (const c of chunks) { recording.set(c, off); off += c.length; }
+
+          if (recording.length < N + sr * 0.1) {
+            throw new Error('Not enough audio captured (' + recording.length + ' samples). Try again.');
+          }
+
+          progBar.style.width = '100%';
+          setStatus('Deconvolving...', 'busy');
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+          // Deconvolve via OfflineAudioContext + ConvolverNode
+          const ir = await deconvolve(recording, inv, sr);
+
+          setStatus('Analyzing...', 'busy');
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+          analyzeAndRender(recording, ir, sweep, sr, N);
+          setStatus('Done. Try a different room or change parameters.');
+          progWrap.classList.add('hidden');
+          resultPanel.classList.remove('hidden');
+        } catch (err) {
+          console.error(err);
+          setStatus(err.message || String(err), 'error');
+          progWrap.classList.add('hidden');
+        } finally {
+          runBtn.disabled = false;
+        }
+      }
+
+      runBtn.addEventListener('click', runMeasurement);
+
+      // ---------- Deconvolution ----------
+      async function deconvolve(recording, invFilter, sr) {
+        const outLen = recording.length + invFilter.length - 1;
+        const ctx = new OfflineAudioContext(1, outLen, sr);
+        const recBuf = ctx.createBuffer(1, recording.length, sr);
+        recBuf.copyToChannel(recording, 0);
+        const invBuf = ctx.createBuffer(1, invFilter.length, sr);
+        invBuf.copyToChannel(invFilter, 0);
+        const conv = ctx.createConvolver();
+        conv.normalize = false;
+        conv.buffer = invBuf;
+        const src = ctx.createBufferSource();
+        src.buffer = recBuf;
+        src.connect(conv).connect(ctx.destination);
+        src.start(0);
+        const rendered = await ctx.startRendering();
+        return rendered.getChannelData(0).slice(0);
+      }
+
+      // ---------- Analysis ----------
+      let lastIR = null, lastIRStart = 0, lastSR = 48000;
+
+      function analyzeAndRender(recording, fullIR, sweep, sr, sweepLen) {
+        // The "true" IR begins at index sweepLen-1 in the deconvolution output.
+        // We grab a window starting just before that point so we can show negative-time ghosts.
+        const lookbackSec = 0.05;
+        const lookbackSamples = Math.round(lookbackSec * sr);
+        const irStartIdx = sweepLen - 1 - lookbackSamples;
+        const irLen = Math.min(fullIR.length - irStartIdx, Math.round(2.5 * sr));
+        const ir = new Float32Array(irLen);
+        for (let i = 0; i < irLen; i++) ir[i] = fullIR[irStartIdx + i] || 0;
+
+        // Find direct-sound peak (largest |sample| in a window around lookback)
+        const searchEnd = Math.min(irLen, lookbackSamples + Math.round(0.2 * sr));
+        let peakIdx = lookbackSamples, peakVal = 0;
+        for (let i = lookbackSamples; i < searchEnd; i++) {
+          const v = Math.abs(ir[i]);
+          if (v > peakVal) { peakVal = v; peakIdx = i; }
+        }
+
+        // Normalize IR so peak = 1
+        const norm = peakVal > 1e-12 ? 1 / peakVal : 1;
+        for (let i = 0; i < irLen; i++) ir[i] *= norm;
+
+        // Direct-sound time relative to sweep playback start
+        const directMs = (peakIdx - lookbackSamples) * 1000 / sr;
+
+        // SNR estimate: peak vs rms of pre-direct samples (pure noise floor)
+        let noiseSq = 0, noiseCount = 0;
+        for (let i = 0; i < Math.max(0, lookbackSamples - Math.round(0.005 * sr)); i++) {
+          noiseSq += ir[i] * ir[i];
+          noiseCount++;
+        }
+        const noiseRms = noiseCount > 0 ? Math.sqrt(noiseSq / noiseCount) : 1e-6;
+        const snrDb = 20 * Math.log10(1 / Math.max(noiseRms, 1e-9));
+
+        // Schroeder backward integration starting at the direct-sound peak
+        const schStart = peakIdx;
+        const schLen = irLen - schStart;
+        const sch = new Float64Array(schLen);
+        let cum = 0;
+        for (let i = schLen - 1; i >= 0; i--) {
+          const s = ir[schStart + i];
+          cum += s * s;
+          sch[i] = cum;
+        }
+        const sch0 = sch[0];
+        const edcDb = new Float32Array(schLen);
+        if (sch0 > 0) {
+          for (let i = 0; i < schLen; i++) {
+            edcDb[i] = 10 * Math.log10(Math.max(sch[i], 1e-30) / sch0);
+          }
+        } else {
+          edcDb.fill(-120);
+        }
+
+        // RT20 fit on -5 to -25 dB
+        let i5 = -1, i25 = -1;
+        for (let i = 0; i < schLen; i++) {
+          if (i5 < 0 && edcDb[i] <= -5) i5 = i;
+          if (i25 < 0 && edcDb[i] <= -25) { i25 = i; break; }
+        }
+        let rt60 = NaN, fitSlope = NaN, fitIntercept = NaN;
+        if (i5 > 0 && i25 > i5 + 4) {
+          // least-squares y = a*t + b on samples [i5, i25] with t = i/sr
+          let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+          for (let i = i5; i <= i25; i++) {
+            const x = i / sr, y = edcDb[i];
+            n++; sx += x; sy += y; sxx += x*x; sxy += x*y;
+          }
+          const denom = n * sxx - sx * sx;
+          if (denom > 0) {
+            fitSlope = (n * sxy - sx * sy) / denom;     // dB/sec, negative
+            fitIntercept = (sy - fitSlope * sx) / n;
+            if (fitSlope < 0) {
+              const t60 = (-60 - fitIntercept) / fitSlope;
+              const t0 = (0 - fitIntercept) / fitSlope;
+              rt60 = t60 - t0;
+            }
+          }
+        }
+
+        // Update stats
+        rt60El.firstChild.textContent = (isFinite(rt60) ? rt60.toFixed(2) : '—') + ' ';
+        directEl.firstChild.textContent = directMs.toFixed(1) + ' ';
+        srStatEl.firstChild.textContent = sr.toFixed(0) + ' ';
+        snrEl.firstChild.textContent = snrDb.toFixed(0) + ' ';
+
+        // Save for download
+        lastIR = ir.slice(0);
+        lastIRStart = lookbackSamples;
+        lastSR = sr;
+
+        // Render
+        drawWaveform('recCanvas', recording, sr, { color: '#bc122a' });
+        drawIR('irCanvas', ir, sr, lookbackSamples);
+        drawEDC('edcCanvas', edcDb, sr, { fitSlope, fitIntercept, i5, i25 });
+      }
+
+      // ---------- Drawing ----------
+      function setupCanvas(id) {
+        const canvas = document.getElementById(id);
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const w = Math.round(rect.width * dpr);
+        const h = Math.round(rect.height * dpr);
+        canvas.width = w;
+        canvas.height = h;
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+        return { canvas, ctx, w, h, dpr };
+      }
+
+      function drawAxes(ctx, w, h, dpr, padL, padR, padT, padB, opts) {
+        const x0 = padL, x1 = w - padR, y0 = padT, y1 = h - padB;
+        // border
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = (11 * dpr) + 'px "Roboto Mono", monospace';
+        ctx.textBaseline = 'top';
+
+        // X ticks
+        if (opts.xTicks) {
+          ctx.textAlign = 'center';
+          for (const tk of opts.xTicks) {
+            const xx = x0 + (tk.t - opts.xMin) / (opts.xMax - opts.xMin) * (x1 - x0);
+            ctx.beginPath();
+            ctx.moveTo(xx, y0);
+            ctx.lineTo(xx, y1);
+            ctx.stroke();
+            ctx.fillText(tk.label, xx, y1 + 4 * dpr);
+          }
+          ctx.textAlign = 'right';
+          if (opts.xLabel) {
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.fillText(opts.xLabel, x1, y1 + 18 * dpr);
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          }
+        }
+
+        // Y ticks
+        if (opts.yTicks) {
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          for (const tk of opts.yTicks) {
+            const yy = y1 - (tk.v - opts.yMin) / (opts.yMax - opts.yMin) * (y1 - y0);
+            ctx.beginPath();
+            ctx.moveTo(x0, yy);
+            ctx.lineTo(x1, yy);
+            ctx.stroke();
+            ctx.fillText(tk.label, x0 - 6 * dpr, yy);
+          }
+          if (opts.yLabel) {
+            ctx.save();
+            ctx.translate(14 * dpr, (y0 + y1) / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.fillText(opts.yLabel, 0, 0);
+            ctx.restore();
+          }
+        }
+        return { x0, x1, y0, y1 };
+      }
+
+      function niceTicks(min, max, count) {
+        const range = max - min;
+        if (range <= 0) return [];
+        const step = niceStep(range / count);
+        const start = Math.ceil(min / step) * step;
+        const ticks = [];
+        for (let v = start; v <= max + step * 1e-9; v += step) ticks.push(v);
+        return ticks;
+      }
+      function niceStep(s) {
+        const p = Math.pow(10, Math.floor(Math.log10(s)));
+        const n = s / p;
+        const m = n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10;
+        return m * p;
+      }
+
+      function drawWaveform(id, samples, sr, opts) {
+        const { ctx, w, h, dpr } = setupCanvas(id);
+        const padL = 50 * dpr, padR = 12 * dpr, padT = 10 * dpr, padB = 30 * dpr;
+        const tMax = samples.length / sr;
+        const xTicksRaw = niceTicks(0, tMax, 8);
+        const xTicks = xTicksRaw.map(t => ({ t, label: t.toFixed(t < 1 ? 2 : 1) + 's' }));
+        const { x0, x1, y0, y1 } = drawAxes(ctx, w, h, dpr, padL, padR, padT, padB, {
+          xMin: 0, xMax: tMax, xTicks,
+          yMin: -1, yMax: 1,
+          yTicks: [{v:-1,label:'-1'},{v:-0.5,label:'-0.5'},{v:0,label:'0'},{v:0.5,label:'0.5'},{v:1,label:'1'}],
+          xLabel: 'time', yLabel: 'amplitude'
+        });
+
+        // Find peak for normalization (display scaling only)
+        let peak = 1e-6;
+        for (let i = 0; i < samples.length; i++) {
+          const a = Math.abs(samples[i]);
+          if (a > peak) peak = a;
+        }
+        const yScale = (y1 - y0) / 2;
+        const yMid = (y0 + y1) / 2;
+
+        // Min/max per-pixel envelope
+        const px = Math.max(1, x1 - x0);
+        const samplesPerPx = samples.length / px;
+        ctx.strokeStyle = opts.color || '#bc122a';
+        ctx.fillStyle = opts.color || '#bc122a';
+        ctx.lineWidth = 1 * dpr;
+        ctx.beginPath();
+        for (let p = 0; p < px; p++) {
+          const i0 = Math.floor(p * samplesPerPx);
+          const i1 = Math.min(samples.length, Math.floor((p + 1) * samplesPerPx));
+          let mn = 0, mx = 0;
+          for (let i = i0; i < i1; i++) {
+            const v = samples[i];
+            if (v < mn) mn = v;
+            else if (v > mx) mx = v;
+          }
+          const x = x0 + p;
+          const yA = yMid - mx / peak * yScale;
+          const yB = yMid - mn / peak * yScale;
+          ctx.moveTo(x, yA);
+          ctx.lineTo(x, yB === yA ? yB + 1 : yB);
+        }
+        ctx.stroke();
+      }
+
+      function drawIR(id, ir, sr, zeroIdx) {
+        const { ctx, w, h, dpr } = setupCanvas(id);
+        const padL = 50 * dpr, padR = 12 * dpr, padT = 10 * dpr, padB = 30 * dpr;
+
+        // X axis: time in ms from zero (the direct sound is shortly after t=0)
+        const tMinMs = -zeroIdx / sr * 1000;
+        const tMaxMs = (ir.length - zeroIdx) / sr * 1000;
+        const xTicksRaw = niceTicks(tMinMs, tMaxMs, 9);
+        const xTicks = xTicksRaw.map(t => ({
+          t, label: Math.abs(t) >= 1000 ? (t/1000).toFixed(1) + 's' : t.toFixed(0) + 'ms'
+        }));
+        const { x0, x1, y0, y1 } = drawAxes(ctx, w, h, dpr, padL, padR, padT, padB, {
+          xMin: tMinMs, xMax: tMaxMs, xTicks,
+          yMin: 0, yMax: 1,
+          yTicks: [{v:0,label:'0'},{v:0.25,label:'0.25'},{v:0.5,label:'0.5'},{v:0.75,label:'0.75'},{v:1,label:'1'}],
+          xLabel: 'time after sweep onset', yLabel: '|h(t)|'
+        });
+
+        // Find direct peak
+        let peakIdx = zeroIdx, peakVal = 0;
+        for (let i = zeroIdx; i < Math.min(ir.length, zeroIdx + Math.round(0.2 * sr)); i++) {
+          const v = Math.abs(ir[i]);
+          if (v > peakVal) { peakVal = v; peakIdx = i; }
+        }
+
+        // Shaded regions: early reflections (peakIdx -> +50ms), late reverb (after)
+        const earlyEndIdx = Math.min(ir.length, peakIdx + Math.round(0.05 * sr));
+        const idxToX = (i) => {
+          const tms = (i - zeroIdx) / sr * 1000;
+          return x0 + (tms - tMinMs) / (tMaxMs - tMinMs) * (x1 - x0);
+        };
+        ctx.fillStyle = 'rgba(232,185,35,0.18)';
+        ctx.fillRect(idxToX(peakIdx), y0, idxToX(earlyEndIdx) - idxToX(peakIdx), y1 - y0);
+        ctx.fillStyle = 'rgba(42,139,42,0.16)';
+        ctx.fillRect(idxToX(earlyEndIdx), y0, x1 - idxToX(earlyEndIdx), y1 - y0);
+
+        // Zero-time reference line
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.setLineDash([3 * dpr, 3 * dpr]);
+        ctx.beginPath();
+        const x0line = x0 + (0 - tMinMs) / (tMaxMs - tMinMs) * (x1 - x0);
+        ctx.moveTo(x0line, y0); ctx.lineTo(x0line, y1);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Plot |h| as min/max stems, but really just |h| curve since we're absolute-value.
+        const px = Math.max(1, x1 - x0);
+        const samplesPerPx = ir.length / px;
+        ctx.strokeStyle = '#bc122a';
+        ctx.lineWidth = 1 * dpr;
+        ctx.beginPath();
+        for (let p = 0; p < px; p++) {
+          const i0 = Math.floor(p * samplesPerPx);
+          const i1 = Math.min(ir.length, Math.floor((p + 1) * samplesPerPx));
+          let mx = 0;
+          for (let i = i0; i < i1; i++) {
+            const v = Math.abs(ir[i]);
+            if (v > mx) mx = v;
+          }
+          const x = x0 + p;
+          const yA = y1 - Math.min(1, mx) * (y1 - y0);
+          ctx.moveTo(x, y1);
+          ctx.lineTo(x, yA);
+        }
+        ctx.stroke();
+      }
+
+      function drawEDC(id, edcDb, sr, fit) {
+        const { ctx, w, h, dpr } = setupCanvas(id);
+        const padL = 50 * dpr, padR = 12 * dpr, padT = 10 * dpr, padB = 30 * dpr;
+        const tMax = edcDb.length / sr;
+        const yMin = -80, yMax = 5;
+        const xTicksRaw = niceTicks(0, tMax, 8);
+        const xTicks = xTicksRaw.map(t => ({ t, label: t.toFixed(t < 1 ? 2 : 1) + 's' }));
+        const yTicks = [];
+        for (let v = yMax; v >= yMin; v -= 10) yTicks.push({ v, label: v + ' dB' });
+        const { x0, x1, y0, y1 } = drawAxes(ctx, w, h, dpr, padL, padR, padT, padB, {
+          xMin: 0, xMax: tMax, xTicks,
+          yMin, yMax, yTicks,
+          xLabel: 'time after direct sound', yLabel: 'energy (dB)'
+        });
+        const tToX = t => x0 + (t - 0) / (tMax - 0) * (x1 - x0);
+        const dbToY = db => y1 - (db - yMin) / (yMax - yMin) * (y1 - y0);
+
+        // -60 dB reference line
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.setLineDash([4 * dpr, 4 * dpr]);
+        ctx.lineWidth = 1 * dpr;
+        const y60 = dbToY(-60);
+        ctx.beginPath(); ctx.moveTo(x0, y60); ctx.lineTo(x1, y60); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // EDC curve
+        ctx.strokeStyle = '#bc122a';
+        ctx.lineWidth = 1.4 * dpr;
+        ctx.beginPath();
+        const px = Math.max(1, x1 - x0);
+        const samplesPerPx = edcDb.length / px;
+        let started = false;
+        for (let p = 0; p < px; p++) {
+          const i = Math.floor(p * samplesPerPx);
+          const v = edcDb[i];
+          const x = x0 + p;
+          const y = dbToY(Math.max(yMin, Math.min(yMax, v)));
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Fit segment + extrapolation
+        if (isFinite(fit.fitSlope) && fit.i5 > 0 && fit.i25 > fit.i5) {
+          const t5 = fit.i5 / sr, t25 = fit.i25 / sr;
+          const lineAt = t => fit.fitSlope * t + fit.fitIntercept;
+
+          // Extrapolation (extends in faint white, both directions clipped to plot)
+          ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+          ctx.setLineDash([5 * dpr, 4 * dpr]);
+          ctx.lineWidth = 1.2 * dpr;
+          ctx.beginPath();
+          const tA = Math.max(0, (yMax - fit.fitIntercept) / fit.fitSlope);
+          const tB = Math.min(tMax, (yMin - fit.fitIntercept) / fit.fitSlope);
+          ctx.moveTo(tToX(tA), dbToY(Math.max(yMin, Math.min(yMax, lineAt(tA)))));
+          ctx.lineTo(tToX(tB), dbToY(Math.max(yMin, Math.min(yMax, lineAt(tB)))));
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Fit window in gold
+          ctx.strokeStyle = '#E8B923';
+          ctx.lineWidth = 2 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(tToX(t5), dbToY(lineAt(t5)));
+          ctx.lineTo(tToX(t25), dbToY(lineAt(t25)));
+          ctx.stroke();
+        }
+      }
+
+      // ---------- WAV download ----------
+      function makeWav(samples, sr) {
+        const bitsPerSample = 16;
+        const numChannels = 1;
+        const bytesPerSample = bitsPerSample / 8;
+        const blockAlign = numChannels * bytesPerSample;
+        const byteRate = sr * blockAlign;
+        const dataSize = samples.length * bytesPerSample;
+        const buffer = new ArrayBuffer(44 + dataSize);
+        const view = new DataView(buffer);
+        const writeStr = (off, s) => { for (let i=0;i<s.length;i++) view.setUint8(off+i, s.charCodeAt(i)); };
+        writeStr(0, 'RIFF');
+        view.setUint32(4, 36 + dataSize, true);
+        writeStr(8, 'WAVE');
+        writeStr(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sr, true);
+        view.setUint32(28, byteRate, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, bitsPerSample, true);
+        writeStr(36, 'data');
+        view.setUint32(40, dataSize, true);
+        // Find peak for safe normalization
+        let peak = 0;
+        for (let i = 0; i < samples.length; i++) {
+          const a = Math.abs(samples[i]);
+          if (a > peak) peak = a;
+        }
+        const scale = peak > 0 ? 32760 / peak : 1;
+        let off = 44;
+        for (let i = 0; i < samples.length; i++) {
+          const v = Math.max(-32768, Math.min(32767, Math.round(samples[i] * scale)));
+          view.setInt16(off, v, true);
+          off += 2;
+        }
+        return new Blob([buffer], { type: 'audio/wav' });
+      }
+      dlBtn.addEventListener('click', () => {
+        if (!lastIR) return;
+        // Trim leading lookback so the download starts ~at the direct sound
+        const ir = lastIR.subarray(Math.max(0, lastIRStart - 16));
+        const blob = makeWav(ir, lastSR);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'impulse_response.wav';
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+
+      // Re-render on resize
+      let resizeTO = null;
+      window.addEventListener('resize', () => {
+        if (!lastIR) return;
+        clearTimeout(resizeTO);
+        resizeTO = setTimeout(() => {
+          // Cheapest: just leave it; user can re-run. (Avoids holding all data.)
+        }, 200);
+      });
+    </script>
+  </body>
+</html>

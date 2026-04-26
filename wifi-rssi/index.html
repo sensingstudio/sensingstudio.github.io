@@ -346,6 +346,64 @@
       </div>
 
       <div class="panel">
+        <h3>Shannon ceiling</h3>
+        <p style="color:var(--grey-text); font-size:13px; margin:0 0 14px; line-height:1.55;">
+          The Shannon&ndash;Hartley theorem caps the data rate any link can
+          carry: <code style="background:#eef0f2; padding:2px 6px; border-radius:4px;">C = B &middot; log<sub>2</sub>(1 + SNR)</code>.
+          Here <b>B</b> is the channel width and <b>SNR</b> is the linear
+          signal-to-noise ratio (10<sup>SNR<sub>dB</sub>/10</sup>).
+        </p>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1px; background:var(--grey-line); border:1px solid var(--grey-line); border-radius:8px; overflow:hidden; margin-bottom:14px;">
+          <div class="tile"><div class="label">Bandwidth (B)</div><div class="value" id="sh-band">&mdash;</div></div>
+          <div class="tile"><div class="label">SNR (linear)</div><div class="value" id="sh-snrlin">&mdash;</div></div>
+          <div class="tile"><div class="label">Shannon limit (C)</div><div class="value" id="sh-cap">&mdash;</div></div>
+          <div class="tile"><div class="label">TX rate / C</div><div class="value" id="sh-eff">&mdash;</div></div>
+        </div>
+        <div style="position:relative; height:36px; background:var(--bg); border:1px solid var(--grey-line); border-radius:8px; overflow:hidden;">
+          <div id="sh-bar" style="position:absolute; left:0; top:0; bottom:0; width:0%; background:linear-gradient(90deg, #2a8b2a, #E8B923, #bc122a); transition:width 0.4s;"></div>
+          <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#111; letter-spacing:0.5px; text-shadow:0 0 4px rgba(255,255,255,0.6);">
+            <span id="sh-bar-label">&mdash;</span>
+          </div>
+        </div>
+        <div class="legend" style="margin-top:6px;">Bar shows TX rate as a fraction of the Shannon ceiling. Real Wi-Fi typically reaches 50&ndash;70%; the rest is overhead (preamble, ACKs, retries) and the gap between the FEC code and Shannon's optimal code.</div>
+      </div>
+
+      <div class="panel">
+        <details>
+          <summary style="font-weight:700; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; color:var(--grey-text); cursor:pointer;">MCS reference table</summary>
+          <p style="color:var(--grey-text); font-size:13px; margin:10px 0 14px; line-height:1.55;">
+            The MCS (Modulation and Coding Scheme) index encodes the modulation
+            and the forward-error-correction code rate. At a given channel
+            width and number of spatial streams, MCS determines the data rate.
+            The row matching your current link is highlighted.
+          </p>
+          <div style="overflow-x:auto;">
+            <table id="mcs-table" style="width:100%; border-collapse:collapse; font-size:12px; min-width:560px;">
+              <thead>
+                <tr style="background:#f4f5f7;">
+                  <th style="text-align:left; padding:8px 10px; border-bottom:2px solid var(--grey-line); font-weight:700; letter-spacing:0.5px;">MCS</th>
+                  <th style="text-align:left; padding:8px 10px; border-bottom:2px solid var(--grey-line); font-weight:700; letter-spacing:0.5px;">Modulation</th>
+                  <th style="text-align:left; padding:8px 10px; border-bottom:2px solid var(--grey-line); font-weight:700; letter-spacing:0.5px;">Coding</th>
+                  <th style="text-align:right; padding:8px 10px; border-bottom:2px solid var(--grey-line); font-weight:700; letter-spacing:0.5px;">20 MHz</th>
+                  <th style="text-align:right; padding:8px 10px; border-bottom:2px solid var(--grey-line); font-weight:700; letter-spacing:0.5px;">40 MHz</th>
+                  <th style="text-align:right; padding:8px 10px; border-bottom:2px solid var(--grey-line); font-weight:700; letter-spacing:0.5px;">80 MHz</th>
+                  <th style="text-align:right; padding:8px 10px; border-bottom:2px solid var(--grey-line); font-weight:700; letter-spacing:0.5px;">160 MHz</th>
+                </tr>
+              </thead>
+              <tbody id="mcs-tbody"></tbody>
+            </table>
+          </div>
+          <p style="color:var(--grey-text); font-size:12px; margin:14px 0 0; line-height:1.55;">
+            Per-stream data rates shown for <b>802.11ax (Wi-Fi 6)</b> at long
+            guard interval (0.8 µs). Multiply by the number of spatial streams
+            (NSS) to get the link's TX rate. <b>802.11ac</b> tops out at MCS 9
+            (no 1024-QAM); <b>802.11n</b> cycles MCS 0–7 across spatial streams
+            (MCS 8–15 = same modulation/coding × NSS 2).
+          </p>
+        </details>
+      </div>
+
+      <div class="panel">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
           <h3 style="margin:0;">Channels around you</h3>
           <button id="scan-btn" class="download" style="margin:0;" type="button">
@@ -380,6 +438,94 @@
       const $bar    = $('bar');
       const $panel  = $('panel');
       const $spark  = $('spark');
+
+      // 802.11ax (HE) per-stream rates, GI 0.8 µs, in Mbps.
+      const HE_RATES = {
+        20:  [8.6, 17.2, 25.8, 34.4, 51.6, 68.8, 77.4, 86.0, 103.2, 114.7, 129.0, 143.4],
+        40:  [17.2, 34.4, 51.6, 68.8, 103.2, 137.6, 154.9, 172.1, 206.5, 229.4, 258.1, 286.8],
+        80:  [36.0, 72.1, 108.1, 144.1, 216.2, 288.2, 324.3, 360.3, 432.4, 480.4, 540.4, 600.4],
+        160: [72.1, 144.1, 216.2, 288.2, 432.4, 576.5, 648.5, 720.6, 864.7, 960.7, 1080.9, 1201.0],
+      };
+      const MCS_MOD_CODING = [
+        ['BPSK',     '1/2'],
+        ['QPSK',     '1/2'],
+        ['QPSK',     '3/4'],
+        ['16-QAM',   '1/2'],
+        ['16-QAM',   '3/4'],
+        ['64-QAM',   '2/3'],
+        ['64-QAM',   '3/4'],
+        ['64-QAM',   '5/6'],
+        ['256-QAM',  '3/4'],
+        ['256-QAM',  '5/6'],
+        ['1024-QAM', '3/4'],
+        ['1024-QAM', '5/6'],
+      ];
+
+      function renderShannon(state) {
+        const $b   = document.getElementById('sh-band');
+        const $sl  = document.getElementById('sh-snrlin');
+        const $c   = document.getElementById('sh-cap');
+        const $eff = document.getElementById('sh-eff');
+        const $bar = document.getElementById('sh-bar');
+        const $bl  = document.getElementById('sh-bar-label');
+        const w = state.width_mhz, snrDb = state.snr, tx = state.tx_rate_mbps;
+        if (!w || snrDb == null) {
+          [$b, $sl, $c, $eff].forEach(e => e.innerHTML = '<span class="value dim">&mdash;</span>');
+          $bar.style.width = '0%';
+          $bl.textContent = '—';
+          return;
+        }
+        const snrLin = Math.pow(10, snrDb / 10);
+        const C_mbps = w * Math.log2(1 + snrLin);  // B in MHz × log2(1+SNR) = bits per microsecond = Mbps
+        $b.innerHTML  = `${w}<span class="small">MHz</span>`;
+        $sl.innerHTML = snrLin >= 1000
+          ? `${(snrLin/1000).toFixed(1)}<span class="small">k</span>`
+          : snrLin.toFixed(0);
+        $c.innerHTML = C_mbps >= 1000
+          ? `${(C_mbps/1000).toFixed(2)}<span class="small">Gbps</span>`
+          : `${Math.round(C_mbps)}<span class="small">Mbps</span>`;
+        if (tx) {
+          const frac = tx / C_mbps;
+          $eff.innerHTML = `${(frac * 100).toFixed(0)}<span class="small">%</span>`;
+          $bar.style.width = Math.min(100, frac * 100).toFixed(1) + '%';
+          $bl.textContent = `${Math.round(tx)} / ${Math.round(C_mbps)} Mbps  ·  ${(frac * 100).toFixed(0)}% of Shannon limit`;
+        } else {
+          $eff.innerHTML = '<span class="value dim">—</span>';
+          $bar.style.width = '0%';
+          $bl.textContent = `Shannon limit: ${Math.round(C_mbps)} Mbps`;
+        }
+      }
+
+      function buildMcsTable() {
+        const tbody = document.getElementById('mcs-tbody');
+        if (!tbody) return;
+        const fmt = v => v >= 1000 ? (v / 1000).toFixed(2) + ' Gbps' : v.toFixed(1) + ' Mbps';
+        let html = '';
+        for (let mcs = 0; mcs < 12; mcs++) {
+          const [mod, code] = MCS_MOD_CODING[mcs];
+          html += `<tr id="mcs-row-${mcs}" style="border-bottom:1px solid #eef0f2;">
+            <td style="padding:6px 10px; font-weight:700;">${mcs}</td>
+            <td style="padding:6px 10px;">${mod}</td>
+            <td style="padding:6px 10px;">${code}</td>
+            <td style="padding:6px 10px; text-align:right; font-variant-numeric:tabular-nums;">${fmt(HE_RATES[20][mcs])}</td>
+            <td style="padding:6px 10px; text-align:right; font-variant-numeric:tabular-nums;">${fmt(HE_RATES[40][mcs])}</td>
+            <td style="padding:6px 10px; text-align:right; font-variant-numeric:tabular-nums;">${fmt(HE_RATES[80][mcs])}</td>
+            <td style="padding:6px 10px; text-align:right; font-variant-numeric:tabular-nums;">${fmt(HE_RATES[160][mcs])}</td>
+          </tr>`;
+        }
+        tbody.innerHTML = html;
+      }
+      buildMcsTable();
+
+      function highlightMcsRow(mcs) {
+        for (let i = 0; i < 12; i++) {
+          const row = document.getElementById('mcs-row-' + i);
+          if (row) {
+            row.style.background = (i === mcs) ? 'rgba(188,18,42,0.10)' : '';
+            row.style.fontWeight = (i === mcs) ? '700' : '';
+          }
+        }
+      }
 
       const TILES = {
         noise:      { el: $('t-noise'),       fmt: v => v == null ? '—' : `${v}<span class="small">dBm</span>` },
@@ -473,6 +619,9 @@
         setTile('sec',        state.security);
         setTile('bssid',      state.bssid);
         setTile('ssid',       state.ssid);
+
+        highlightMcsRow(state.mcs);
+        renderShannon(state);
 
         samples.push({ t: Date.now(), rssi: state.rssi });
         const cutoff = Date.now() - WINDOW_MS;
@@ -572,6 +721,39 @@
         return padTop + (h - padTop - padBot) * (1 - Math.max(0, Math.min(1, t)));
       }
 
+      function dedupeNetworks(nets) {
+        // Many enterprise / mesh networks broadcast the same SSID from many
+        // physical APs on the same channel — collapse those into one entry,
+        // taking the strongest RSSI seen and counting members.
+        const groups = new Map();
+        let unnamed = 0;
+        for (const n of nets) {
+          let key;
+          if (n.ssid) {
+            key = `${n.ssid}|${n.channel}|${n.width_mhz}|${n.band}`;
+          } else if (n.bssid) {
+            key = `__h_${n.bssid}`;
+          } else {
+            key = `__h_${unnamed++}`;  // hidden + no BSSID: never merge.
+          }
+          const g = groups.get(key);
+          if (!g) {
+            groups.set(key, {
+              ssid: n.ssid,
+              channel: n.channel,
+              width_mhz: n.width_mhz,
+              band: n.band,
+              rssi: n.rssi,
+              count: 1,
+            });
+          } else {
+            g.count += 1;
+            if (n.rssi > g.rssi) g.rssi = n.rssi;
+          }
+        }
+        return Array.from(groups.values());
+      }
+
       function buildBandChart(title, rangeStart, rangeEnd, chTickFn, networks) {
         const W = 1000, H = 220, padL = 44, padR = 12, padT = 22, padB = 28;
         const xOf = f => padL + (W - padL - padR) * (f - rangeStart) / (rangeEnd - rangeStart);
@@ -624,12 +806,26 @@
           svg.appendChild(lbl);
         }
         // Band title
+        const totalAPs = networks.reduce((s, n) => s + (n.count || 1), 0);
         const tlt = document.createElementNS(SVG_NS, 'text');
         tlt.setAttribute('x', padL); tlt.setAttribute('y', 14);
         tlt.setAttribute('font-size', '11'); tlt.setAttribute('font-weight', '700');
         tlt.setAttribute('fill', '#111'); tlt.setAttribute('letter-spacing', '1');
-        tlt.textContent = title.toUpperCase() + ` · ${networks.length} AP${networks.length === 1 ? '' : 's'}`;
+        tlt.textContent = title.toUpperCase() + ` · ${networks.length} network${networks.length === 1 ? '' : 's'}` +
+          (totalAPs > networks.length ? ` (${totalAPs} APs)` : '');
         svg.appendChild(tlt);
+
+        // Pick the strongest network on each channel — those are the only
+        // ones that get a label drawn. Below -80 dBm: never label.
+        const strongestByChannel = new Map();
+        for (const n of networks) {
+          const cur = strongestByChannel.get(n.channel);
+          if (!cur || n.rssi > cur.rssi) strongestByChannel.set(n.channel, n);
+        }
+        const labelable = new Set();
+        for (const n of strongestByChannel.values()) {
+          if (n.rssi >= -80) labelable.add(n);
+        }
 
         // Sort by RSSI ascending so strongest paint last (on top)
         const sorted = [...networks].sort((a, b) => a.rssi - b.rssi);
@@ -645,11 +841,10 @@
           const xL = xOf(fL), xR = xOf(fR);
           const xC = xOf(f);
           const yPeak = yOf(n.rssi);
-          // Cosine-shaped dome from baseline (xL, baseline) up to (xC, yPeak) down to (xR, baseline).
           const STEPS = 28;
           let d = `M ${xL.toFixed(1)} ${yBaseline.toFixed(1)} `;
           for (let i = 0; i <= STEPS; i++) {
-            const t = -1 + 2 * (i / STEPS); // -1..1
+            const t = -1 + 2 * (i / STEPS);
             const cosShape = Math.cos(Math.PI * t / 2) ** 2;
             const x = xL + (xR - xL) * (i / STEPS);
             const y = yBaseline - (yBaseline - yPeak) * cosShape;
@@ -657,24 +852,26 @@
           }
           d += `L ${xR.toFixed(1)} ${yBaseline.toFixed(1)} Z`;
 
-          const color = colorForKey(n.ssid || n.bssid || `${n.channel}-${n.rssi}`);
+          const color = colorForKey(n.ssid || `${n.channel}-${n.rssi}`);
           const path = document.createElementNS(SVG_NS, 'path');
           path.setAttribute('d', d);
           path.setAttribute('fill', color);
-          path.setAttribute('fill-opacity', '0.28');
+          path.setAttribute('fill-opacity', '0.22');
           path.setAttribute('stroke', color);
           path.setAttribute('stroke-width', '1.6');
           svg.appendChild(path);
 
-          // SSID label at peak (only if there's room)
-          const lbl = (n.ssid || '(hidden)').slice(0, 18);
-          const text = document.createElementNS(SVG_NS, 'text');
-          text.setAttribute('x', xC); text.setAttribute('y', Math.max(yPeak - 4, padT + 10));
-          text.setAttribute('text-anchor', 'middle');
-          text.setAttribute('font-size', '10'); text.setAttribute('font-weight', '700');
-          text.setAttribute('fill', color);
-          text.textContent = lbl;
-          svg.appendChild(text);
+          if (labelable.has(n)) {
+            const name = (n.ssid || '(hidden)').slice(0, 22);
+            const lbl = n.count > 1 ? `${name} ×${n.count}` : name;
+            const text = document.createElementNS(SVG_NS, 'text');
+            text.setAttribute('x', xC); text.setAttribute('y', Math.max(yPeak - 4, padT + 10));
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '11'); text.setAttribute('font-weight', '700');
+            text.setAttribute('fill', color);
+            text.textContent = lbl;
+            svg.appendChild(text);
+          }
         }
         return svg;
       }
@@ -706,10 +903,11 @@
           return;
         }
 
+        const groups = dedupeNetworks(nets);
         // 2.4 GHz: span ~2400 to 2495; 5 GHz: 5170 to 5835; 6 GHz: 5945 to 7125
-        const by24 = nets.filter(n => n.band === '2.4 GHz');
-        const by5  = nets.filter(n => n.band === '5 GHz');
-        const by6  = nets.filter(n => n.band === '6 GHz');
+        const by24 = groups.filter(n => n.band === '2.4 GHz');
+        const by5  = groups.filter(n => n.band === '5 GHz');
+        const by6  = groups.filter(n => n.band === '6 GHz');
 
         if (by24.length) $charts.appendChild(buildBandChart('2.4 GHz', 2400, 2495, ticks24, by24));
         if (by5.length)  $charts.appendChild(buildBandChart('5 GHz',   5170, 5835, ticks5,  by5));
@@ -731,7 +929,9 @@
         $list.innerHTML = rows;
 
         const ago = Math.round((Date.now()/1000 - data.ts));
-        $meta.innerHTML = `<b>${nets.length}</b> networks &middot; scanned in <b>${data.duration_s}</b>s &middot; ${ago}s ago. Each AP shown as a dome at its center frequency, span = channel width, peak height = RSSI.`;
+        const nGroups = groups.length;
+        const dedupNote = nets.length > nGroups ? ` (deduped from <b>${nets.length}</b> APs)` : '';
+        $meta.innerHTML = `<b>${nGroups}</b> distinct networks${dedupNote} &middot; scanned in <b>${data.duration_s}</b>s &middot; ${ago}s ago. Each network shown as a dome at its center frequency, span = channel width, peak = strongest RSSI seen.`;
       }
 
       const $scanBtn = document.getElementById('scan-btn');

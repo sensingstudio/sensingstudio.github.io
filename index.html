@@ -552,6 +552,92 @@
             <span class="arrow">Open</span>
           </div>
         </a>
+        <a class="card-link" href="mac-protocols/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- channel timeline: rows of frames, some green, some red (collisions) -->
+              <g>
+                <!-- row 1 -->
+                <rect x="14"  y="22" width="22" height="10" rx="1.5" fill="#2a8b2a"/>
+                <rect x="58"  y="22" width="22" height="10" rx="1.5" fill="#bc122a"/>
+                <rect x="118" y="22" width="22" height="10" rx="1.5" fill="#2a8b2a"/>
+                <!-- row 2 -->
+                <rect x="36"  y="40" width="22" height="10" rx="1.5" fill="#2a8b2a"/>
+                <rect x="58"  y="40" width="22" height="10" rx="1.5" fill="#bc122a"/>
+                <rect x="96"  y="40" width="22" height="10" rx="1.5" fill="rgba(232,185,35,0.7)"/>
+                <rect x="140" y="40" width="22" height="10" rx="1.5" fill="#2a8b2a"/>
+                <!-- row 3 -->
+                <rect x="14"  y="58" width="22" height="10" rx="1.5" fill="rgba(232,185,35,0.7)"/>
+                <rect x="80"  y="58" width="22" height="10" rx="1.5" fill="#2a8b2a"/>
+                <rect x="118" y="58" width="22" height="10" rx="1.5" fill="#bc122a"/>
+                <rect x="162" y="58" width="22" height="10" rx="1.5" fill="#2a8b2a"/>
+                <!-- row 4 -->
+                <rect x="36"  y="76" width="22" height="10" rx="1.5" fill="#2a8b2a"/>
+                <rect x="74"  y="76" width="22" height="10" rx="1.5" fill="#2a8b2a"/>
+                <rect x="118" y="76" width="22" height="10" rx="1.5" fill="#bc122a"/>
+                <rect x="162" y="76" width="22" height="10" rx="1.5" fill="rgba(232,185,35,0.7)"/>
+              </g>
+              <!-- frame boundary tick marks -->
+              <g stroke="rgba(255,255,255,0.18)" stroke-width="0.6">
+                <line x1="14"  y1="14" x2="14"  y2="92"/>
+                <line x1="58"  y1="14" x2="58"  y2="92"/>
+                <line x1="102" y1="14" x2="102" y2="92"/>
+                <line x1="146" y1="14" x2="146" y2="92"/>
+                <line x1="190" y1="14" x2="190" y2="92"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <h2>MAC Protocols</h2>
+            <p>Simulate a shared radio channel under ALOHA, slotted ALOHA, CSMA, and p-persistent CSMA. Watch successes, collisions, and the throughput curve in real time.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="wave-sim/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- concentric wavefronts from a point source on the left -->
+              <g fill="none" stroke="#bc122a" stroke-width="1.2" opacity="0.85">
+                <circle cx="50" cy="50" r="10"/>
+                <circle cx="50" cy="50" r="22" opacity="0.7"/>
+                <circle cx="50" cy="50" r="34" opacity="0.5"/>
+                <circle cx="50" cy="50" r="46" opacity="0.32"/>
+                <circle cx="50" cy="50" r="58" opacity="0.18"/>
+              </g>
+              <!-- source dot -->
+              <circle cx="50" cy="50" r="2.4" fill="#E8B923"/>
+              <!-- wall in the middle with a slit -->
+              <g stroke="#9aa0a8" stroke-width="2" stroke-linecap="round">
+                <line x1="120" y1="14" x2="120" y2="44"/>
+                <line x1="120" y1="56" x2="120" y2="86"/>
+              </g>
+              <!-- diffracted arcs on the right, emanating from the slit -->
+              <g fill="none" stroke="#1f6feb" stroke-width="1.1" opacity="0.85">
+                <path d="M 120 50 m -14 0 a 14 14 0 1 0 28 0"/>
+                <path d="M 120 50 m -22 0 a 22 22 0 1 0 44 0" opacity="0.7"/>
+                <path d="M 120 50 m -30 0 a 30 30 0 1 0 60 0" opacity="0.5"/>
+                <path d="M 120 50 m -38 0 a 38 38 0 1 0 76 0" opacity="0.32"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <h2>Wave Propagation</h2>
+            <p>Drop sources, paint walls, and watch reflection, diffraction, and standing waves form on a 2D acoustic FDTD simulation.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
         <a class="card-link" href="acoustic-ranging/">
           <div class="cover" aria-hidden="true">
             <svg viewBox="0 0 200 100" preserveAspectRatio="none">
@@ -590,6 +676,64 @@
           <div class="body">
             <h2>Acoustic Ranging</h2>
             <p>Pair your phone, then both devices record while the laptop and phone each emit a 200 ms 1&ndash;4 kHz chirp two seconds apart.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="room-impulse-response/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- room outline with reflecting walls -->
+              <g fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1">
+                <rect x="14" y="20" width="172" height="60" rx="2"/>
+              </g>
+              <!-- speaker on left -->
+              <g transform="translate(20 36)">
+                <rect x="0" y="0" width="14" height="28" rx="2" fill="none" stroke="#bc122a" stroke-width="1.4"/>
+                <circle cx="7" cy="9" r="2.4" fill="#bc122a"/>
+                <circle cx="7" cy="20" r="3.4" fill="none" stroke="#bc122a" stroke-width="1"/>
+              </g>
+              <!-- mic on right -->
+              <g transform="translate(170 38)">
+                <rect x="0" y="0" width="6" height="14" rx="3" fill="#bc122a"/>
+                <line x1="3" y1="14" x2="3" y2="22" stroke="#bc122a" stroke-width="1.2"/>
+                <line x1="-2" y1="22" x2="8" y2="22" stroke="#bc122a" stroke-width="1.2"/>
+              </g>
+              <!-- exponential sine sweep curve from speaker to mic -->
+              <g fill="none" stroke="#bc122a" stroke-width="1.3" stroke-linejoin="round">
+                <path d="M 36 50
+                         L 42 48 L 46 52 L 50 48 L 54 52
+                         L 58 47 L 62 53 L 65 47 L 68 53
+                         L 71 46 L 74 54 L 77 46 L 80 54
+                         L 83 45 L 86 55 L 89 45 L 92 55
+                         L 95 44 L 98 56 L 101 44 L 104 56
+                         L 107 44 L 110 56 L 113 43 L 116 57
+                         L 119 44 L 122 56 L 125 44 L 128 56
+                         L 131 45 L 134 55 L 137 46 L 140 54
+                         L 143 47 L 146 53 L 149 48 L 152 52
+                         L 156 50 L 168 50"/>
+              </g>
+              <!-- reflection ray bouncing off ceiling -->
+              <g fill="none" stroke="rgba(232,185,35,0.7)" stroke-width="1" stroke-dasharray="2 2">
+                <path d="M 36 50 L 100 22 L 168 50"/>
+              </g>
+              <!-- decaying tail underneath -->
+              <g fill="none" stroke="rgba(42,139,42,0.85)" stroke-width="1.1" stroke-linejoin="round">
+                <path d="M 36 88
+                         L 38 80 L 40 90 L 42 78 L 44 90 L 46 80 L 48 88
+                         L 52 84 L 56 88 L 60 86 L 64 87 L 68 88 L 74 88
+                         L 82 89 L 92 89 L 110 90 L 130 90 L 168 90"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <h2>Room Impulse Response</h2>
+            <p>Play an exponential sine sweep through your speakers, deconvolve it from the mic recording, and recover the room&rsquo;s impulse response and RT60.</p>
             <span class="arrow">Open</span>
           </div>
         </a>

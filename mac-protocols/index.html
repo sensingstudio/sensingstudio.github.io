@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MAC Protocols &middot; Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+        --orange: #d97c2a;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 28px;
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 18px;
+      }
+      .panel h3 {
+        margin: 0 0 12px;
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .help { font-size: 14px; color: var(--black); line-height: 1.55; }
+      .help p { margin: 0 0 10px; color: var(--grey-text); }
+      .help p b { color: var(--black); }
+      .help ol { margin: 0; padding-left: 22px; color: var(--grey-text); }
+      .help li { margin: 4px 0; }
+      .help li b { color: var(--black); }
+
+      .proto-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 8px;
+      }
+      .proto-buttons button {
+        background: #fff;
+        border: 1.5px solid var(--grey-line);
+        border-radius: 8px;
+        color: var(--black);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 12px 14px;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, color 0.15s;
+        text-align: left;
+        line-height: 1.3;
+      }
+      .proto-buttons button:hover { border-color: var(--red); }
+      .proto-buttons button.active {
+        background: var(--red);
+        color: #fff;
+        border-color: var(--red);
+      }
+      .proto-desc {
+        margin: 14px 0 0;
+        font-size: 14px;
+        color: var(--grey-text);
+        line-height: 1.55;
+      }
+      .proto-desc b { color: var(--black); }
+
+      .knobs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px 24px;
+      }
+      .knob label.knob-label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .knob .knob-row {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .knob .knob-val {
+        font-weight: 900;
+        font-size: 22px;
+        letter-spacing: -0.5px;
+        line-height: 1;
+      }
+      .knob .knob-sub {
+        color: var(--grey-text);
+        font-size: 12px;
+      }
+      .knob input[type=range] {
+        width: 100%;
+        accent-color: var(--red);
+        cursor: pointer;
+      }
+      .knob.disabled { opacity: 0.4; pointer-events: none; }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 18px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--red);
+        color: #fff;
+        border: none;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 11px 22px;
+        border-radius: 8px;
+        cursor: pointer;
+        letter-spacing: 0.3px;
+        transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      }
+      .btn:hover {
+        background: #a00f24;
+        box-shadow: 0 4px 14px rgba(188, 18, 42, 0.25);
+        transform: translateY(-1px);
+      }
+      .btn.ghost {
+        background: #fff;
+        color: var(--black);
+        border: 1.5px solid var(--grey-line);
+      }
+      .btn.ghost:hover {
+        background: #fff;
+        color: var(--red);
+        border-color: var(--red);
+        box-shadow: none;
+      }
+
+      canvas.timeline {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 6px;
+      }
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 16px;
+        align-items: center;
+      }
+      .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 12px;
+        border-radius: 2px;
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 1px;
+        background: var(--grey-line);
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .tile {
+        background: #fff;
+        padding: 14px 16px 12px;
+        min-height: 64px;
+      }
+      .tile .label {
+        font-size: 10px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .tile .value {
+        font-size: 22px;
+        font-weight: 900;
+        margin-top: 4px;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+      }
+      .tile .value .small {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--grey-text);
+        letter-spacing: 0;
+        margin-left: 4px;
+      }
+
+      svg.sg {
+        width: 100%;
+        height: 280px;
+        display: block;
+      }
+
+      details summary {
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        color: var(--grey-text);
+        margin-top: 12px;
+      }
+      details summary:hover { color: var(--black); }
+      details p { margin-top: 8px; color: var(--grey-text); line-height: 1.55; font-size: 14px; }
+      details code {
+        background: #eef0f2;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">MAC Protocols</span>
+    </header>
+
+    <main>
+      <h1>MAC protocol simulator</h1>
+      <p class="lead">A bunch of stations want to talk on one shared radio channel. Only one transmission can be heard cleanly at a time &mdash; if two start at once, both get garbled. Pick a rule for <i>when</i> a station may talk, then watch what happens.</p>
+
+      <div class="panel help">
+        <h3>How to use</h3>
+        <ol>
+          <li>Pick a <b>protocol</b> (one of the four buttons).</li>
+          <li>Press <b>Play</b>. Watch the timeline scroll. <b>Green</b> blocks are successful transmissions, <b>red</b> blocks are collisions.</li>
+          <li>Drag the <b>offered load</b> slider up. Notice how every protocol breaks down differently as the channel gets busy.</li>
+          <li>Look at <b>Throughput vs offered load</b> at the bottom &mdash; the dot is your current run, the dashed curves are the textbook predictions.</li>
+        </ol>
+      </div>
+
+      <div class="panel">
+        <h3>Protocol</h3>
+        <div class="proto-buttons" id="proto-buttons">
+          <button data-proto="aloha"   class="active">Pure ALOHA</button>
+          <button data-proto="slotted">Slotted ALOHA</button>
+          <button data-proto="csma">CSMA + random backoff</button>
+          <button data-proto="pcsma">p-persistent CSMA</button>
+        </div>
+        <p class="proto-desc" id="proto-desc"></p>
+      </div>
+
+      <div class="panel">
+        <h3>Knobs</h3>
+        <div class="knobs">
+          <div class="knob">
+            <label class="knob-label" for="s-load">Offered load <span style="text-transform:none;letter-spacing:0;">(G&#8202;<sub>in</sub>)</span></label>
+            <div class="knob-row"><span class="knob-val" id="v-load">0.50</span><span class="knob-sub">frames per frame-time</span></div>
+            <input id="s-load" type="range" min="0.05" max="3.0" step="0.05" value="0.50">
+          </div>
+          <div class="knob">
+            <label class="knob-label" for="s-nodes">Stations</label>
+            <div class="knob-row"><span class="knob-val" id="v-nodes">5</span><span class="knob-sub">sharing the channel</span></div>
+            <input id="s-nodes" type="range" min="2" max="16" step="1" value="5">
+          </div>
+          <div class="knob" id="knob-p">
+            <label class="knob-label" for="s-p">Persistence <span style="text-transform:none;letter-spacing:0;">p</span></label>
+            <div class="knob-row"><span class="knob-val" id="v-p">0.50</span><span class="knob-sub">p-CSMA only</span></div>
+            <input id="s-p" type="range" min="0.05" max="1.0" step="0.05" value="0.50">
+          </div>
+          <div class="knob">
+            <label class="knob-label" for="s-speed">Speed</label>
+            <div class="knob-row"><span class="knob-val" id="v-speed">5x</span><span class="knob-sub">slots per render</span></div>
+            <input id="s-speed" type="range" min="1" max="40" step="1" value="5">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn"       id="btn-play">Play</button>
+          <button class="btn ghost" id="btn-step">Step once</button>
+          <button class="btn ghost" id="btn-reset">Reset stats</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Channel timeline</h3>
+        <canvas class="timeline" id="timeline" width="960" height="360"></canvas>
+        <div class="legend">
+          <span><span class="swatch" style="background:#2a8b2a"></span>transmission &mdash; success</span>
+          <span><span class="swatch" style="background:#bc122a"></span>transmission &mdash; collision</span>
+          <span><span class="swatch" style="background:#E8B923;opacity:0.55"></span>has packet, waiting</span>
+          <span><span class="swatch" style="background:#d97c2a;opacity:0.55"></span>backing off after collision</span>
+          <span><span class="swatch" style="background:#dee2e6"></span>idle</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Live counters</h3>
+        <div class="grid">
+          <div class="tile"><div class="label">Slots elapsed</div>   <div class="value" id="m-slots">0</div></div>
+          <div class="tile"><div class="label">Attempts</div>        <div class="value" id="m-att">0</div></div>
+          <div class="tile"><div class="label">Successes</div>       <div class="value" id="m-suc">0</div></div>
+          <div class="tile"><div class="label">Collisions</div>      <div class="value" id="m-col">0</div></div>
+          <div class="tile"><div class="label">Throughput S</div>    <div class="value" id="m-S">0.000<span class="small">frames/frame-time</span></div></div>
+          <div class="tile"><div class="label">Carried load G</div>  <div class="value" id="m-G">0.000<span class="small">incl. retries</span></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Throughput vs offered load</h3>
+        <svg class="sg" id="sg" viewBox="0 0 960 280" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="legend">
+          <span><span class="swatch" style="background:#111;border-radius:50%"></span>your current run (live)</span>
+          <span><span class="swatch" style="background:transparent;border-top:2px dashed #bc122a;height:0;width:18px"></span>theory: pure ALOHA &nbsp; S = G&middot;e<sup>&minus;2G</sup></span>
+          <span><span class="swatch" style="background:transparent;border-top:2px dashed #2a8b2a;height:0;width:18px"></span>theory: slotted ALOHA &nbsp; S = G&middot;e<sup>&minus;G</sup></span>
+        </div>
+      </div>
+
+      <div class="panel help">
+        <h3>Things to try</h3>
+        <ol>
+          <li>Start with <b>Pure ALOHA</b>. Set load to <b>0.5</b> &mdash; this is the theoretical sweet spot. Note the throughput &asymp; <code>1/(2e) &asymp; 0.18</code>.</li>
+          <li>Push the load to <b>2.0</b>. Watch the channel saturate with collisions; throughput collapses. This is the famous ALOHA instability.</li>
+          <li>Switch to <b>Slotted ALOHA</b> at the same load. Throughput roughly doubles &mdash; lining transmissions up to slot boundaries removes half the vulnerable window.</li>
+          <li>Switch to <b>CSMA + random backoff</b>. Stations now <i>listen</i> before talking. Most collisions vanish; throughput stays high even at heavy load.</li>
+          <li>Switch to <b>p-persistent CSMA</b> at heavy load (<b>load = 2.0</b>, <b>16 stations</b>). With <b>p = 1.0</b>, all the queued stations stampede the moment the channel goes quiet and collide. Drop <b>p to 0.1</b>: stations spread their attempts out, collisions plummet, and throughput jumps above 0.5. The cost is each individual station has to wait a bit longer for its turn &mdash; latency vs. throughput trade-off.</li>
+        </ol>
+        <details>
+          <summary>What the simulator is actually doing</summary>
+          <p>Time is discretised into mini-slots. One frame takes <code>4</code> mini-slots to transmit. Each station independently generates packets as a Poisson process; the slider sets the <i>aggregate</i> arrival rate <code>G&#8202;<sub>in</sub></code> in frames per frame-time, which is then split equally across stations.</p>
+          <p>A "collision" means two transmissions overlap on the channel for any portion of their frames &mdash; both are marked failed and both stations retry after a random backoff. Successes and attempts are counted in frames; <code>S</code> and <code>G</code> are those counts converted to frame-time units, so a value of <code>1.0</code> means the channel is fully utilised.</p>
+          <p>Pure ALOHA: transmit on arrival. Slotted ALOHA: defer arrivals to the next frame-aligned slot boundary. CSMA: at <i>every</i> mini-slot, if the channel is idle, transmit (1-persistent). p-CSMA: at every idle mini-slot, flip a biased coin with probability <i>p</i> first. Carrier sensing here is idealised &mdash; zero propagation delay &mdash; so CSMA collisions only happen when two stations decide to start in the <i>same</i> idle mini-slot.</p>
+        </details>
+      </div>
+    </main>
+
+    <script>
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const $ = (id) => document.getElementById(id);
+
+      // ---------- Configuration ----------
+      const cfg = {
+        protocol: 'aloha',     // 'aloha' | 'slotted' | 'csma' | 'pcsma'
+        load:     0.50,        // total offered load G_in (frames per frame-time)
+        nodes:    5,
+        p:        0.50,        // persistence for p-CSMA
+        speed:    5,           // mini-slots advanced per render frame
+        frameLen: 4,           // mini-slots in one frame
+        backoffMaxFrames: 16,  // upper bound on random backoff window (in frames)
+      };
+
+      const PROTO_DESCS = {
+        aloha:   "<b>Pure ALOHA.</b> Talk whenever you have a packet. If two stations talk at the same time, both get garbled and try again after a random wait. Easy to implement; falls apart under heavy load.",
+        slotted: "<b>Slotted ALOHA.</b> Same as pure ALOHA, but everyone is forced to start talking on the tick of a shared metronome. Collisions still happen, but only between stations that pick the <i>same</i> tick &mdash; so peak throughput doubles.",
+        csma:    "<b>CSMA with random backoff.</b> Listen first. The instant the channel goes quiet, talk. If two stations happen to start at the same instant, both detect the collision, wait a random number of slots, and try again. Continuous listening is what lets CSMA beat slotted ALOHA &mdash; this is how Ethernet (CSMA/CD) and Wi-Fi (CSMA/CA) get their high efficiency.",
+        pcsma:   "<b>p-persistent CSMA.</b> Listen first. When the channel goes quiet, flip a biased coin: heads (probability <i>p</i>) talk now; tails (probability 1&minus;<i>p</i>) wait one slot and try again. Lower <i>p</i> means fewer collisions when many stations are waiting, at the cost of leaving the channel idle more often."
+      };
+
+      // ---------- Simulator ----------
+      let sim = null;
+      function makeSim() {
+        const N = cfg.nodes;
+        return {
+          t: 0,
+          nodes: Array.from({length: N}, (_, i) => ({
+            id: i,
+            hasPacket: false,
+            state: 'idle',    // 'idle' | 'ready' | 'tx' | 'backoff'
+            txStart: -1,
+            txEnd: -1,
+            collided: false,
+            waitUntil: -1,
+            retries: 0,
+          })),
+          attempts: 0,
+          successes: 0,
+          collisions: 0,
+          history: [],          // ring of {t, channel, perNode[]}
+          maxHistory: 220,
+        };
+      }
+
+      function lambdaPerSlot() {
+        // total offered load G_in in frames-per-frame-time => arrival rate per
+        // node per mini-slot = G_in / (N * frameLen).
+        return cfg.load / (cfg.nodes * cfg.frameLen);
+      }
+
+      function channelBusy() {
+        for (const n of sim.nodes) {
+          if (n.state === 'tx' && sim.t < n.txEnd) return true;
+        }
+        return false;
+      }
+
+      function startTx(node) {
+        node.state = 'tx';
+        node.txStart = sim.t;
+        node.txEnd   = sim.t + cfg.frameLen;
+        node.collided = false;
+        sim.attempts++;
+        // mark collisions against any in-flight transmission
+        for (const o of sim.nodes) {
+          if (o !== node && o.state === 'tx' && sim.t < o.txEnd) {
+            node.collided = true;
+            o.collided = true;
+          }
+        }
+      }
+
+      function step() {
+        sim.t++;
+
+        // 1. End any transmissions whose final mini-slot just passed.
+        for (const n of sim.nodes) {
+          if (n.state === 'tx' && sim.t >= n.txEnd) {
+            if (n.collided) {
+              sim.collisions++;
+              n.retries = Math.min(n.retries + 1, 8);
+              const w = Math.min(cfg.backoffMaxFrames, 1 << n.retries);
+              const slots = 1 + Math.floor(Math.random() * w);
+              n.waitUntil = sim.t + slots * cfg.frameLen;
+              n.state = 'backoff';
+            } else {
+              sim.successes++;
+              n.hasPacket = false;
+              n.state = 'idle';
+              n.retries = 0;
+            }
+          }
+        }
+
+        // 2. End any backoffs whose timer expired.
+        for (const n of sim.nodes) {
+          if (n.state === 'backoff' && sim.t >= n.waitUntil) {
+            n.state = 'ready';
+          }
+        }
+
+        // 3. Generate new arrivals (Poisson approx: per-mini-slot Bernoulli).
+        const lam = lambdaPerSlot();
+        for (const n of sim.nodes) {
+          if (!n.hasPacket && Math.random() < lam) {
+            n.hasPacket = true;
+            n.state = 'ready';
+            n.retries = 0;
+          }
+        }
+
+        // 4. Decide who transmits this mini-slot.
+        const ready = sim.nodes.filter(n => n.state === 'ready');
+        const atBoundary = (sim.t % cfg.frameLen === 0);
+
+        if (cfg.protocol === 'aloha') {
+          for (const n of ready) startTx(n);
+        } else if (cfg.protocol === 'slotted') {
+          if (atBoundary) for (const n of ready) startTx(n);
+        } else if (cfg.protocol === 'csma') {
+          // 1-persistent CSMA: at every mini-slot, if the channel is idle,
+          // every ready station starts transmitting. Carrier sensing happens
+          // continuously, not just at frame boundaries -- that's what makes
+          // CSMA noticeably faster than slotted ALOHA.
+          if (!channelBusy()) {
+            for (const n of ready) startTx(n);
+          }
+        } else if (cfg.protocol === 'pcsma') {
+          // p-persistent CSMA: every idle mini-slot, each ready station flips
+          // an independent biased coin (heads = transmit now, tails = wait).
+          if (!channelBusy()) {
+            for (const n of ready) {
+              if (Math.random() < cfg.p) startTx(n);
+            }
+          }
+        }
+
+        // 5. Snapshot for the timeline.
+        snapshot();
+      }
+
+      function snapshot() {
+        let txCount = 0, anyCollided = false, txNode = null;
+        for (const n of sim.nodes) {
+          if (n.state === 'tx' && sim.t < n.txEnd) {
+            txCount++;
+            txNode = n;
+            if (n.collided) anyCollided = true;
+          }
+        }
+        let channel = 'idle';
+        if (txCount >= 2 || (txCount === 1 && anyCollided)) channel = 'collision';
+        else if (txCount === 1) channel = 'tx';
+
+        const perNode = sim.nodes.map(n => {
+          if (n.state === 'tx' && sim.t < n.txEnd) return n.collided ? 'red' : 'green';
+          if (n.state === 'backoff') return 'orange';
+          if (n.state === 'ready')   return 'yellow';
+          return 'idle';
+        });
+        sim.history.push({ t: sim.t, channel, perNode });
+        if (sim.history.length > sim.maxHistory) sim.history.shift();
+      }
+
+      // ---------- Visualisation: timeline canvas ----------
+      const canvas = $('timeline');
+      const ctx = canvas.getContext('2d');
+
+      function fitCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth || 960;
+        const N = cfg.nodes;
+        const targetH = 30 + (N + 1) * 22 + 8;
+        canvas.style.height = targetH + 'px';
+        canvas.width  = Math.floor(w * dpr);
+        canvas.height = Math.floor(targetH * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function drawTimeline() {
+        const W = canvas.clientWidth || 960;
+        const H = parseFloat(canvas.style.height) || 360;
+        const PAD_L = 64, PAD_T = 8, PAD_R = 6, PAD_B = 6;
+        const N = cfg.nodes;
+        const tlW = W - PAD_L - PAD_R;
+        const rowH = (H - PAD_T - PAD_B) / (N + 1);
+        const histLen = sim.maxHistory;
+        const cellW = tlW / histLen;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Row backgrounds (alternating + channel highlight)
+        for (let j = 0; j <= N; j++) {
+          ctx.fillStyle = (j === 0) ? '#f6f7f8' : (j % 2 === 0 ? '#fdfdfd' : '#f3f4f5');
+          ctx.fillRect(PAD_L, PAD_T + j * rowH, tlW, rowH);
+        }
+
+        // Frame boundary lines
+        const startT = Math.max(0, sim.t - histLen);
+        ctx.strokeStyle = '#e6e8eb';
+        ctx.lineWidth = 1;
+        const firstBoundary = Math.ceil(startT / cfg.frameLen) * cfg.frameLen;
+        for (let t = firstBoundary; t <= sim.t; t += cfg.frameLen) {
+          const x = PAD_L + (t - startT) * cellW;
+          ctx.beginPath();
+          ctx.moveTo(x + 0.5, PAD_T);
+          ctx.lineTo(x + 0.5, PAD_T + (N + 1) * rowH);
+          ctx.stroke();
+        }
+
+        // Snapshots
+        for (let i = 0; i < sim.history.length; i++) {
+          const h = sim.history[i];
+          if (h.t < startT) continue;
+          const x = PAD_L + (h.t - startT) * cellW;
+
+          // Channel row (top)
+          if (h.channel !== 'idle') {
+            ctx.fillStyle = (h.channel === 'collision') ? '#bc122a' : '#2a8b2a';
+            ctx.fillRect(x, PAD_T + 3, cellW + 0.6, rowH - 6);
+          }
+          // Per-node rows
+          for (let j = 0; j < N; j++) {
+            const c = h.perNode[j];
+            if (!c || c === 'idle') continue;
+            let color, alpha = 1.0, pad = 3;
+            if      (c === 'green')  { color = '#2a8b2a'; }
+            else if (c === 'red')    { color = '#bc122a'; }
+            else if (c === 'yellow') { color = '#E8B923'; alpha = 0.55; pad = 5; }
+            else if (c === 'orange') { color = '#d97c2a'; alpha = 0.55; pad = 5; }
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+            ctx.fillRect(x, PAD_T + (j + 1) * rowH + pad, cellW + 0.6, rowH - pad * 2);
+            ctx.globalAlpha = 1.0;
+          }
+        }
+
+        // Now-line
+        const xNow = PAD_L + (sim.t - startT) * cellW;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(xNow + 0.5, PAD_T);
+        ctx.lineTo(xNow + 0.5, PAD_T + (N + 1) * rowH);
+        ctx.stroke();
+
+        // Labels
+        ctx.fillStyle = '#111';
+        ctx.font = 'bold 10px Roboto, Helvetica, Arial, sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'right';
+        ctx.fillText('CHANNEL', PAD_L - 8, PAD_T + rowH / 2);
+        ctx.font = '11px Roboto, Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#5b6068';
+        for (let j = 0; j < N; j++) {
+          ctx.fillText('Node ' + (j + 1), PAD_L - 8, PAD_T + (j + 1.5) * rowH);
+        }
+
+        // Frame border
+        ctx.strokeStyle = '#dee2e6';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(PAD_L - 0.5, PAD_T - 0.5, tlW + 1, (N + 1) * rowH + 1);
+      }
+
+      // ---------- Visualisation: throughput-vs-load plot ----------
+      const sgSvg = $('sg');
+      function drawSG() {
+        while (sgSvg.firstChild) sgSvg.removeChild(sgSvg.firstChild);
+        const W = 960, H = 280;
+        const PAD_L = 50, PAD_R = 16, PAD_T = 18, PAD_B = 36;
+        const Gmax = 3.0, Smax = 0.75;
+        const xOf = g => PAD_L + (W - PAD_L - PAD_R) * (Math.min(g, Gmax) / Gmax);
+        const yOf = s => H - PAD_B - (H - PAD_T - PAD_B) * (Math.min(s, Smax) / Smax);
+
+        // Y gridlines
+        for (const v of [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]) {
+          const y = yOf(v);
+          const line = document.createElementNS(SVG_NS, 'line');
+          line.setAttribute('x1', PAD_L); line.setAttribute('x2', W - PAD_R);
+          line.setAttribute('y1', y); line.setAttribute('y2', y);
+          line.setAttribute('stroke', '#eef0f2'); line.setAttribute('stroke-width', '1');
+          sgSvg.appendChild(line);
+          const t = document.createElementNS(SVG_NS, 'text');
+          t.setAttribute('x', PAD_L - 6); t.setAttribute('y', y + 3);
+          t.setAttribute('text-anchor', 'end');
+          t.setAttribute('font-size', '10'); t.setAttribute('fill', '#5b6068');
+          t.textContent = v.toFixed(1);
+          sgSvg.appendChild(t);
+        }
+        // X gridlines
+        for (let g = 0; g <= 3.0; g += 0.5) {
+          const x = xOf(g);
+          const line = document.createElementNS(SVG_NS, 'line');
+          line.setAttribute('x1', x); line.setAttribute('x2', x);
+          line.setAttribute('y1', PAD_T); line.setAttribute('y2', H - PAD_B);
+          line.setAttribute('stroke', '#eef0f2'); line.setAttribute('stroke-width', '1');
+          sgSvg.appendChild(line);
+          const t = document.createElementNS(SVG_NS, 'text');
+          t.setAttribute('x', x); t.setAttribute('y', H - PAD_B + 16);
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', '10'); t.setAttribute('fill', '#5b6068');
+          t.textContent = g.toFixed(1);
+          sgSvg.appendChild(t);
+        }
+        // Axis labels
+        const xlab = document.createElementNS(SVG_NS, 'text');
+        xlab.setAttribute('x', (PAD_L + W - PAD_R) / 2); xlab.setAttribute('y', H - 6);
+        xlab.setAttribute('text-anchor', 'middle');
+        xlab.setAttribute('font-size', '11'); xlab.setAttribute('fill', '#111');
+        xlab.setAttribute('font-weight', '700');
+        xlab.textContent = 'offered load G (frames per frame-time, including retries)';
+        sgSvg.appendChild(xlab);
+        const ylab = document.createElementNS(SVG_NS, 'text');
+        ylab.setAttribute('x', 12); ylab.setAttribute('y', PAD_T + 4);
+        ylab.setAttribute('font-size', '11'); ylab.setAttribute('fill', '#111');
+        ylab.setAttribute('font-weight', '700');
+        ylab.textContent = 'throughput S';
+        sgSvg.appendChild(ylab);
+
+        // Theory curves
+        let dPure = '', dSlot = '';
+        for (let i = 0; i <= 200; i++) {
+          const g = (i / 200) * Gmax;
+          const sP = g * Math.exp(-2 * g);
+          const sS = g * Math.exp(-g);
+          dPure += (i === 0 ? 'M ' : 'L ') + xOf(g).toFixed(1) + ' ' + yOf(sP).toFixed(1) + ' ';
+          dSlot += (i === 0 ? 'M ' : 'L ') + xOf(g).toFixed(1) + ' ' + yOf(sS).toFixed(1) + ' ';
+        }
+        for (const [d, color] of [[dPure, '#bc122a'], [dSlot, '#2a8b2a']]) {
+          const path = document.createElementNS(SVG_NS, 'path');
+          path.setAttribute('d', d);
+          path.setAttribute('fill', 'none');
+          path.setAttribute('stroke', color);
+          path.setAttribute('stroke-width', '1.5');
+          path.setAttribute('stroke-dasharray', '5 4');
+          path.setAttribute('opacity', '0.85');
+          sgSvg.appendChild(path);
+        }
+
+        // Live point (running averages)
+        if (sim.t > 50) {
+          const G = sim.attempts  * cfg.frameLen / sim.t;
+          const S = sim.successes * cfg.frameLen / sim.t;
+          const dot = document.createElementNS(SVG_NS, 'circle');
+          dot.setAttribute('cx', xOf(G).toFixed(1));
+          dot.setAttribute('cy', yOf(S).toFixed(1));
+          dot.setAttribute('r', '7');
+          dot.setAttribute('fill', '#111');
+          dot.setAttribute('stroke', '#fff');
+          dot.setAttribute('stroke-width', '2.5');
+          sgSvg.appendChild(dot);
+        }
+      }
+
+      // ---------- Live counters ----------
+      function updateMetrics() {
+        $('m-slots').textContent = sim.t.toLocaleString();
+        $('m-att').textContent   = sim.attempts.toLocaleString();
+        $('m-suc').textContent   = sim.successes.toLocaleString();
+        $('m-col').textContent   = sim.collisions.toLocaleString();
+        const denom = Math.max(1, sim.t);
+        const S = sim.successes * cfg.frameLen / denom;
+        const G = sim.attempts  * cfg.frameLen / denom;
+        $('m-S').innerHTML = S.toFixed(3) + '<span class="small">frames/frame-time</span>';
+        $('m-G').innerHTML = G.toFixed(3) + '<span class="small">incl. retries</span>';
+      }
+
+      // ---------- UI wiring ----------
+      let playing = false;
+      let rafId = null;
+
+      function setProtocol(p) {
+        cfg.protocol = p;
+        document.querySelectorAll('#proto-buttons button').forEach(b => {
+          b.classList.toggle('active', b.dataset.proto === p);
+        });
+        $('proto-desc').innerHTML = PROTO_DESCS[p];
+        $('knob-p').classList.toggle('disabled', p !== 'pcsma');
+        resetSim();
+      }
+
+      function resetSim() {
+        sim = makeSim();
+        fitCanvas();
+        drawTimeline();
+        drawSG();
+        updateMetrics();
+      }
+
+      function tick() {
+        for (let i = 0; i < cfg.speed; i++) step();
+        drawTimeline();
+        updateMetrics();
+        // SG plot updates less often (cheap, but no need every frame)
+        if (sim.t % Math.max(20, cfg.speed) < cfg.speed) drawSG();
+        if (playing) rafId = requestAnimationFrame(tick);
+      }
+
+      function setPlaying(on) {
+        playing = on;
+        $('btn-play').textContent = on ? 'Pause' : 'Play';
+        if (on) rafId = requestAnimationFrame(tick);
+        else if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      }
+
+      // Sliders
+      $('s-load').addEventListener('input', (e) => {
+        cfg.load = parseFloat(e.target.value);
+        $('v-load').textContent = cfg.load.toFixed(2);
+      });
+      $('s-nodes').addEventListener('input', (e) => {
+        cfg.nodes = parseInt(e.target.value, 10);
+        $('v-nodes').textContent = cfg.nodes;
+        resetSim();
+      });
+      $('s-p').addEventListener('input', (e) => {
+        cfg.p = parseFloat(e.target.value);
+        $('v-p').textContent = cfg.p.toFixed(2);
+      });
+      $('s-speed').addEventListener('input', (e) => {
+        cfg.speed = parseInt(e.target.value, 10);
+        $('v-speed').textContent = cfg.speed + 'x';
+      });
+
+      // Protocol buttons
+      document.querySelectorAll('#proto-buttons button').forEach(b => {
+        b.addEventListener('click', () => setProtocol(b.dataset.proto));
+      });
+
+      // Action buttons
+      $('btn-play').addEventListener('click', () => setPlaying(!playing));
+      $('btn-step').addEventListener('click', () => {
+        if (playing) setPlaying(false);
+        for (let i = 0; i < cfg.speed; i++) step();
+        drawTimeline(); drawSG(); updateMetrics();
+      });
+      $('btn-reset').addEventListener('click', () => {
+        const wasPlaying = playing;
+        setPlaying(false);
+        resetSim();
+        if (wasPlaying) setPlaying(true);
+      });
+
+      window.addEventListener('resize', () => { fitCanvas(); drawTimeline(); });
+
+      // Boot
+      setProtocol('aloha');
+      setPlaying(true);
+    </script>
+  </body>
+</html>

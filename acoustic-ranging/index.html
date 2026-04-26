@@ -232,6 +232,49 @@
         border: 1px solid var(--grey-line);
         overflow-x: auto;
       }
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+      .result-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 14px 16px;
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        background: #fafafa;
+      }
+      .result-cell.highlight {
+        border-color: var(--red);
+        background: #fff;
+      }
+      .result-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .result-value {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 22px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--black);
+        line-height: 1.1;
+      }
+      .result-value.big {
+        font-size: 32px;
+        color: var(--red);
+        letter-spacing: -0.5px;
+      }
+      .result-help {
+        font-size: 11px;
+        color: var(--grey-text);
+        line-height: 1.4;
+      }
       body[data-role="laptop"] .phone-only { display: none; }
       body[data-role="phone"] .laptop-only { display: none; }
       body:not([data-role]) .laptop-only,
@@ -275,7 +318,7 @@
       <!-- LAPTOP ROLE -->
       <div class="laptop-only">
         <h1>Acoustic Ranging</h1>
-        <p class="lead host-only">Pair a phone, then run a synchronized chirp exchange. Both devices record their microphones for 6 s. The laptop chirps at <strong>t&nbsp;=&nbsp;2 s</strong>, the phone chirps at <strong>t&nbsp;=&nbsp;4 s</strong>. Each chirp is a 200 ms 1&rarr;4 kHz linear sweep. The phone uploads its recording over WebRTC and both waveforms are plotted below.</p>
+        <p class="lead host-only">Pair a phone, then run a synchronized chirp exchange. Both devices record their microphones for 6 s. The laptop chirps at <strong>t&nbsp;=&nbsp;2 s</strong>, the phone chirps at <strong>t&nbsp;=&nbsp;4 s</strong>. Each chirp is a 200 ms 1&rarr;4 kHz linear sweep transmitted at full amplitude &mdash; <strong>set both devices to maximum volume</strong>. The phone uploads its recording over WebRTC and a matched-filter cross-correlation estimates the laptop&ndash;phone distance.</p>
         <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone as the second microphone.</p>
 
         <section class="panel host-only">
@@ -308,7 +351,33 @@
   t = 2.0 s   laptop emits 200 ms chirp (1 &rarr; 4 kHz)
   t = 4.0 s   phone  emits 200 ms chirp (1 &rarr; 4 kHz)
   t = 6.0 s   stop &middot; phone uploads recording to laptop</pre>
-          <p class="note">Use a quiet room. Set both devices to a comfortable volume; the chirps are audible. The two recordings are not sample-aligned across devices &mdash; aligning by the captured chirps is the next step.</p>
+          <p class="note">Use a quiet room. Both chirps are emitted at full amplitude &mdash; set the laptop and phone volume to maximum. The two recordings are not sample-aligned across devices; the laptop&rsquo;s clock and the phone&rsquo;s clock differ. Cross-correlating each recording against the chirp template recovers the two arrival times <em>within</em> each device&rsquo;s own clock, which is sufficient to estimate the distance.</p>
+        </section>
+
+        <section class="panel needs-phone host-only" id="resultPanel">
+          <h2>Result</h2>
+          <div class="result-grid">
+            <div class="result-cell">
+              <span class="result-label">d&#8321; &middot; laptop recording</span>
+              <span class="result-value" id="resultD1">&mdash;</span>
+              <span class="result-help">phone chirp time &minus; laptop chirp time, on laptop&rsquo;s clock</span>
+            </div>
+            <div class="result-cell">
+              <span class="result-label">d&#8322; &middot; phone recording</span>
+              <span class="result-value" id="resultD2">&mdash;</span>
+              <span class="result-help">phone chirp time &minus; laptop chirp time, on phone&rsquo;s clock</span>
+            </div>
+            <div class="result-cell">
+              <span class="result-label">|d&#8321; &minus; d&#8322;|</span>
+              <span class="result-value" id="resultDelta">&mdash;</span>
+              <span class="result-help">round-trip differential</span>
+            </div>
+            <div class="result-cell highlight">
+              <span class="result-label">Distance</span>
+              <span class="result-value big" id="resultDistance">&mdash;</span>
+              <span class="result-help">D = (c / 2) &middot; |d&#8321; &minus; d&#8322;|, c = 343 m/s</span>
+            </div>
+          </div>
         </section>
 
         <section class="panel needs-phone host-only">
@@ -367,22 +436,27 @@
       const CHIRP_DUR = 0.200;        // seconds
       const CHIRP_F0 = 1000;
       const CHIRP_F1 = 4000;
-      const CHIRP_GAIN = 0.6;
+      const SOUND_C  = 343;           // m/s, speed of sound
 
       // ---- chirp synthesis ----
-      function buildChirp(audioCtx) {
-        const sr = audioCtx.sampleRate;
-        const N = Math.round(sr * CHIRP_DUR);
-        const buf = audioCtx.createBuffer(1, N, sr);
-        const d = buf.getChannelData(0);
+      // Hann-windowed linear sweep, peak amplitude 1.0. Same waveform is used
+      // both as the transmitted signal and as the matched-filter template.
+      function chirpSamples(sampleRate) {
+        const N = Math.round(sampleRate * CHIRP_DUR);
+        const out = new Float32Array(N);
         const k = (CHIRP_F1 - CHIRP_F0) / CHIRP_DUR;
         for (let i = 0; i < N; i++) {
-          const t = i / sr;
+          const t = i / sampleRate;
           const phi = 2 * Math.PI * (CHIRP_F0 * t + 0.5 * k * t * t);
-          // Hann window to remove clicks at the edges
           const win = 0.5 * (1 - Math.cos(2 * Math.PI * i / (N - 1)));
-          d[i] = CHIRP_GAIN * win * Math.sin(phi);
+          out[i] = win * Math.sin(phi);
         }
+        return out;
+      }
+      function buildChirp(audioCtx) {
+        const samples = chirpSamples(audioCtx.sampleRate);
+        const buf = audioCtx.createBuffer(1, samples.length, audioCtx.sampleRate);
+        buf.getChannelData(0).set(samples);
         return buf;
       }
 
@@ -453,6 +527,109 @@
         const out = new Float32Array(i16.length);
         for (let i = 0; i < i16.length; i++) out[i] = i16[i] / 0x8000;
         return out;
+      }
+
+      // ---- in-place radix-2 FFT (Cooley-Tukey) on Float32Arrays ----
+      function fftInPlace(re, im, inverse) {
+        const N = re.length;
+        for (let i = 1, j = 0; i < N; i++) {
+          let bit = N >> 1;
+          for (; j & bit; bit >>= 1) j ^= bit;
+          j ^= bit;
+          if (i < j) {
+            let t = re[i]; re[i] = re[j]; re[j] = t;
+            t = im[i]; im[i] = im[j]; im[j] = t;
+          }
+        }
+        const sign = inverse ? 1 : -1;
+        for (let len = 2; len <= N; len <<= 1) {
+          const half = len >> 1;
+          const ang = sign * 2 * Math.PI / len;
+          const wRe0 = Math.cos(ang), wIm0 = Math.sin(ang);
+          for (let i = 0; i < N; i += len) {
+            let cRe = 1, cIm = 0;
+            for (let k = 0; k < half; k++) {
+              const aRe = re[i + k], aIm = im[i + k];
+              const bRe = re[i + k + half], bIm = im[i + k + half];
+              const tRe = bRe * cRe - bIm * cIm;
+              const tIm = bRe * cIm + bIm * cRe;
+              re[i + k]        = aRe + tRe;
+              im[i + k]        = aIm + tIm;
+              re[i + k + half] = aRe - tRe;
+              im[i + k + half] = aIm - tIm;
+              const nRe = cRe * wRe0 - cIm * wIm0;
+              cIm = cRe * wIm0 + cIm * wRe0;
+              cRe = nRe;
+            }
+          }
+        }
+        if (inverse) {
+          const inv = 1 / N;
+          for (let i = 0; i < N; i++) { re[i] *= inv; im[i] *= inv; }
+        }
+      }
+      function nextPow2(n) { let p = 1; while (p < n) p <<= 1; return p; }
+
+      // Matched filter: y[s] = sum_k rec[s+k] * chirp[k]. Implemented as
+      // conv(rec, reversed_chirp) via FFT. Output length = N + M - 1.
+      // A peak at output index p corresponds to chirp aligning with the
+      // recording starting at sample (p - M + 1).
+      function matchedFilter(rec, chirp) {
+        const N = rec.length, M = chirp.length;
+        const L = nextPow2(N + M - 1);
+        const xRe = new Float32Array(L), xIm = new Float32Array(L);
+        const yRe = new Float32Array(L), yIm = new Float32Array(L);
+        for (let i = 0; i < N; i++) xRe[i] = rec[i];
+        for (let i = 0; i < M; i++) yRe[i] = chirp[M - 1 - i];
+        fftInPlace(xRe, xIm, false);
+        fftInPlace(yRe, yIm, false);
+        for (let i = 0; i < L; i++) {
+          const aRe = xRe[i], aIm = xIm[i];
+          const bRe = yRe[i], bIm = yIm[i];
+          xRe[i] = aRe * bRe - aIm * bIm;
+          xIm[i] = aRe * bIm + aIm * bRe;
+        }
+        fftInPlace(xRe, xIm, true);
+        return xRe.slice(0, N + M - 1);
+      }
+
+      // Find the two largest |peaks| in `arr` separated by at least
+      // `minGap` samples. Returns them in chronological order.
+      function findTopTwoPeaks(arr, minGap) {
+        let bestIdx = 0, bestAbs = -Infinity;
+        for (let i = 0; i < arr.length; i++) {
+          const a = arr[i] < 0 ? -arr[i] : arr[i];
+          if (a > bestAbs) { bestAbs = a; bestIdx = i; }
+        }
+        let secondIdx = 0, secondAbs = -Infinity;
+        const lo = bestIdx - minGap, hi = bestIdx + minGap;
+        for (let i = 0; i < arr.length; i++) {
+          if (i >= lo && i <= hi) continue;
+          const a = arr[i] < 0 ? -arr[i] : arr[i];
+          if (a > secondAbs) { secondAbs = a; secondIdx = i; }
+        }
+        if (secondIdx < bestIdx) {
+          return { p1: secondIdx, p2: bestIdx, v1: secondAbs, v2: bestAbs };
+        }
+        return { p1: bestIdx, p2: secondIdx, v1: bestAbs, v2: secondAbs };
+      }
+
+      // Run matched filter on a recording, find the two chirp arrivals,
+      // and return their start times (in seconds, in the recording's frame).
+      function detectChirps(samples, sampleRate) {
+        const chirp = chirpSamples(sampleRate);
+        const corr = matchedFilter(samples, chirp);
+        const minGap = Math.round(sampleRate * 1.0); // peaks at least 1 s apart
+        const peaks = findTopTwoPeaks(corr, minGap);
+        const M = chirp.length;
+        return {
+          t1: (peaks.p1 - M + 1) / sampleRate,
+          t2: (peaks.p2 - M + 1) / sampleRate,
+          v1: peaks.v1,
+          v2: peaks.v2,
+          corr,
+          chirpLen: M
+        };
       }
 
       // ---- waveform drawing ----
@@ -681,16 +858,51 @@
             lastPhoneRec = {
               samples: f32,
               sampleRate: phoneIncoming.sampleRate,
-              markers: [
-                { t: LAPTOP_CHIRP_AT, color: 'rgba(232,185,35,0.55)', label: 'laptop chirp' },
-                { t: PHONE_CHIRP_AT,  color: 'rgba(42,139,42,0.65)',  label: 'phone chirp' }
-              ]
+              markers: makeStaticMarkers()
             };
             phoneIncoming = null;
             renderPhoneRec();
-            runStatus.textContent = 'Done. Showing both recordings.';
-            runBtn.disabled = false;
+            runStatus.textContent = 'Cross-correlating…';
+            // Yield to the browser so the upload status can paint, then run analysis.
+            setTimeout(analyzeBoth, 0);
           }
+        }
+
+        function makeStaticMarkers() {
+          return [
+            { t: LAPTOP_CHIRP_AT, color: 'rgba(232,185,35,0.4)', label: 'laptop (expected)' },
+            { t: PHONE_CHIRP_AT,  color: 'rgba(42,139,42,0.4)',  label: 'phone (expected)' }
+          ];
+        }
+
+        function analyzeBoth() {
+          if (!lastLaptopRec || !lastPhoneRec) return;
+          const L = detectChirps(lastLaptopRec.samples, lastLaptopRec.sampleRate);
+          const P = detectChirps(lastPhoneRec.samples,  lastPhoneRec.sampleRate);
+
+          // p1 = first chirp (laptop), p2 = second chirp (phone), within each recording.
+          const d1 = L.t2 - L.t1;
+          const d2 = P.t2 - P.t1;
+          const D  = (SOUND_C / 2) * Math.abs(d1 - d2);
+
+          lastLaptopRec.markers = [
+            { t: L.t1, color: 'rgba(232,185,35,0.85)', label: 'laptop chirp · ' + L.t1.toFixed(3) + ' s' },
+            { t: L.t2, color: 'rgba(42,139,42,0.85)',  label: 'phone chirp · '  + L.t2.toFixed(3) + ' s' }
+          ];
+          lastPhoneRec.markers = [
+            { t: P.t1, color: 'rgba(232,185,35,0.85)', label: 'laptop chirp · ' + P.t1.toFixed(3) + ' s' },
+            { t: P.t2, color: 'rgba(42,139,42,0.85)',  label: 'phone chirp · '  + P.t2.toFixed(3) + ' s' }
+          ];
+          renderLaptopRec();
+          renderPhoneRec();
+
+          document.getElementById('resultD1').textContent       = (d1 * 1000).toFixed(2) + ' ms';
+          document.getElementById('resultD2').textContent       = (d2 * 1000).toFixed(2) + ' ms';
+          document.getElementById('resultDelta').textContent    = (Math.abs(d1 - d2) * 1000).toFixed(2) + ' ms';
+          document.getElementById('resultDistance').textContent = D.toFixed(2) + ' m';
+
+          runStatus.textContent = 'Done. D = ' + D.toFixed(2) + ' m  (|d₁−d₂| = ' + (Math.abs(d1 - d2) * 1000).toFixed(2) + ' ms).';
+          runBtn.disabled = false;
         }
 
         function renderLaptopRec() {
@@ -740,6 +952,10 @@
           lastPhoneRec  = null;
           laptopPh.style.display = '';
           phonePh.style.display  = '';
+          document.getElementById('resultD1').textContent       = '—';
+          document.getElementById('resultD2').textContent       = '—';
+          document.getElementById('resultDelta').textContent    = '—';
+          document.getElementById('resultDistance').textContent = '—';
 
           // Tell phone to begin its run.
           dataConn.send({ type: 'run', recDuration: REC_DURATION, chirpAt: PHONE_CHIRP_AT, chirpDur: CHIRP_DUR, f0: CHIRP_F0, f1: CHIRP_F1 });
@@ -757,13 +973,13 @@
             lastLaptopRec = {
               samples,
               sampleRate: audioCtx.sampleRate,
-              markers: [
-                { t: LAPTOP_CHIRP_AT, color: 'rgba(232,185,35,0.55)', label: 'laptop chirp' },
-                { t: PHONE_CHIRP_AT,  color: 'rgba(42,139,42,0.65)',  label: 'phone chirp' }
-              ]
+              markers: makeStaticMarkers()
             };
             renderLaptopRec();
-            if (!phoneIncoming && !lastPhoneRec) {
+            if (lastPhoneRec) {
+              runStatus.textContent = 'Cross-correlating…';
+              setTimeout(analyzeBoth, 0);
+            } else if (!phoneIncoming) {
               runStatus.textContent = 'Laptop recorded. Waiting for phone audio…';
             }
           });

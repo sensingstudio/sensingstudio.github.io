@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Beamforming · Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+        --blue: #2c6fbb;
+        --bart: #E8B923;
+        --mvdr: #2c6fbb;
+        --music: #bc122a;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 1080px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 64ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+      }
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 9px 16px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.ghost {
+        background: #fff;
+        color: var(--black);
+        border: 1px solid var(--grey-line);
+      }
+      button.ghost:hover:not(:disabled) {
+        border-color: var(--black);
+        opacity: 1;
+      }
+      button.tiny {
+        padding: 4px 8px;
+        font-size: 10px;
+        letter-spacing: 0.5px;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .canvas-wrap canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+      .canvas-label {
+        position: absolute;
+        top: 10px;
+        left: 14px;
+        color: rgba(255,255,255,0.7);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .canvas-meta {
+        position: absolute;
+        top: 10px;
+        right: 14px;
+        color: rgba(255,255,255,0.55);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.5px;
+        pointer-events: none;
+      }
+      .control-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px 24px;
+      }
+      .control {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .control-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 12px;
+        color: var(--grey-text);
+        font-weight: 500;
+      }
+      .control-label .val {
+        color: var(--black);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      input[type=range] {
+        width: 100%;
+        accent-color: var(--red);
+      }
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--black);
+      }
+      .checkbox-row input { accent-color: var(--red); }
+      .stat-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px 20px;
+        font-size: 13px;
+        margin-top: 4px;
+        padding-top: 14px;
+        border-top: 1px solid var(--grey-line);
+      }
+      .stat {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .stat .k {
+        font-size: 11px;
+        color: var(--grey-text);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 500;
+      }
+      .stat .v {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat .v.warn { color: var(--gold); }
+      .stat .v.bad { color: var(--red); }
+      .stat .v.good { color: var(--green); }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 12px;
+      }
+      .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+      .legend .swatch {
+        width: 14px;
+        height: 3px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .legend .swatch.dashed {
+        height: 0;
+        border-top: 2px dashed currentColor;
+        background: none;
+      }
+      .source-row {
+        display: grid;
+        grid-template-columns: 18px 1fr 1fr auto;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .source-row:last-child { margin-bottom: 0; }
+      .source-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 1px var(--grey-line);
+      }
+      .source-row .label {
+        font-size: 11px;
+        color: var(--grey-text);
+        font-weight: 500;
+        margin-bottom: 2px;
+        display: block;
+      }
+      .source-row .label .val {
+        color: var(--black);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .preset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 8px;
+      }
+      .preset {
+        text-align: left;
+        text-transform: none;
+        letter-spacing: 0.2px;
+        padding: 10px 14px;
+      }
+      .preset .pt { font-weight: 700; font-size: 13px; display: block; margin-bottom: 2px; }
+      .preset .pd {
+        font-weight: 400;
+        font-size: 11px;
+        color: var(--grey-text);
+        text-transform: none;
+        letter-spacing: 0.2px;
+        line-height: 1.4;
+        display: block;
+      }
+      .note {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin: 12px 0 0;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">Beamforming</span>
+    </header>
+    <main>
+      <h1>Beamforming</h1>
+      <p class="lead">A uniform linear microphone array sees one or more far-field sound sources. Three direction-of-arrival estimators &mdash; <strong>Bartlett</strong>, <strong>MVDR</strong>, and <strong>MUSIC</strong> &mdash; share the same data and disagree about where the sources are. Drag sources, change the geometry, and watch them argue.</p>
+
+      <section class="panel">
+        <h2>Scene · drag the sources</h2>
+        <div class="canvas-wrap" style="height: 300px;">
+          <canvas id="sceneCanvas"></canvas>
+          <div class="canvas-label">Array geometry</div>
+          <div class="canvas-meta" id="sceneMeta"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Spatial spectrum</h2>
+        <div class="canvas-wrap" style="height: 320px;">
+          <canvas id="specCanvas"></canvas>
+          <div class="canvas-label">Power vs. angle</div>
+          <div class="canvas-meta" id="specMeta"></div>
+        </div>
+        <div class="legend">
+          <span class="item"><span class="swatch" style="background: var(--bart);"></span> Bartlett (delay-and-sum)</span>
+          <span class="item"><span class="swatch" style="background: var(--mvdr);"></span> MVDR (Capon)</span>
+          <span class="item"><span class="swatch" style="background: var(--music);"></span> MUSIC</span>
+          <span class="item" style="color: rgba(0,0,0,0.55);"><span class="swatch dashed"></span> True DOA</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Array geometry</h2>
+        <div class="control-grid">
+          <div class="control">
+            <div class="control-label"><span>Elements</span><span class="val" id="Nval">8</span></div>
+            <input type="range" id="N" min="3" max="24" step="1" value="8">
+          </div>
+          <div class="control">
+            <div class="control-label"><span>Element spacing</span><span class="val" id="dval">4.3 cm</span></div>
+            <input type="range" id="d" min="0.5" max="20" step="0.1" value="4.3">
+          </div>
+          <div class="control">
+            <div class="control-label"><span>Source frequency</span><span class="val" id="fval">4.0 kHz</span></div>
+            <input type="range" id="f" min="0.3" max="20" step="0.1" value="4.0">
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><span class="k">Wavelength λ</span><span class="v" id="lamStat">8.6 cm</span></div>
+          <div class="stat"><span class="k">d / λ</span><span class="v" id="dlamStat">0.50</span></div>
+          <div class="stat"><span class="k">Aperture</span><span class="v" id="apStat">30.1 cm</span></div>
+          <div class="stat"><span class="k">Rayleigh limit</span><span class="v" id="rayStat">16.4°</span></div>
+          <div class="stat"><span class="k">Grating lobes</span><span class="v" id="gratStat">none</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Signals &amp; noise</h2>
+        <div class="control-grid">
+          <div class="control">
+            <div class="control-label"><span>SNR per source</span><span class="val" id="snrval">10 dB</span></div>
+            <input type="range" id="snr" min="-15" max="40" step="1" value="10">
+          </div>
+          <div class="control">
+            <div class="control-label"><span>Snapshots</span><span class="val" id="Kval">200</span></div>
+            <input type="range" id="K" min="1" max="1000" step="1" value="200">
+          </div>
+          <div class="control" style="justify-content: center;">
+            <label class="checkbox-row"><input type="checkbox" id="coherent"> Coherent sources (multipath)</label>
+            <label class="checkbox-row"><input type="checkbox" id="oracleK" checked> MUSIC knows # sources</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Sources <span style="text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--grey-text); margin-left: 8px;">drag in scene, or use sliders</span></h2>
+        <div id="sourceList"></div>
+        <div class="row" style="margin-top: 12px;">
+          <button id="addSrc" class="ghost">Add source</button>
+          <button id="newNoise" class="ghost">New noise sample</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Teaching presets</h2>
+        <div class="preset-grid">
+          <button class="ghost preset" data-preset="aperture">
+            <span class="pt">Aperture &amp; resolution</span>
+            <span class="pd">Two sources just inside the Rayleigh limit. Bartlett blurs them; MVDR splits them; MUSIC needles them.</span>
+          </button>
+          <button class="ghost preset" data-preset="interferer">
+            <span class="pt">Interferer + weak signal</span>
+            <span class="pd">A loud jammer near a quiet source. MVDR carves a null; Bartlett can&rsquo;t.</span>
+          </button>
+          <button class="ghost preset" data-preset="snapshots">
+            <span class="pt">Snapshot starvation</span>
+            <span class="pd">Drop snapshots to a handful. Subspace methods get jittery; Bartlett shrugs.</span>
+          </button>
+          <button class="ghost preset" data-preset="coherent">
+            <span class="pt">Coherent multipath</span>
+            <span class="pd">Two arrivals of the same signal. MVDR &amp; MUSIC collapse; Bartlett still works.</span>
+          </button>
+          <button class="ghost preset" data-preset="grating">
+            <span class="pt">Grating lobes</span>
+            <span class="pd">d &gt; λ/2: Bartlett peaks at the source <em>and</em> at angle replicas.</span>
+          </button>
+          <button class="ghost preset" data-preset="undersampled">
+            <span class="pt">Undersampled aperture</span>
+            <span class="pd">Few elements, λ-wide spacing. Everything ambiguous; nothing helps.</span>
+          </button>
+        </div>
+        <p class="note">All three estimators receive the same snapshots from the same noisy array &mdash; the only differences below are in the math each one applies.</p>
+      </section>
+
+    </main>
+
+    <script>
+      // ==========================================================
+      // Beamforming sandbox
+      // ==========================================================
+      const SOUND_SPEED = 343;          // m/s, dry air ~20°C
+      const ANGLE_GRID_N = 721;         // -90..90 in 0.25° steps
+      const SOURCE_COLORS = ['#2a8b2a', '#bc122a', '#2c6fbb', '#E8B923', '#7a3aa6', '#d05a16'];
+
+      // ----------------------------------------------------------
+      // Seeded RNG (Mulberry32) so dragging feels stable.
+      // ----------------------------------------------------------
+      function mulberry32(seed) {
+        return function () {
+          seed |= 0;
+          seed = (seed + 0x6D2B79F5) | 0;
+          let t = seed;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      // Returns [re, im] of CN(0,1): re,im ~ N(0, 1/2), so |z|^2 has mean 1.
+      function cnormal(rng) {
+        const u1 = Math.max(rng(), 1e-12);
+        const u2 = rng();
+        const m = Math.sqrt(-Math.log(u1));
+        const a = 2 * Math.PI * u2;
+        return [m * Math.cos(a), m * Math.sin(a)];
+      }
+
+      // ----------------------------------------------------------
+      // Real symmetric Jacobi eigendecomposition. Used as a primitive
+      // to solve a Hermitian eigenproblem via the 2N×2N real expansion.
+      // ----------------------------------------------------------
+      function jacobiEigenSym(Ain) {
+        const n = Ain.length;
+        const M = Ain.map(r => Float64Array.from(r));
+        const V = [];
+        for (let i = 0; i < n; i++) {
+          const row = new Float64Array(n);
+          row[i] = 1;
+          V.push(row);
+        }
+        const maxSweeps = 60;
+        for (let sweep = 0; sweep < maxSweeps; sweep++) {
+          let off = 0;
+          for (let p = 0; p < n - 1; p++) {
+            for (let q = p + 1; q < n; q++) off += M[p][q] * M[p][q];
+          }
+          if (off < 1e-22) break;
+          for (let p = 0; p < n - 1; p++) {
+            for (let q = p + 1; q < n; q++) {
+              const apq = M[p][q];
+              if (Math.abs(apq) < 1e-16) continue;
+              const app = M[p][p], aqq = M[q][q];
+              let t;
+              const denom = aqq - app;
+              if (Math.abs(denom) < 1e-30 * Math.abs(apq)) {
+                t = (apq >= 0 ? 1 : -1);
+              } else {
+                const theta = denom / (2 * apq);
+                t = (theta >= 0 ? 1 : -1) /
+                    (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+              }
+              const c = 1 / Math.sqrt(t * t + 1);
+              const s = t * c;
+              M[p][p] = app - t * apq;
+              M[q][q] = aqq + t * apq;
+              M[p][q] = 0;
+              M[q][p] = 0;
+              for (let i = 0; i < n; i++) {
+                if (i === p || i === q) continue;
+                const aip = M[i][p], aiq = M[i][q];
+                M[i][p] = c * aip - s * aiq;
+                M[p][i] = M[i][p];
+                M[i][q] = s * aip + c * aiq;
+                M[q][i] = M[i][q];
+              }
+              for (let i = 0; i < n; i++) {
+                const vip = V[i][p], viq = V[i][q];
+                V[i][p] = c * vip - s * viq;
+                V[i][q] = s * vip + c * viq;
+              }
+            }
+          }
+        }
+        const evals = new Float64Array(n);
+        for (let i = 0; i < n; i++) evals[i] = M[i][i];
+        return { evals, evecs: V };
+      }
+
+      // Hermitian eigendecomposition. Inputs Are, Aim are NxN with
+      // Are symmetric and Aim antisymmetric (Aim[i][j] = -Aim[j][i]).
+      // Returns eigenvalues sorted descending and matching eigenvectors.
+      function eigenHermitian(Are, Aim) {
+        const N = Are.length;
+        const M = [];
+        for (let i = 0; i < 2 * N; i++) M.push(new Float64Array(2 * N));
+        for (let i = 0; i < N; i++) {
+          for (let j = 0; j < N; j++) {
+            M[i][j]         = Are[i][j];
+            M[i + N][j + N] = Are[i][j];
+            M[i][j + N]     = -Aim[i][j];
+            M[i + N][j]     =  Aim[i][j];
+          }
+        }
+        const { evals: ev2, evecs: V2 } = jacobiEigenSym(M);
+        const order = Array.from(ev2.keys()).sort((a, b) => ev2[b] - ev2[a]);
+        const evals = new Float64Array(N);
+        const evecsRe = [];
+        const evecsIm = [];
+        for (let k = 0; k < N; k++) {
+          // Each true eigenvalue appears twice in the 2N spectrum;
+          // pairs are consecutive after sorting.
+          const idx = order[2 * k];
+          evals[k] = ev2[idx];
+          const re = new Float64Array(N);
+          const im = new Float64Array(N);
+          for (let r = 0; r < N; r++) {
+            re[r] = V2[r][idx];
+            im[r] = V2[r + N][idx];
+          }
+          let nrm = 0;
+          for (let r = 0; r < N; r++) nrm += re[r] * re[r] + im[r] * im[r];
+          nrm = Math.sqrt(nrm);
+          if (nrm > 1e-14) {
+            for (let r = 0; r < N; r++) { re[r] /= nrm; im[r] /= nrm; }
+          }
+          evecsRe.push(re);
+          evecsIm.push(im);
+        }
+        return { evals, evecsRe, evecsIm };
+      }
+
+      // ----------------------------------------------------------
+      // Synthesize K snapshots and form the sample covariance.
+      // R has dimension N×N; sources is [{theta_deg, power}, ...].
+      // ----------------------------------------------------------
+      function buildCovariance(N, dOverLambda, sources, snapshots, snrDb, coherent, rng) {
+        // Per-source amplitude. Noise is unit-variance complex per element.
+        const snrLin = Math.pow(10, snrDb / 10);
+        const Re = [], Im = [];
+        for (let i = 0; i < N; i++) {
+          Re.push(new Float64Array(N));
+          Im.push(new Float64Array(N));
+        }
+        // Precompute steering vectors a_k(θ)
+        const A = sources.map(src => {
+          const re = new Float64Array(N);
+          const im = new Float64Array(N);
+          const phase = -2 * Math.PI * dOverLambda * Math.sin(src.theta * Math.PI / 180);
+          for (let n = 0; n < N; n++) {
+            re[n] = Math.cos(n * phase);
+            im[n] = Math.sin(n * phase);
+          }
+          return { re, im, amp: Math.sqrt(snrLin * Math.max(src.power, 1e-9)) };
+        });
+
+        const xRe = new Float64Array(N);
+        const xIm = new Float64Array(N);
+        for (let t = 0; t < snapshots; t++) {
+          xRe.fill(0); xIm.fill(0);
+          let sharedRe = 0, sharedIm = 0;
+          if (coherent) {
+            const z = cnormal(rng); sharedRe = z[0]; sharedIm = z[1];
+          }
+          for (let k = 0; k < A.length; k++) {
+            let zRe, zIm;
+            if (coherent) { zRe = sharedRe; zIm = sharedIm; }
+            else { const z = cnormal(rng); zRe = z[0]; zIm = z[1]; }
+            const sRe = A[k].amp * zRe;
+            const sIm = A[k].amp * zIm;
+            const aR = A[k].re, aI = A[k].im;
+            for (let n = 0; n < N; n++) {
+              // s * a = (sRe+i sIm)(aR+i aI)
+              xRe[n] += sRe * aR[n] - sIm * aI[n];
+              xIm[n] += sRe * aI[n] + sIm * aR[n];
+            }
+          }
+          // Add white noise per element, CN(0, 1).
+          for (let n = 0; n < N; n++) {
+            const nz = cnormal(rng);
+            xRe[n] += nz[0];
+            xIm[n] += nz[1];
+          }
+          // R += x x^H / K
+          const w = 1 / snapshots;
+          for (let i = 0; i < N; i++) {
+            const xri = xRe[i], xii = xIm[i];
+            for (let j = 0; j < N; j++) {
+              const xrj = xRe[j], xij = xIm[j];
+              // (x_i)(x_j)^* = (xri + i xii)(xrj - i xij)
+              Re[i][j] += w * (xri * xrj + xii * xij);
+              Im[i][j] += w * (xii * xrj - xri * xij);
+            }
+          }
+        }
+        // Force exact Hermitian symmetry to fight numerical drift.
+        for (let i = 0; i < N; i++) {
+          Im[i][i] = 0;
+          for (let j = i + 1; j < N; j++) {
+            const re = 0.5 * (Re[i][j] + Re[j][i]);
+            const im = 0.5 * (Im[i][j] - Im[j][i]);
+            Re[i][j] = re; Re[j][i] = re;
+            Im[i][j] = im; Im[j][i] = -im;
+          }
+        }
+        return { Re, Im };
+      }
+
+      // ----------------------------------------------------------
+      // Spatial spectra. Returns {bart, mvdr, music} arrays in dB.
+      // ----------------------------------------------------------
+      function computeSpectra(N, dOverLambda, R, Ksig, anglesRad) {
+        const G = anglesRad.length;
+        const bart  = new Float64Array(G);
+        const mvdr  = new Float64Array(G);
+        const music = new Float64Array(G);
+
+        const eig = eigenHermitian(R.Re, R.Im);
+        const { evals, evecsRe, evecsIm } = eig;
+
+        // Diagonal loading for stability when R is rank-deficient
+        // (few snapshots) or when the smallest eigenvalues underflow.
+        let trR = 0;
+        for (let i = 0; i < N; i++) trR += R.Re[i][i];
+        const delta = Math.max(trR / N * 1e-6, 1e-12);
+
+        const aRe = new Float64Array(N);
+        const aIm = new Float64Array(N);
+        const cRe = new Float64Array(N);
+        const cIm = new Float64Array(N);
+
+        for (let g = 0; g < G; g++) {
+          const u = -2 * Math.PI * dOverLambda * Math.sin(anglesRad[g]);
+          for (let n = 0; n < N; n++) {
+            aRe[n] = Math.cos(n * u);
+            aIm[n] = Math.sin(n * u);
+          }
+          // Bartlett: a^H R a, real because R is Hermitian.
+          let bartReal = 0;
+          for (let i = 0; i < N; i++) {
+            let raR = 0, raI = 0;
+            const RRi = R.Re[i], RIi = R.Im[i];
+            for (let j = 0; j < N; j++) {
+              const aR = aRe[j], aI = aIm[j];
+              raR += RRi[j] * aR - RIi[j] * aI;
+              raI += RRi[j] * aI + RIi[j] * aR;
+            }
+            bartReal += aRe[i] * raR + aIm[i] * raI;
+          }
+          bart[g] = bartReal;
+
+          // MVDR + MUSIC reuse the projections c_k = v_k^H a.
+          let invSum = 0;
+          let normA  = 0;
+          let sigSum = 0;
+          for (let n = 0; n < N; n++) normA += aRe[n] * aRe[n] + aIm[n] * aIm[n];
+          for (let k = 0; k < N; k++) {
+            const vR = evecsRe[k], vI = evecsIm[k];
+            let r = 0, im = 0;
+            for (let n = 0; n < N; n++) {
+              // v_k^H a = sum_n (vR - i vI)(aRe + i aIm) = (vR aRe + vI aIm) + i(vR aIm - vI aRe)
+              r  += vR[n] * aRe[n] + vI[n] * aIm[n];
+              im += vR[n] * aIm[n] - vI[n] * aRe[n];
+            }
+            cRe[k] = r; cIm[k] = im;
+            const c2 = r * r + im * im;
+            const lam = Math.max(evals[k], delta);
+            invSum += c2 / lam;
+            if (k < Ksig) sigSum += c2;
+          }
+          mvdr[g]  = 1 / Math.max(invSum, 1e-30);
+          music[g] = 1 / Math.max(normA - sigSum, 1e-30);
+        }
+
+        // Convert to dB and normalize each curve to its own peak so they
+        // share the y-axis. The teaching point is shape, not absolute level.
+        const toDb = (arr) => {
+          let mx = 1e-30;
+          for (let i = 0; i < arr.length; i++) if (arr[i] > mx) mx = arr[i];
+          const out = new Float64Array(arr.length);
+          for (let i = 0; i < arr.length; i++) {
+            out[i] = 10 * Math.log10(Math.max(arr[i], mx * 1e-6) / mx);
+          }
+          return out;
+        };
+        return {
+          bart: toDb(bart),
+          mvdr: toDb(mvdr),
+          music: toDb(music),
+          evals
+        };
+      }
+
+      // ----------------------------------------------------------
+      // State
+      // ----------------------------------------------------------
+      const state = {
+        N: 8,
+        dCm: 4.3,
+        freqKHz: 4.0,
+        snrDb: 10,
+        snapshots: 200,
+        coherent: false,
+        oracleK: true,
+        sources: [
+          { theta: -8, power: 1 },
+          { theta: 22, power: 1 }
+        ],
+        noiseSeed: 1,
+      };
+
+      const angles = new Float64Array(ANGLE_GRID_N);
+      const anglesDeg = new Float64Array(ANGLE_GRID_N);
+      for (let i = 0; i < ANGLE_GRID_N; i++) {
+        const deg = -90 + i * (180 / (ANGLE_GRID_N - 1));
+        anglesDeg[i] = deg;
+        angles[i] = deg * Math.PI / 180;
+      }
+
+      let cachedSpectra = null;
+
+      function dOverLambda() {
+        const lam_m = SOUND_SPEED / (state.freqKHz * 1000);
+        return (state.dCm / 100) / lam_m;
+      }
+
+      function recompute() {
+        const rng = mulberry32(state.noiseSeed);
+        const dl = dOverLambda();
+        const R = buildCovariance(
+          state.N, dl, state.sources,
+          state.snapshots, state.snrDb,
+          state.coherent, rng
+        );
+        const Ksig = state.oracleK
+          ? Math.min(state.sources.length, state.N - 1)
+          : Math.max(1, Math.min(estimateK(R, state.N), state.N - 1));
+        cachedSpectra = computeSpectra(state.N, dl, R, Ksig, angles);
+        cachedSpectra.Ksig = Ksig;
+      }
+
+      // Quick AIC-style model order: gap between eigenvalues. Not rigorous
+      // but it hands MUSIC the wrong K when there isn't an obvious gap,
+      // which is itself a teaching moment.
+      function estimateK(R, N) {
+        const { evals } = eigenHermitian(R.Re, R.Im);
+        let bestK = 1, bestRatio = 0;
+        for (let k = 1; k < N; k++) {
+          const ratio = evals[k - 1] / Math.max(evals[k], 1e-12);
+          if (ratio > bestRatio) { bestRatio = ratio; bestK = k; }
+        }
+        return bestK;
+      }
+
+      // ----------------------------------------------------------
+      // Drawing — scene
+      // ----------------------------------------------------------
+      const sceneCanvas = document.getElementById('sceneCanvas');
+      const specCanvas  = document.getElementById('specCanvas');
+      const sceneMeta   = document.getElementById('sceneMeta');
+      const specMeta    = document.getElementById('specMeta');
+
+      function setupCanvas(canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        const r = canvas.getBoundingClientRect();
+        const w = Math.max(1, Math.round(r.width * dpr));
+        const h = Math.max(1, Math.round(r.height * dpr));
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w; canvas.height = h;
+        }
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { ctx, w: r.width, h: r.height, dpr };
+      }
+
+      // Map scene geometry: array centered, broadside up.
+      function sceneLayout(w, h) {
+        const cx = w / 2;
+        const baseY = h - 28;
+        const radius = Math.min(w, h) * 0.85 - 30;
+        return { cx, baseY, radius };
+      }
+
+      function drawScene() {
+        const { ctx, w, h } = setupCanvas(sceneCanvas);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+
+        const { cx, baseY, radius } = sceneLayout(w, h);
+
+        // Half-circle DOA reference & angle ticks.
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, baseY, radius, Math.PI, 2 * Math.PI);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.font = '10px ui-monospace, Menlo, monospace';
+        ctx.textAlign = 'center';
+        for (let deg = -90; deg <= 90; deg += 30) {
+          const rad = deg * Math.PI / 180;
+          const x = cx + radius * Math.sin(rad);
+          const y = baseY - radius * Math.cos(rad);
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+          ctx.beginPath();
+          ctx.moveTo(cx, baseY);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          // Tick label just outside the arc
+          const lx = cx + (radius + 14) * Math.sin(rad);
+          const ly = baseY - (radius + 14) * Math.cos(rad) + 4;
+          ctx.fillText(deg + '°', lx, ly);
+        }
+
+        // Compute physical extent of array in pixels. Fit into ~80% of width,
+        // but keep cm-to-pixel ratio constant within a redraw.
+        const totalCm = (state.N - 1) * state.dCm;
+        const maxCmAcross = Math.max(totalCm, 1) * 1.05;
+        const cmPerPx = maxCmAcross / (w * 0.8);
+        const px = (cm) => cm / cmPerPx;
+
+        // Wavelength scale bar
+        const lam_cm = SOUND_SPEED / (state.freqKHz * 1000) * 100;
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = 1.5;
+        const sbY = h - 12;
+        const sbX0 = 16, sbX1 = sbX0 + Math.min(px(lam_cm), w * 0.4);
+        ctx.beginPath();
+        ctx.moveTo(sbX0, sbY);
+        ctx.lineTo(sbX1, sbY);
+        ctx.moveTo(sbX0, sbY - 4); ctx.lineTo(sbX0, sbY + 4);
+        ctx.moveTo(sbX1, sbY - 4); ctx.lineTo(sbX1, sbY + 4);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '10px Roboto, sans-serif';
+        ctx.textAlign = 'left';
+        const lamLabel = lam_cm < (sbX1 - sbX0) * cmPerPx + 0.01
+          ? 'λ = ' + lam_cm.toFixed(1) + ' cm'
+          : 'λ ≈ ' + lam_cm.toFixed(1) + ' cm (truncated)';
+        ctx.fillText(lamLabel, sbX0, sbY - 6);
+
+        // Source angle lines
+        for (let i = 0; i < state.sources.length; i++) {
+          const src = state.sources[i];
+          const rad = src.theta * Math.PI / 180;
+          const ex = cx + radius * Math.sin(rad);
+          const ey = baseY - radius * Math.cos(rad);
+          const color = SOURCE_COLORS[i % SOURCE_COLORS.length];
+          ctx.strokeStyle = color + 'cc';
+          ctx.lineWidth = 1.25;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(cx, baseY);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Element dots
+        const x0 = cx - px(totalCm) / 2;
+        for (let n = 0; n < state.N; n++) {
+          const xn = x0 + px(n * state.dCm);
+          ctx.fillStyle = '#fafafa';
+          ctx.strokeStyle = 'rgba(188,18,42,0.9)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(xn, baseY, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+        // Array baseline
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x0 - 8, baseY);
+        ctx.lineTo(x0 + px(totalCm) + 8, baseY);
+        ctx.stroke();
+
+        // Source pucks
+        for (let i = 0; i < state.sources.length; i++) {
+          const src = state.sources[i];
+          const rad = src.theta * Math.PI / 180;
+          const ex = cx + radius * Math.sin(rad);
+          const ey = baseY - radius * Math.cos(rad);
+          const color = SOURCE_COLORS[i % SOURCE_COLORS.length];
+          const r = 7 + 4 * Math.sqrt(Math.max(src.power, 0.05));
+          ctx.fillStyle = color;
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(ex, ey, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#fff';
+          ctx.font = '700 10px Roboto, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(String(i + 1), ex, ey + 3.5);
+          // Angle readout
+          ctx.fillStyle = color;
+          ctx.font = '10px ui-monospace, monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(src.theta.toFixed(1) + '°', ex + r + 4, ey - r + 2);
+        }
+
+        sceneMeta.textContent = state.N + ' elements · ' + state.dCm.toFixed(1) + ' cm spacing';
+      }
+
+      // ----------------------------------------------------------
+      // Drawing — spectrum
+      // ----------------------------------------------------------
+      function drawSpectrum() {
+        const { ctx, w, h } = setupCanvas(specCanvas);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+
+        if (!cachedSpectra) return;
+
+        const padL = 44, padR = 14, padT = 30, padB = 28;
+        const plotW = w - padL - padR;
+        const plotH = h - padT - padB;
+        const dbMin = -40, dbMax = 2;
+        const xOf = (deg) => padL + (deg + 90) / 180 * plotW;
+        const yOf = (db) => padT + (1 - (db - dbMin) / (dbMax - dbMin)) * plotH;
+
+        // dB grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.fillStyle   = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth   = 1;
+        ctx.font = '10px ui-monospace, monospace';
+        ctx.textAlign = 'right';
+        for (let db = 0; db >= dbMin; db -= 10) {
+          const y = yOf(db);
+          ctx.beginPath();
+          ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y);
+          ctx.stroke();
+          ctx.fillText(db + ' dB', padL - 6, y + 3);
+        }
+        ctx.textAlign = 'center';
+        for (let deg = -90; deg <= 90; deg += 30) {
+          const x = xOf(deg);
+          ctx.beginPath();
+          ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+          ctx.stroke();
+          ctx.fillText(deg + '°', x, padT + plotH + 16);
+        }
+        // Frame
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.strokeRect(padL, padT, plotW, plotH);
+
+        // True DOAs (vertical dashed)
+        for (let i = 0; i < state.sources.length; i++) {
+          const src = state.sources[i];
+          const x = xOf(src.theta);
+          const color = SOURCE_COLORS[i % SOURCE_COLORS.length];
+          ctx.strokeStyle = color + '99';
+          ctx.lineWidth = 1.25;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Plot a single curve
+        function plotCurve(arr, color, width) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = width;
+          ctx.beginPath();
+          for (let i = 0; i < arr.length; i++) {
+            const x = xOf(anglesDeg[i]);
+            const y = yOf(arr[i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+        plotCurve(cachedSpectra.bart,  getCss('--bart'),  1.5);
+        plotCurve(cachedSpectra.mvdr,  getCss('--mvdr'),  1.5);
+        plotCurve(cachedSpectra.music, getCss('--music'), 1.75);
+
+        // Axis labels
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '11px Roboto, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Power (normalized)', padL, padT - 10);
+        ctx.textAlign = 'center';
+        ctx.fillText('Direction of arrival θ', padL + plotW / 2, padT + plotH + 26);
+
+        const Ksig = cachedSpectra.Ksig;
+        specMeta.textContent =
+          state.snapshots + ' snapshots · MUSIC subspace K = ' + Ksig;
+      }
+
+      function getCss(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      }
+
+      // ----------------------------------------------------------
+      // Stats panel updates
+      // ----------------------------------------------------------
+      function updateStats() {
+        const lam_cm = SOUND_SPEED / (state.freqKHz * 1000) * 100;
+        const dl = dOverLambda();
+        const ap_cm = (state.N - 1) * state.dCm;
+        // Rayleigh-ish broadside resolution: λ / aperture, in degrees
+        const ray = ap_cm > 0
+          ? (lam_cm / ap_cm) * (180 / Math.PI)
+          : 90;
+        document.getElementById('lamStat').textContent = lam_cm.toFixed(2) + ' cm';
+        document.getElementById('dlamStat').textContent = dl.toFixed(2) + ' λ';
+        document.getElementById('apStat').textContent = ap_cm.toFixed(1) + ' cm';
+        document.getElementById('rayStat').textContent = ray.toFixed(1) + '°';
+        const grat = document.getElementById('gratStat');
+        if (dl <= 0.5) {
+          grat.textContent = 'safe (d ≤ λ/2)';
+          grat.className = 'v good';
+        } else if (dl < 1.0) {
+          grat.textContent = 'lobes appear off-broadside';
+          grat.className = 'v warn';
+        } else {
+          // Broadside grating lobe at sin θ_g = ±1/(d/λ)
+          const arg = 1 / dl;
+          const ang = Math.asin(Math.min(1, arg)) * 180 / Math.PI;
+          grat.textContent = 'lobes at ±' + ang.toFixed(0) + '°';
+          grat.className = 'v bad';
+        }
+      }
+
+      // ----------------------------------------------------------
+      // Source list UI
+      // ----------------------------------------------------------
+      const sourceListEl = document.getElementById('sourceList');
+      function rebuildSourceList() {
+        sourceListEl.innerHTML = '';
+        state.sources.forEach((src, i) => {
+          const row = document.createElement('div');
+          row.className = 'source-row';
+          const dot = document.createElement('div');
+          dot.className = 'source-dot';
+          dot.style.background = SOURCE_COLORS[i % SOURCE_COLORS.length];
+          row.appendChild(dot);
+
+          const angWrap = document.createElement('div');
+          angWrap.innerHTML =
+            '<span class="label">θ <span class="val">' + src.theta.toFixed(1) + '°</span></span>';
+          const angSlider = document.createElement('input');
+          angSlider.type = 'range';
+          angSlider.min = -89; angSlider.max = 89; angSlider.step = 0.5;
+          angSlider.value = src.theta;
+          angSlider.addEventListener('input', () => {
+            src.theta = parseFloat(angSlider.value);
+            angWrap.querySelector('.val').textContent = src.theta.toFixed(1) + '°';
+            requestRender();
+          });
+          angWrap.appendChild(angSlider);
+          row.appendChild(angWrap);
+
+          const powWrap = document.createElement('div');
+          powWrap.innerHTML =
+            '<span class="label">power <span class="val">' + src.power.toFixed(2) + '×</span></span>';
+          const powSlider = document.createElement('input');
+          powSlider.type = 'range';
+          powSlider.min = 0.01; powSlider.max = 4; powSlider.step = 0.01;
+          powSlider.value = src.power;
+          powSlider.addEventListener('input', () => {
+            src.power = parseFloat(powSlider.value);
+            powWrap.querySelector('.val').textContent = src.power.toFixed(2) + '×';
+            requestRender();
+          });
+          powWrap.appendChild(powSlider);
+          row.appendChild(powWrap);
+
+          const rm = document.createElement('button');
+          rm.className = 'ghost tiny';
+          rm.textContent = 'remove';
+          rm.disabled = state.sources.length <= 1;
+          rm.addEventListener('click', () => {
+            state.sources.splice(i, 1);
+            rebuildSourceList();
+            requestRender();
+          });
+          row.appendChild(rm);
+          sourceListEl.appendChild(row);
+        });
+      }
+
+      // ----------------------------------------------------------
+      // Render scheduler — coalesce calls to one rAF.
+      // ----------------------------------------------------------
+      let pending = false;
+      function requestRender() {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(() => {
+          pending = false;
+          updateStats();
+          recompute();
+          drawScene();
+          drawSpectrum();
+        });
+      }
+
+      // ----------------------------------------------------------
+      // Scene drag — pick nearest source by angle and follow pointer.
+      // ----------------------------------------------------------
+      let dragIndex = -1;
+      function pointerAngle(evt) {
+        const r = sceneCanvas.getBoundingClientRect();
+        const x = evt.clientX - r.left;
+        const y = evt.clientY - r.top;
+        const layout = sceneLayout(r.width, r.height);
+        const dx = x - layout.cx;
+        const dy = layout.baseY - y; // up positive
+        const ang = Math.atan2(dx, Math.max(dy, 1)) * 180 / Math.PI;
+        return Math.max(-89, Math.min(89, ang));
+      }
+      function nearestSource(evt) {
+        const r = sceneCanvas.getBoundingClientRect();
+        const x = evt.clientX - r.left;
+        const y = evt.clientY - r.top;
+        const layout = sceneLayout(r.width, r.height);
+        let best = -1, bestD = 28;
+        for (let i = 0; i < state.sources.length; i++) {
+          const rad = state.sources[i].theta * Math.PI / 180;
+          const ex = layout.cx + layout.radius * Math.sin(rad);
+          const ey = layout.baseY - layout.radius * Math.cos(rad);
+          const d = Math.hypot(ex - x, ey - y);
+          if (d < bestD) { bestD = d; best = i; }
+        }
+        return best;
+      }
+      sceneCanvas.addEventListener('pointerdown', (e) => {
+        sceneCanvas.setPointerCapture(e.pointerId);
+        dragIndex = nearestSource(e);
+        if (dragIndex < 0) {
+          // Click in empty space: drop source there if we have room.
+          if (state.sources.length < SOURCE_COLORS.length) {
+            state.sources.push({ theta: pointerAngle(e), power: 1 });
+            dragIndex = state.sources.length - 1;
+            rebuildSourceList();
+            requestRender();
+          }
+          return;
+        }
+        state.sources[dragIndex].theta = pointerAngle(e);
+        rebuildSourceList();
+        requestRender();
+      });
+      sceneCanvas.addEventListener('pointermove', (e) => {
+        if (dragIndex < 0) return;
+        if (e.buttons === 0) { dragIndex = -1; return; }
+        state.sources[dragIndex].theta = pointerAngle(e);
+        rebuildSourceList();
+        requestRender();
+      });
+      sceneCanvas.addEventListener('pointerup',   () => { dragIndex = -1; });
+      sceneCanvas.addEventListener('pointercancel', () => { dragIndex = -1; });
+
+      // ----------------------------------------------------------
+      // Wire up scalar controls
+      // ----------------------------------------------------------
+      function bindRange(id, valId, fmt, onChange) {
+        const el = document.getElementById(id);
+        const vEl = document.getElementById(valId);
+        const update = () => {
+          const v = parseFloat(el.value);
+          vEl.textContent = fmt(v);
+          onChange(v);
+        };
+        el.addEventListener('input', update);
+        return el;
+      }
+      bindRange('N', 'Nval', v => v.toFixed(0),
+        v => { state.N = Math.round(v); requestRender(); });
+      bindRange('d', 'dval', v => v.toFixed(1) + ' cm',
+        v => { state.dCm = v; requestRender(); });
+      bindRange('f', 'fval', v => v.toFixed(1) + ' kHz',
+        v => { state.freqKHz = v; requestRender(); });
+      bindRange('snr', 'snrval', v => v.toFixed(0) + ' dB',
+        v => { state.snrDb = v; requestRender(); });
+      bindRange('K', 'Kval', v => v.toFixed(0),
+        v => { state.snapshots = Math.round(v); requestRender(); });
+      document.getElementById('coherent').addEventListener('change', (e) => {
+        state.coherent = e.target.checked; requestRender();
+      });
+      document.getElementById('oracleK').addEventListener('change', (e) => {
+        state.oracleK = e.target.checked; requestRender();
+      });
+      document.getElementById('addSrc').addEventListener('click', () => {
+        if (state.sources.length >= SOURCE_COLORS.length) return;
+        // Add at a free-ish angle.
+        const taken = state.sources.map(s => s.theta);
+        let theta = 0;
+        for (let candidate = -60; candidate <= 60; candidate += 15) {
+          if (taken.every(t => Math.abs(t - candidate) > 8)) { theta = candidate; break; }
+        }
+        state.sources.push({ theta, power: 1 });
+        rebuildSourceList();
+        requestRender();
+      });
+      document.getElementById('newNoise').addEventListener('click', () => {
+        state.noiseSeed = (state.noiseSeed * 1664525 + 1013904223) >>> 0;
+        requestRender();
+      });
+
+      // ----------------------------------------------------------
+      // Presets
+      // ----------------------------------------------------------
+      function applyState(over) {
+        Object.assign(state, over);
+        if (over.sources) state.sources = over.sources.map(s => ({ ...s }));
+        // Push new values back into the input controls so labels track.
+        document.getElementById('N').value   = state.N;
+        document.getElementById('d').value   = state.dCm;
+        document.getElementById('f').value   = state.freqKHz;
+        document.getElementById('snr').value = state.snrDb;
+        document.getElementById('K').value   = state.snapshots;
+        document.getElementById('coherent').checked = state.coherent;
+        document.getElementById('oracleK').checked  = state.oracleK;
+        document.getElementById('Nval').textContent   = state.N;
+        document.getElementById('dval').textContent   = state.dCm.toFixed(1) + ' cm';
+        document.getElementById('fval').textContent   = state.freqKHz.toFixed(1) + ' kHz';
+        document.getElementById('snrval').textContent = state.snrDb + ' dB';
+        document.getElementById('Kval').textContent   = state.snapshots;
+        rebuildSourceList();
+        requestRender();
+      }
+
+      const PRESETS = {
+        aperture: {
+          N: 10, dCm: 4.3, freqKHz: 4.0,
+          snrDb: 20, snapshots: 200, coherent: false, oracleK: true,
+          sources: [{ theta: -3, power: 1 }, { theta: 5, power: 1 }],
+        },
+        interferer: {
+          N: 8, dCm: 4.3, freqKHz: 4.0,
+          snrDb: 20, snapshots: 200, coherent: false, oracleK: true,
+          sources: [{ theta: -10, power: 0.05 }, { theta: 10, power: 1 }],
+        },
+        snapshots: {
+          N: 8, dCm: 4.3, freqKHz: 4.0,
+          snrDb: 10, snapshots: 8, coherent: false, oracleK: true,
+          sources: [{ theta: -15, power: 1 }, { theta: 20, power: 1 }],
+        },
+        coherent: {
+          N: 8, dCm: 4.3, freqKHz: 4.0,
+          snrDb: 20, snapshots: 200, coherent: true, oracleK: true,
+          sources: [{ theta: -15, power: 1 }, { theta: 18, power: 1 }],
+        },
+        grating: {
+          N: 8, dCm: 8.6, freqKHz: 8.0,
+          snrDb: 20, snapshots: 200, coherent: false, oracleK: true,
+          sources: [{ theta: 10, power: 1 }],
+        },
+        undersampled: {
+          N: 4, dCm: 12, freqKHz: 6.0,
+          snrDb: 20, snapshots: 200, coherent: false, oracleK: true,
+          sources: [{ theta: -25, power: 1 }, { theta: 30, power: 1 }],
+        },
+      };
+      document.querySelectorAll('button.preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = PRESETS[btn.dataset.preset];
+          if (p) applyState(p);
+        });
+      });
+
+      // ----------------------------------------------------------
+      // Init
+      // ----------------------------------------------------------
+      window.addEventListener('resize', requestRender);
+      rebuildSourceList();
+      requestRender();
+    </script>
+  </body>
+</html>
