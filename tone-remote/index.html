@@ -235,6 +235,62 @@
         margin: 0;
         line-height: 1.5;
       }
+      .pair-code-block {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      .pair-code-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .pair-code {
+        font-size: 44px;
+        font-weight: 900;
+        letter-spacing: 6px;
+        font-variant-numeric: tabular-nums;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        color: var(--black);
+        line-height: 1;
+      }
+      .join-divider {
+        margin: 24px 0 20px;
+        height: 1px;
+        background: var(--grey-line);
+      }
+      .join-help {
+        margin: 0 0 12px;
+        color: var(--grey-text);
+        font-size: 13px;
+      }
+      .join-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 0;
+      }
+      #joinCode {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        text-align: center;
+        padding: 10px 14px;
+        border: 1px solid var(--grey-line);
+        border-radius: 6px;
+        background: #f5f5f5;
+        width: 150px;
+        min-width: 0;
+      }
+      #joinCode:focus {
+        outline: none;
+        border-color: var(--red);
+        background: #fff;
+      }
       .freq-big {
         font-size: clamp(48px, 14vw, 80px);
         font-weight: 900;
@@ -271,14 +327,34 @@
               <img id="qr" alt="Pairing QR code" />
             </div>
             <div class="pair-info">
+              <div class="pair-code-block">
+                <span class="pair-code-label">Code</span>
+                <span class="pair-code" id="pairCode">— — — —</span>
+              </div>
               <p class="status" id="pairStatus">Generating session&hellip;</p>
-              <p class="pair-help">Scan with your phone's camera, or open this URL on your phone:</p>
+              <p class="pair-help">Scan the QR with your phone's camera, enter the 4-digit code on your phone, or open this URL:</p>
               <input type="text" id="pairUrl" readonly />
               <div>
                 <button id="copyUrl" class="secondary">Copy link</button>
               </div>
             </div>
           </div>
+          <div class="join-divider"></div>
+          <p class="join-help">Joining a session from this device?</p>
+          <form id="joinForm" class="join-form">
+            <input
+              type="text"
+              id="joinCode"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              placeholder="0000"
+              autocomplete="off"
+              aria-label="4-digit pairing code"
+            />
+            <button type="submit">Connect</button>
+            <span class="status" id="joinStatus"></span>
+          </form>
         </section>
 
         <section class="panel needs-phone">
@@ -359,7 +435,8 @@
 
     <script>
       const params = new URLSearchParams(location.search);
-      const hostId = params.get('host');
+      const codeParam = params.get('code');
+      const hostId = codeParam ? 'sslab-tone-' + codeParam : null;
       const role = hostId ? 'phone' : 'laptop';
       document.body.dataset.role = role;
 
@@ -387,23 +464,28 @@
 
       /* ============ LAPTOP ============ */
       function initLaptop() {
-        const qrImg       = document.getElementById('qr');
-        const pairUrlEl   = document.getElementById('pairUrl');
-        const pairStatus  = document.getElementById('pairStatus');
-        const copyUrlBtn  = document.getElementById('copyUrl');
-        const freqSlider  = document.getElementById('freqSlider');
-        const freqDisplay = document.getElementById('freqDisplay');
-        const gainSlider  = document.getElementById('gainSlider');
-        const toneBtn     = document.getElementById('toneBtn');
-        const fftSel      = document.getElementById('fftSize');
-        const zoomSel     = document.getElementById('zoom');
-        const resEl       = document.getElementById('resolution');
-        const placeholder = document.getElementById('placeholder');
-        const canvas      = document.getElementById('spectrum');
-        const ctx         = canvas.getContext('2d');
+        const qrImg        = document.getElementById('qr');
+        const pairUrlEl    = document.getElementById('pairUrl');
+        const pairCodeEl   = document.getElementById('pairCode');
+        const pairStatus   = document.getElementById('pairStatus');
+        const copyUrlBtn   = document.getElementById('copyUrl');
+        const joinForm     = document.getElementById('joinForm');
+        const joinCodeIn   = document.getElementById('joinCode');
+        const joinStatus   = document.getElementById('joinStatus');
+        const freqSlider   = document.getElementById('freqSlider');
+        const freqDisplay  = document.getElementById('freqDisplay');
+        const gainSlider   = document.getElementById('gainSlider');
+        const toneBtn      = document.getElementById('toneBtn');
+        const fftSel       = document.getElementById('fftSize');
+        const zoomSel      = document.getElementById('zoom');
+        const resEl        = document.getElementById('resolution');
+        const placeholder  = document.getElementById('placeholder');
+        const canvas       = document.getElementById('spectrum');
+        const ctx          = canvas.getContext('2d');
 
         freqSlider.value = freqToSlider(440);
 
+        let peer = null;
         let dataConn = null;
         let toneOn = false;
         let audioCtx = null;
@@ -412,38 +494,93 @@
         let drawing = false;
         let keepalive = null;
 
-        const peer = new Peer(makeId());
+        function makeNumericCode() {
+          return ('0000' + Math.floor(Math.random() * 10000)).slice(-4);
+        }
 
-        peer.on('open', (id) => {
-          const url = PAIR_ORIGIN + publicPath() + '?host=' + id;
-          pairUrlEl.value = url;
-          qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url);
-          pairStatus.textContent = 'Waiting for phone…';
-        });
-        peer.on('error', (err) => {
-          pairStatus.textContent = 'Pairing error: ' + err.message;
-          pairStatus.classList.add('error');
-        });
+        function tryClaimPeer(attempt) {
+          attempt = attempt || 0;
+          if (attempt > 8) {
+            pairStatus.textContent = 'Could not allocate a session — please refresh.';
+            pairStatus.classList.add('error');
+            return;
+          }
+          const code = makeNumericCode();
+          peer = new Peer('sslab-tone-' + code);
+          let resolved = false;
+          peer.on('open', () => {
+            if (resolved) return;
+            resolved = true;
+            const url = PAIR_ORIGIN + publicPath() + '?code=' + code;
+            pairCodeEl.textContent = code.split('').join(' ');
+            pairUrlEl.value = url;
+            qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url);
+            pairStatus.textContent = 'Waiting for phone…';
+            attachPeerHandlers();
+          });
+          peer.on('error', (err) => {
+            if (resolved) {
+              pairStatus.textContent = 'Connection error: ' + err.message;
+              pairStatus.classList.add('error');
+              return;
+            }
+            if (err.type === 'unavailable-id') {
+              resolved = true;
+              try { peer.destroy(); } catch (_) {}
+              tryClaimPeer(attempt + 1);
+            } else {
+              resolved = true;
+              pairStatus.textContent = 'Pairing error: ' + err.message;
+              pairStatus.classList.add('error');
+            }
+          });
+        }
 
-        peer.on('connection', (conn) => {
-          dataConn = conn;
-          conn.on('open', () => {
-            pairStatus.textContent = 'Phone connected.';
-            pairStatus.classList.remove('error');
-            pairStatus.classList.add('ok');
-            document.body.dataset.paired = '1';
-            sendTone();
+        function attachPeerHandlers() {
+          peer.on('connection', (conn) => {
+            dataConn = conn;
+            conn.on('open', () => {
+              pairStatus.textContent = 'Phone connected.';
+              pairStatus.classList.remove('error');
+              pairStatus.classList.add('ok');
+              document.body.dataset.paired = '1';
+              sendTone();
+            });
+            conn.on('data', (cmd) => {
+              if (cmd && cmd.type === 'tone') applyRemoteTone(cmd);
+            });
+            conn.on('close', () => {
+              dataConn = null;
+              delete document.body.dataset.paired;
+              pairStatus.textContent = 'Phone disconnected.';
+              pairStatus.classList.remove('ok');
+            });
           });
-          conn.on('data', (cmd) => {
-            if (cmd && cmd.type === 'tone') applyRemoteTone(cmd);
+
+          peer.on('call', (call) => {
+            call.answer();
+            call.on('stream', (remoteStream) => {
+              keepalive = new Audio();
+              keepalive.srcObject = remoteStream;
+              keepalive.muted = true;
+              keepalive.play().catch(() => {});
+
+              if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+              if (audioCtx.state === 'suspended') audioCtx.resume();
+              const src = audioCtx.createMediaStreamSource(remoteStream);
+              analyser = audioCtx.createAnalyser();
+              analyser.fftSize = parseInt(fftSel.value, 10);
+              analyser.smoothingTimeConstant = 0.5;
+              analyser.minDecibels = -150;
+              analyser.maxDecibels = -10;
+              src.connect(analyser);
+              dataBuf = new Float32Array(analyser.frequencyBinCount);
+              updateResolution();
+              placeholder.style.display = 'none';
+              if (!drawing) { drawing = true; requestAnimationFrame(draw); }
+            });
           });
-          conn.on('close', () => {
-            dataConn = null;
-            delete document.body.dataset.paired;
-            pairStatus.textContent = 'Phone disconnected.';
-            pairStatus.classList.remove('ok');
-          });
-        });
+        }
 
         function applyRemoteTone(cmd) {
           toneOn = !!cmd.play;
@@ -453,29 +590,22 @@
           setToneBtn();
         }
 
-        peer.on('call', (call) => {
-          call.answer();
-          call.on('stream', (remoteStream) => {
-            keepalive = new Audio();
-            keepalive.srcObject = remoteStream;
-            keepalive.muted = true;
-            keepalive.play().catch(() => {});
-
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const src = audioCtx.createMediaStreamSource(remoteStream);
-            analyser = audioCtx.createAnalyser();
-            analyser.fftSize = parseInt(fftSel.value, 10);
-            analyser.smoothingTimeConstant = 0.5;
-            analyser.minDecibels = -150;
-            analyser.maxDecibels = -10;
-            src.connect(analyser);
-            dataBuf = new Float32Array(analyser.frequencyBinCount);
-            updateResolution();
-            placeholder.style.display = 'none';
-            if (!drawing) { drawing = true; requestAnimationFrame(draw); }
-          });
+        joinCodeIn.addEventListener('input', () => {
+          joinCodeIn.value = joinCodeIn.value.replace(/\D/g, '').slice(0, 4);
         });
+        joinForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const v = joinCodeIn.value.replace(/\D/g, '').slice(0, 4);
+          if (v.length !== 4) {
+            joinStatus.textContent = 'Enter all 4 digits.';
+            joinStatus.classList.add('error');
+            joinCodeIn.focus();
+            return;
+          }
+          location.href = location.pathname + '?code=' + v;
+        });
+
+        tryClaimPeer();
 
         const onLaptopGesture = () => {
           if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -787,7 +917,11 @@
               });
             });
             peer.on('error', (err) => {
-              phoneStatus.textContent = 'Connection error: ' + err.message;
+              if (err.type === 'peer-unavailable') {
+                phoneStatus.textContent = 'Code ' + codeParam + ' not found. Check the code on the laptop.';
+              } else {
+                phoneStatus.textContent = 'Connection error: ' + err.message;
+              }
               phoneStatus.classList.add('error');
               phoneStart.disabled = false;
             });
