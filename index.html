@@ -289,7 +289,7 @@
             <span class="arrow">Open</span>
           </div>
         </a>
-        <a class="card-link" href="camera-remote/">
+        <a class="card-link" href="camera-remote-back/">
           <div class="cover" aria-hidden="true">
             <svg viewBox="0 0 200 100" preserveAspectRatio="none">
               <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
@@ -298,7 +298,7 @@
                 <line x1="120" y1="0" x2="120" y2="100"/>
                 <line x1="160" y1="0" x2="160" y2="100"/>
               </g>
-              <!-- phone with camera lens -->
+              <!-- phone (back) with camera lens -->
               <g transform="translate(28 18)">
                 <rect x="0" y="0" width="32" height="64" rx="5" fill="none" stroke="#bc122a" stroke-width="1.6"/>
                 <circle cx="16" cy="58" r="1.6" fill="#bc122a"/>
@@ -322,8 +322,48 @@
             </svg>
           </div>
           <div class="body">
-            <h2>Camera &middot; Remote</h2>
-            <p>Pair your phone via a 4-digit code and stream its camera live to this laptop over WebRTC.</p>
+            <h2>Back Camera &middot; Remote</h2>
+            <p>Pair your phone via a 4-digit code and stream its rear-facing camera live to this laptop over WebRTC.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="camera-remote-front/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- phone (front) with selfie lens at top, earpiece slot, screen -->
+              <g transform="translate(28 18)">
+                <rect x="0" y="0" width="32" height="64" rx="5" fill="none" stroke="#bc122a" stroke-width="1.6"/>
+                <rect x="3" y="9" width="26" height="48" rx="2" fill="rgba(188,18,42,0.18)"/>
+                <rect x="11" y="3.6" width="10" height="1.8" rx="0.9" fill="#bc122a"/>
+                <circle cx="25" cy="4.5" r="1.4" fill="none" stroke="#bc122a" stroke-width="0.9"/>
+                <circle cx="25" cy="4.5" r="0.6" fill="#bc122a"/>
+                <circle cx="16" cy="58" r="1.6" fill="#bc122a"/>
+              </g>
+              <!-- monitor with selfie preview (face silhouette) -->
+              <g transform="translate(108 22)">
+                <rect x="0" y="0" width="72" height="44" rx="3" fill="none" stroke="#bc122a" stroke-width="1.6"/>
+                <rect x="-6" y="44" width="84" height="4" rx="1.5" fill="#bc122a"/>
+                <rect x="6" y="6" width="60" height="32" rx="1.5" fill="rgba(188,18,42,0.18)"/>
+                <circle cx="36" cy="20" r="6" fill="none" stroke="#bc122a" stroke-width="1.4"/>
+                <path d="M 24 38 Q 36 28 48 38 Z" fill="rgba(188,18,42,0.35)"/>
+              </g>
+              <!-- wireless arc between -->
+              <g fill="none" stroke="#bc122a" stroke-width="1.2" stroke-linecap="round" opacity="0.7">
+                <path d="M 70 50 Q 88 30 104 50"/>
+                <path d="M 76 56 Q 88 42 98 56"/>
+                <path d="M 82 62 Q 88 54 92 62"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <h2>Front Camera &middot; Remote</h2>
+            <p>Pair your phone via a 4-digit code and stream its front-facing (selfie) camera live to this laptop over WebRTC.</p>
             <span class="arrow">Open</span>
           </div>
         </a>

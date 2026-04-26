@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Back Camera · Remote · Sensing School</title>
+    <title>Front Camera · Remote · Sensing School</title>
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -361,14 +361,14 @@
         </svg>
         <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
       </a>
-      <span class="crumb">Back Camera · Remote</span>
+      <span class="crumb">Front Camera · Remote</span>
     </header>
     <main>
       <!-- LAPTOP ROLE -->
       <div class="laptop-only">
-        <h1>Back Camera (Remote)</h1>
-        <p class="lead host-only">Pair a phone to stream its rear-facing camera here. Video is sent over a WebRTC media channel directly between phone and laptop &mdash; no server holds the frames.</p>
-        <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone&rsquo;s rear camera.</p>
+        <h1>Front Camera (Remote)</h1>
+        <p class="lead host-only">Pair a phone to stream its front-facing (selfie) camera here. Video is sent over a WebRTC media channel directly between phone and laptop &mdash; no server holds the frames.</p>
+        <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone&rsquo;s front camera.</p>
 
         <section class="panel host-only">
           <h2>Pair your phone</h2>
@@ -377,7 +377,7 @@
             <span class="pair-code" id="pairCode">— — — —</span>
           </div>
           <p class="status" id="pairStatus">Generating session&hellip;</p>
-          <p class="pair-help">On your phone, open <strong>sensingschool.com/camera-remote-back</strong> and enter this code.</p>
+          <p class="pair-help">On your phone, open <strong>sensingschool.com/camera-remote-front</strong> and enter this code.</p>
         </section>
 
         <section class="panel join-only">
@@ -452,8 +452,8 @@
 
       <!-- PHONE ROLE -->
       <div class="phone-only">
-        <h1>Back Camera Mode</h1>
-        <p class="lead">This phone streams its rear-facing camera to the laptop. Tap Start, grant camera access, and keep the screen on.</p>
+        <h1>Front Camera Mode</h1>
+        <p class="lead">This phone streams its front-facing camera to the laptop. Tap Start, grant camera access, and keep the screen on.</p>
 
         <section class="panel">
           <h2>Status</h2>
@@ -510,8 +510,8 @@
     <script>
       const params = new URLSearchParams(location.search);
       const codeParam = params.get('code');
-      const FACING = 'environment';
-      const PEER_PREFIX = 'sslab-cam-back-';
+      const FACING = 'user';
+      const PEER_PREFIX = 'sslab-cam-front-';
       const hostId = codeParam ? PEER_PREFIX + codeParam : null;
       const role = hostId ? 'phone' : 'laptop';
       document.body.dataset.role = role;
