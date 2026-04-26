@@ -383,6 +383,9 @@
             <label for="windowSlider">Window</label>
             <input type="range" id="windowSlider" min="0" max="1" step="0.001" />
             <span class="status" id="windowVal" style="min-width: 64px; text-align: right;">5.0 s</span>
+            <label style="min-width: 0; display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0;">
+              <input type="checkbox" id="showAll" /> All since connect
+            </label>
           </div>
           <div class="row">
             <label for="widthSlider">Plot width</label>
@@ -450,7 +453,7 @@
         const accelMode    = document.getElementById('accelMode');
         const rateEl       = document.getElementById('rateEl');
 
-        const WMIN = 0.5, WMAX = 120;
+        const WMIN = 0.5, WMAX = 600;
         const sliderToWin = t => WMIN * Math.pow(WMAX / WMIN, t);
         const winToSlider = s => Math.log(s / WMIN) / Math.log(WMAX / WMIN);
         const fmtWin = s => s < 10 ? s.toFixed(1) + ' s'
@@ -607,6 +610,15 @@
         showSamplesEl.addEventListener('change', applyShowSamples);
         applyShowSamples();
 
+        const showAllEl = document.getElementById('showAll');
+        function applyShowAll() {
+          const on = showAllEl.checked;
+          windowSlider.disabled = on;
+          for (const k of ['accel','gyro','mag']) charts[k].setShowAll(on);
+        }
+        showAllEl.addEventListener('change', applyShowAll);
+        applyShowAll();
+
         const widthSlider = document.getElementById('widthSlider');
         const widthVal    = document.getElementById('widthVal');
         function applyPlotWidth() {
@@ -661,12 +673,17 @@
         const buf = axes.map(() => []); // [{t, v}]
         let windowSec = 5;
         let showSamples = false;
+        let showAll = false;
         let firstSampleAt = null;
         let lastT = 0;
         let drawScheduled = false;
 
         function setWindow(s) { windowSec = s; }
         function setShowSamples(v) { showSamples = !!v; }
+        function setShowAll(v) {
+          showAll = !!v;
+          if (firstSampleAt !== null) requestAnimationFrame(draw);
+        }
 
         function push(t, sample) {
           if (firstSampleAt === null) {
@@ -677,12 +694,13 @@
           const vs = [sample.x, sample.y, sample.z];
           for (let i = 0; i < axes.length; i++) {
             buf[i].push({ t, v: vs[i] });
-            // trim old
-            const cutoff = t - windowSec * 1.2;
             const arr = buf[i];
-            let drop = 0;
-            while (drop < arr.length && arr[drop].t < cutoff) drop++;
-            if (drop > 0) arr.splice(0, drop);
+            if (!showAll) {
+              const cutoff = t - windowSec * 1.2;
+              let drop = 0;
+              while (drop < arr.length && arr[drop].t < cutoff) drop++;
+              if (drop > 0) arr.splice(0, drop);
+            }
             // legend value (most recent finite)
             for (let j = arr.length - 1; j >= 0; j--) {
               if (isFinite(arr[j].v)) {
@@ -711,8 +729,11 @@
           ctx.fillRect(0, 0, w, h);
 
           const tEnd = lastT;
-          const tStart = tEnd - windowSec;
-          const xOf = t => ((t - tStart) / windowSec) * w;
+          const tStart = showAll
+            ? (firstSampleAt !== null ? firstSampleAt : tEnd - 1)
+            : (tEnd - windowSec);
+          const span = Math.max(1e-3, tEnd - tStart);
+          const xOf = t => ((t - tStart) / span) * w;
 
           // y range — symmetric about zero
           let absMax = 0;
@@ -753,9 +774,10 @@
           ctx.lineTo(w, yOf(0));
           ctx.stroke();
 
-          // vertical seconds grid
+          // vertical seconds grid (adaptive spacing)
           ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-          for (let s = Math.ceil(tStart); s <= tEnd; s += 1) {
+          const tickSpacing = niceTickStep(span / 8);
+          for (let s = Math.ceil(tStart / tickSpacing) * tickSpacing; s <= tEnd; s += tickSpacing) {
             const x = xOf(s);
             ctx.beginPath();
             ctx.moveTo(x, 0);
@@ -820,7 +842,7 @@
           if (firstSampleAt !== null) draw();
         });
 
-        return { push, setWindow, setShowSamples };
+        return { push, setWindow, setShowSamples, setShowAll };
       }
 
       /* ============ PHONE ============ */

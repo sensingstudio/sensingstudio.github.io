@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Camera · Remote · Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <script src="https://unpkg.com/peerjs@1/dist/peerjs.min.js"></script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+      }
+      header a.brand .red { color: var(--red); }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel h2 .units {
+        margin-left: 8px;
+        color: var(--grey-text);
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        text-transform: none;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 70px;
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.big { font-size: 16px; padding: 16px 36px; }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--black);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .video-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        width: 100%;
+      }
+      .video-wrap video {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+        background: #0c0c0e;
+      }
+      .video-wrap .placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .video-meta {
+        display: flex;
+        gap: 18px;
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--grey-text);
+        font-variant-numeric: tabular-nums;
+        flex-wrap: wrap;
+      }
+      .video-meta .item strong {
+        color: var(--black);
+        font-weight: 700;
+        margin-left: 4px;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 5;
+      }
+      .canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+      .canvas-wrap .placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        margin-top: 12px;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--grey-text);
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .legend .axis {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .legend .val {
+        font-weight: 700;
+        color: var(--black);
+        min-width: 50px;
+        display: inline-block;
+        text-align: right;
+      }
+      .preview-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 9 / 16;
+        max-width: 280px;
+        margin: 0 auto;
+      }
+      .preview-wrap video {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        background: #0c0c0e;
+      }
+      .status { font-size: 13px; color: var(--grey-text); margin: 0; }
+      .status.error { color: var(--red); }
+      .status.ok { color: var(--green); font-weight: 500; }
+      .note {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 16px;
+        line-height: 1.5;
+      }
+      .pair-help {
+        color: var(--grey-text);
+        font-size: 13px;
+        margin: 0;
+        line-height: 1.5;
+      }
+      .pair-help strong {
+        color: var(--black);
+        font-weight: 700;
+      }
+      .pair-code-block {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .pair-code-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .pair-code {
+        font-size: 44px;
+        font-weight: 900;
+        letter-spacing: 6px;
+        font-variant-numeric: tabular-nums;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        color: var(--black);
+        line-height: 1;
+      }
+      .join-help {
+        margin: 0 0 12px;
+        color: var(--grey-text);
+        font-size: 13px;
+      }
+      .join-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 0;
+      }
+      #joinCode {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        text-align: center;
+        padding: 10px 14px;
+        border: 1px solid var(--grey-line);
+        border-radius: 6px;
+        background: #f5f5f5;
+        width: 150px;
+        min-width: 0;
+      }
+      #joinCode:focus {
+        outline: none;
+        border-color: var(--red);
+        background: #fff;
+      }
+      body[data-role="laptop"] .phone-only { display: none; }
+      body[data-role="phone"] .laptop-only { display: none; }
+      body:not([data-role]) .laptop-only,
+      body:not([data-role]) .phone-only { display: none; }
+      body[data-role="laptop"]:not([data-paired]) .needs-phone {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      .join-only { display: none; }
+      @media (pointer: coarse) {
+        body[data-role="laptop"] .host-only { display: none; }
+        body[data-role="laptop"] .join-only { display: block; }
+      }
+      @media (pointer: coarse) {
+        #joinCode {
+          font-size: 32px;
+          letter-spacing: 8px;
+          width: 100%;
+          max-width: 240px;
+          padding: 14px 16px;
+        }
+        .join-form button {
+          font-size: 15px;
+          padding: 14px 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../"><span>SENSING</span> <span class="red">SCHOOL</span></a>
+      <span class="crumb">Camera · Remote</span>
+    </header>
+    <main>
+      <!-- LAPTOP ROLE -->
+      <div class="laptop-only">
+        <h1>Camera (Remote)</h1>
+        <p class="lead host-only">Pair a phone to stream its camera here. Video is sent over a WebRTC media channel directly between phone and laptop &mdash; no server holds the frames.</p>
+        <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone as its camera.</p>
+
+        <section class="panel host-only">
+          <h2>Pair your phone</h2>
+          <div class="pair-code-block">
+            <span class="pair-code-label">Code</span>
+            <span class="pair-code" id="pairCode">— — — —</span>
+          </div>
+          <p class="status" id="pairStatus">Generating session&hellip;</p>
+          <p class="pair-help">On your phone, open <strong>sensingschool.com/camera-remote</strong> and enter this code.</p>
+        </section>
+
+        <section class="panel join-only">
+          <h2>Join a session</h2>
+          <p class="join-help">Enter the 4-digit code from the host laptop:</p>
+          <form id="joinForm" class="join-form">
+            <input
+              type="text"
+              id="joinCode"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              placeholder="0000"
+              autocomplete="off"
+              aria-label="4-digit pairing code"
+            />
+            <button type="submit">Connect</button>
+            <span class="status" id="joinStatus"></span>
+          </form>
+        </section>
+
+        <section class="panel needs-phone host-only">
+          <h2>Live feed</h2>
+          <div class="video-wrap">
+            <video id="remoteVideo" autoplay playsinline muted></video>
+            <div class="placeholder" id="videoPlaceholder">Waiting for phone&hellip;</div>
+          </div>
+          <div class="video-meta">
+            <span class="item">Resolution<strong id="metaRes">—</strong></span>
+            <span class="item">Frame rate<strong id="metaFps">—</strong></span>
+            <span class="item">Bitrate<strong id="metaBitrate">—</strong></span>
+          </div>
+        </section>
+
+        <section class="panel needs-phone host-only">
+          <h2>RGB channel averages <span class="units">(0–255)</span></h2>
+          <div class="canvas-wrap">
+            <canvas id="rgbCanvas"></canvas>
+            <div class="placeholder" id="rgbPlaceholder">Waiting for phone&hellip;</div>
+          </div>
+          <div class="legend" id="rgbLegend"></div>
+          <div class="row" style="margin-top: 14px;">
+            <label for="windowSlider">Window</label>
+            <input type="range" id="windowSlider" min="0" max="1" step="0.001" />
+            <span class="status" id="windowVal" style="min-width: 64px; text-align: right;">5.0 s</span>
+            <span class="status" id="rgbRate" style="margin-left: auto;">— Hz</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- PHONE ROLE -->
+      <div class="phone-only">
+        <h1>Camera Mode</h1>
+        <p class="lead">This phone streams its camera to the laptop. Tap Start, grant camera access, and keep the screen on.</p>
+
+        <section class="panel">
+          <h2>Status</h2>
+          <p class="status" id="phoneStatus">Tap Start to enable the camera and connect.</p>
+          <div class="row" style="margin-top: 16px;">
+            <button id="phoneStart" class="big">Start</button>
+          </div>
+          <p class="note">Your browser will ask for camera permission. Frames are sent directly to the laptop &mdash; nothing is recorded or uploaded.</p>
+        </section>
+
+        <section class="panel" id="phoneControls" hidden>
+          <h2>Camera</h2>
+          <div class="row">
+            <label for="facingSelect">Facing</label>
+            <select id="facingSelect">
+              <option value="environment" selected>Back</option>
+              <option value="user">Front</option>
+            </select>
+            <label for="qualitySelect">Quality</label>
+            <select id="qualitySelect">
+              <option value="480">480p</option>
+              <option value="720" selected>720p</option>
+              <option value="1080">1080p</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="preview-wrap" style="flex: 1 1 240px;">
+              <video id="phonePreview" autoplay playsinline muted></video>
+            </div>
+          </div>
+          <p class="status" id="phoneMeta">—</p>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const codeParam = params.get('code');
+      const hostId = codeParam ? 'sslab-cam-' + codeParam : null;
+      const role = hostId ? 'phone' : 'laptop';
+      document.body.dataset.role = role;
+
+      if (role === 'laptop') initLaptop(); else initPhone();
+
+      /* ============ LAPTOP ============ */
+      function initLaptop() {
+        const pairCodeEl     = document.getElementById('pairCode');
+        const pairStatus     = document.getElementById('pairStatus');
+        const joinForm       = document.getElementById('joinForm');
+        const joinCodeIn     = document.getElementById('joinCode');
+        const joinStatus     = document.getElementById('joinStatus');
+        const remoteVideo    = document.getElementById('remoteVideo');
+        const videoPlaceholder = document.getElementById('videoPlaceholder');
+        const metaRes        = document.getElementById('metaRes');
+        const metaFps        = document.getElementById('metaFps');
+        const metaBitrate    = document.getElementById('metaBitrate');
+
+        let peer = null;
+        let activeCall = null;
+        let statsTimer = null;
+        let lastBytes = 0;
+        let lastStatsAt = 0;
+
+        function makeNumericCode() {
+          return ('0000' + Math.floor(Math.random() * 10000)).slice(-4);
+        }
+
+        function tryClaimPeer(attempt) {
+          attempt = attempt || 0;
+          if (attempt > 8) {
+            pairStatus.textContent = 'Could not allocate a session — please refresh.';
+            pairStatus.classList.add('error');
+            return;
+          }
+          const code = makeNumericCode();
+          peer = new Peer('sslab-cam-' + code);
+          let resolved = false;
+          peer.on('open', () => {
+            if (resolved) return;
+            resolved = true;
+            pairCodeEl.textContent = code.split('').join(' ');
+            pairStatus.textContent = 'Waiting for phone…';
+            attachPeerHandlers();
+          });
+          peer.on('error', (err) => {
+            if (resolved) {
+              pairStatus.textContent = 'Connection error: ' + err.message;
+              pairStatus.classList.add('error');
+              return;
+            }
+            if (err.type === 'unavailable-id') {
+              resolved = true;
+              try { peer.destroy(); } catch (_) {}
+              tryClaimPeer(attempt + 1);
+            } else {
+              resolved = true;
+              pairStatus.textContent = 'Pairing error: ' + err.message;
+              pairStatus.classList.add('error');
+            }
+          });
+        }
+
+        function attachPeerHandlers() {
+          peer.on('call', (call) => {
+            // No outbound stream — laptop just receives.
+            call.answer();
+            activeCall = call;
+            call.on('stream', (remoteStream) => {
+              remoteVideo.srcObject = remoteStream;
+              videoPlaceholder.style.display = 'none';
+              pairStatus.textContent = 'Phone connected.';
+              pairStatus.classList.remove('error');
+              pairStatus.classList.add('ok');
+              document.body.dataset.paired = '1';
+              startStats(call);
+            });
+            call.on('close', () => {
+              if (activeCall === call) activeCall = null;
+              remoteVideo.srcObject = null;
+              videoPlaceholder.style.display = '';
+              delete document.body.dataset.paired;
+              pairStatus.textContent = 'Phone disconnected.';
+              pairStatus.classList.remove('ok');
+              metaRes.textContent = '—';
+              metaFps.textContent = '—';
+              metaBitrate.textContent = '—';
+              stopStats();
+            });
+            call.on('error', (err) => {
+              pairStatus.textContent = 'Call error: ' + err.message;
+              pairStatus.classList.add('error');
+            });
+          });
+        }
+
+        function startStats(call) {
+          stopStats();
+          lastBytes = 0;
+          lastStatsAt = 0;
+          statsTimer = setInterval(async () => {
+            const pc = call.peerConnection;
+            if (!pc) return;
+            try {
+              const stats = await pc.getStats(null);
+              let bytes = 0, fps = null, w = null, h = null;
+              stats.forEach((r) => {
+                if (r.type === 'inbound-rtp' && r.kind === 'video') {
+                  bytes = r.bytesReceived || 0;
+                  if (r.framesPerSecond != null) fps = r.framesPerSecond;
+                  if (r.frameWidth) w = r.frameWidth;
+                  if (r.frameHeight) h = r.frameHeight;
+                }
+              });
+              const now = performance.now();
+              if (lastStatsAt > 0 && bytes > lastBytes) {
+                const dt = (now - lastStatsAt) / 1000;
+                const kbps = ((bytes - lastBytes) * 8 / 1000) / dt;
+                metaBitrate.textContent = kbps >= 1000
+                  ? (kbps / 1000).toFixed(2) + ' Mbps'
+                  : kbps.toFixed(0) + ' kbps';
+              }
+              lastBytes = bytes;
+              lastStatsAt = now;
+              if (w && h) metaRes.textContent = w + '×' + h;
+              if (fps != null) metaFps.textContent = fps.toFixed(0) + ' fps';
+            } catch (_) { /* ignore */ }
+          }, 1000);
+        }
+
+        function stopStats() {
+          if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
+        }
+
+        joinCodeIn.addEventListener('input', () => {
+          joinCodeIn.value = joinCodeIn.value.replace(/\D/g, '').slice(0, 4);
+        });
+        joinForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const v = joinCodeIn.value.replace(/\D/g, '').slice(0, 4);
+          if (v.length !== 4) {
+            joinStatus.textContent = 'Enter all 4 digits.';
+            joinStatus.classList.add('error');
+            joinCodeIn.focus();
+            return;
+          }
+          location.href = location.pathname + '?code=' + v;
+        });
+
+        tryClaimPeer();
+      }
+
+      /* ============ PHONE ============ */
+      function initPhone() {
+        const phoneStatus    = document.getElementById('phoneStatus');
+        const phoneStart     = document.getElementById('phoneStart');
+        const phoneControls  = document.getElementById('phoneControls');
+        const phonePreview   = document.getElementById('phonePreview');
+        const phoneMeta      = document.getElementById('phoneMeta');
+        const facingSelect   = document.getElementById('facingSelect');
+        const qualitySelect  = document.getElementById('qualitySelect');
+
+        let stream = null;
+        let call = null;
+        let videoSender = null;
+
+        const QUALITIES = {
+          '480':  { width: { ideal: 854 },  height: { ideal: 480 },  frameRate: { ideal: 30 } },
+          '720':  { width: { ideal: 1280 }, height: { ideal: 720 },  frameRate: { ideal: 30 } },
+          '1080': { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+        };
+
+        async function getCameraStream() {
+          const constraints = {
+            audio: false,
+            video: Object.assign(
+              { facingMode: { ideal: facingSelect.value } },
+              QUALITIES[qualitySelect.value] || QUALITIES['720']
+            ),
+          };
+          return await navigator.mediaDevices.getUserMedia(constraints);
+        }
+
+        function updateMeta() {
+          if (!stream) { phoneMeta.textContent = '—'; return; }
+          const track = stream.getVideoTracks()[0];
+          if (!track) { phoneMeta.textContent = '—'; return; }
+          const s = track.getSettings();
+          const parts = [];
+          if (s.width && s.height) parts.push(s.width + '×' + s.height);
+          if (s.frameRate) parts.push(Math.round(s.frameRate) + ' fps');
+          if (s.facingMode) parts.push(s.facingMode);
+          phoneMeta.textContent = parts.join(' · ') || '—';
+        }
+
+        async function applyConstraints() {
+          if (!stream) return;
+          phoneStatus.textContent = 'Switching camera…';
+          phoneStatus.classList.remove('error', 'ok');
+          // Replace the entire stream (facingMode often can't be changed via applyConstraints).
+          const oldTracks = stream.getTracks();
+          let newStream;
+          try {
+            newStream = await getCameraStream();
+          } catch (err) {
+            phoneStatus.textContent = 'Could not switch: ' + err.message;
+            phoneStatus.classList.add('error');
+            return;
+          }
+          stream = newStream;
+          phonePreview.srcObject = stream;
+          const newTrack = stream.getVideoTracks()[0];
+          if (videoSender && newTrack) {
+            try { await videoSender.replaceTrack(newTrack); } catch (_) {}
+          }
+          oldTracks.forEach(t => t.stop());
+          updateMeta();
+          phoneStatus.textContent = 'Streaming to laptop.';
+          phoneStatus.classList.add('ok');
+        }
+
+        facingSelect.addEventListener('change', applyConstraints);
+        qualitySelect.addEventListener('change', applyConstraints);
+
+        phoneStart.addEventListener('click', async () => {
+          phoneStart.disabled = true;
+          phoneStatus.classList.remove('error', 'ok');
+          try {
+            phoneStatus.textContent = 'Requesting camera permission…';
+            stream = await getCameraStream();
+            phonePreview.srcObject = stream;
+            phoneControls.hidden = false;
+            updateMeta();
+
+            phoneStatus.textContent = 'Connecting…';
+            const peer = new Peer();
+            peer.on('open', () => {
+              call = peer.call(hostId, stream);
+              if (!call) {
+                phoneStatus.textContent = 'Could not initiate call.';
+                phoneStatus.classList.add('error');
+                phoneStart.disabled = false;
+                return;
+              }
+              // Track sender so we can swap tracks on camera switch.
+              const pc = call.peerConnection;
+              if (pc) {
+                videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video') || null;
+              }
+              call.on('stream', () => {
+                // Phone doesn't receive a stream; ignore.
+              });
+              call.on('close', () => {
+                phoneStatus.textContent = 'Disconnected.';
+                phoneStatus.classList.remove('ok');
+              });
+              call.on('error', (err) => {
+                phoneStatus.textContent = 'Call error: ' + err.message;
+                phoneStatus.classList.add('error');
+              });
+              // The 'iceStateChanged' / connection becomes connected once media flows.
+              if (pc) {
+                pc.addEventListener('connectionstatechange', () => {
+                  if (pc.connectionState === 'connected') {
+                    phoneStatus.textContent = 'Streaming to laptop.';
+                    phoneStatus.classList.remove('error');
+                    phoneStatus.classList.add('ok');
+                    if (!videoSender) {
+                      videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video') || null;
+                    }
+                  } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+                    phoneStatus.textContent = 'Disconnected.';
+                    phoneStatus.classList.remove('ok');
+                  }
+                });
+              } else {
+                phoneStatus.textContent = 'Streaming to laptop.';
+                phoneStatus.classList.add('ok');
+              }
+            });
+            peer.on('error', (err) => {
+              phoneStatus.textContent = 'Connection error: ' + err.message;
+              phoneStatus.classList.add('error');
+              phoneStart.disabled = false;
+            });
+
+            if ('wakeLock' in navigator) {
+              navigator.wakeLock.request('screen').catch(() => {});
+            }
+          } catch (err) {
+            phoneStatus.textContent = 'Could not start: ' + err.message;
+            phoneStatus.classList.add('error');
+            phoneStart.disabled = false;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
