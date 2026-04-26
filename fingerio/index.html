@@ -384,6 +384,16 @@
           <span><span class="swatch" style="background:#5b6068"></span>running average (clutter)</span>
           <span><span class="swatch" style="background:#E8B923"></span>peak above clutter</span>
         </div>
+
+        <div class="canvas-title">Tracked distance
+          <span class="sub">strongest mover, bin &rarr; cm, last 8&nbsp;s &mdash; wave your hand back and forth</span>
+        </div>
+        <div class="canvas-wrap short"><canvas id="trackCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#E8B923"></span>tracked finger distance</span>
+          <span><span class="swatch" style="background:rgba(188,18,42,0.4)"></span>signal strength (dot size)</span>
+          <span><span class="swatch" style="background:#5b6068"></span>no motion above noise floor</span>
+        </div>
       </section>
 
       <section class="panel teach">
@@ -480,8 +490,14 @@
       const syncStat = document.getElementById('syncStat');
       const distStat = document.getElementById('distStat');
 
-      const rtCanvas  = document.getElementById('rtCanvas');
-      const cirCanvas = document.getElementById('cirCanvas');
+      const rtCanvas    = document.getElementById('rtCanvas');
+      const cirCanvas   = document.getElementById('cirCanvas');
+      const trackCanvas = document.getElementById('trackCanvas');
+
+      // History of the strongest mover, used by the tracked-distance plot.
+      // Each entry is { t (ms), cm (number|null), mag (0..1 normalized) }.
+      const TRACK_WINDOW_S = 8;
+      const trackHist = [];
 
       // --- UI helpers ---
       function fmtFreq(f) {
@@ -639,6 +655,8 @@
         ctx.fillRect(0, 0, W, H);
         cirCanvas.width  = Math.max(200, Math.floor((cirCanvas.clientWidth  || 800) * dpr));
         cirCanvas.height = Math.max(80,  Math.floor((cirCanvas.clientHeight || 180) * dpr));
+        trackCanvas.width  = Math.max(200, Math.floor((trackCanvas.clientWidth  || 800) * dpr));
+        trackCanvas.height = Math.max(80,  Math.floor((trackCanvas.clientHeight || 180) * dpr));
         state.rt = { ctx, W, H, dpr };
       }
       window.addEventListener('resize', () => { if (state.rt) setupRangeTime(); });
@@ -949,6 +967,7 @@
           state.nextFrame = 0;
           state.lastSyncAt = -1e9;
           state.bgEMA = null;
+          trackHist.length = 0;
 
           // Microphone
           setStatus('Requesting microphone...', 'busy');
@@ -1066,6 +1085,142 @@
               : rate;
           }
           state.lastFrameWall = now;
+
+          // Record one tracked-distance sample per CIR frame.
+          const valid = r.movePeakBin >= 0 && r.movePeak > 0.02 * r.hPeak;
+          const cm = valid
+            ? (r.movePeakBin * SOUND_C / (2 * state.sampleRate)) * 100
+            : null;
+          const mag = r.hPeak > 0 ? Math.min(1, r.movePeak / r.hPeak) : 0;
+          trackHist.push({ t: now, cm, mag });
+          // Drop entries older than the window (plus a small margin).
+          const cutoff = now - (TRACK_WINDOW_S + 1) * 1000;
+          while (trackHist.length && trackHist[0].t < cutoff) trackHist.shift();
+        }
+      }
+
+      // ============================================================
+      //  Tracked-distance plot: hand position over the last few seconds
+      // ============================================================
+      function drawTrack() {
+        if (!trackCanvas.width) return;
+        const dpr = state.rt ? state.rt.dpr : 1;
+        const W = trackCanvas.width, H = trackCanvas.height;
+        const ctx = trackCanvas.getContext('2d');
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, W, H);
+
+        const padL = 32 * dpr, padR = 8 * dpr;
+        const padT = 10 * dpr, padB = 16 * dpr;
+        const plotW = W - padL - padR;
+        const plotH = H - padT - padB;
+        const maxCm = +dispRangeEl.value;
+        const now = performance.now();
+        const tEnd = now;
+        const tStart = now - TRACK_WINDOW_S * 1000;
+
+        // y from cm: y = 0 cm at bottom, y = maxCm at top
+        const yOf = cm => padT + plotH * (1 - cm / maxCm);
+        const xOf = t  => padL + plotW * (t - tStart) / (tEnd - tStart);
+
+        // Horizontal grid + cm labels every 10 cm
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = (10 * dpr) + 'px "Roboto Mono", monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        const cmStep = maxCm <= 30 ? 5 : 10;
+        for (let cm = 0; cm <= maxCm; cm += cmStep) {
+          const y = yOf(cm);
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(W - padR, y);
+          ctx.stroke();
+          ctx.fillText(cm + ' cm', padL - 4 * dpr, y);
+        }
+        // Time axis ticks at -8, -6, -4, -2, 0 s
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        for (let s = 0; s <= TRACK_WINDOW_S; s += 2) {
+          const t = tEnd - s * 1000;
+          const x = xOf(t);
+          ctx.beginPath();
+          ctx.moveTo(x, padT);
+          ctx.lineTo(x, padT + plotH);
+          ctx.stroke();
+          ctx.fillText('-' + s + 's', x, padT + plotH + 2 * dpr);
+        }
+
+        // Filter samples within the window
+        const samples = [];
+        for (const s of trackHist) {
+          if (s.t < tStart) continue;
+          samples.push(s);
+        }
+        if (samples.length < 2) return;
+
+        // Light EMA smoothing on cm so the line reads cleanly.
+        // Skips invalid samples; resets after long invalid gaps.
+        const smoothed = new Array(samples.length);
+        let sm = null, lastValidT = -1e9;
+        for (let i = 0; i < samples.length; i++) {
+          const s = samples[i];
+          if (s.cm == null) {
+            smoothed[i] = { t: s.t, cm: null, mag: s.mag };
+            continue;
+          }
+          if (sm == null || s.t - lastValidT > 250) sm = s.cm;
+          else sm = sm + 0.35 * (s.cm - sm);
+          lastValidT = s.t;
+          smoothed[i] = { t: s.t, cm: sm, mag: s.mag };
+        }
+
+        // Draw line connecting adjacent valid samples (gap on invalid).
+        ctx.strokeStyle = '#E8B923';
+        ctx.lineWidth = 2 * dpr;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        let pen = false;
+        for (const s of smoothed) {
+          if (s.cm == null) { pen = false; continue; }
+          const x = xOf(s.t), y = yOf(s.cm);
+          if (!pen) { ctx.moveTo(x, y); pen = true; } else { ctx.lineTo(x, y); }
+        }
+        ctx.stroke();
+
+        // Strength dots — size proportional to motion magnitude.
+        for (const s of smoothed) {
+          if (s.cm == null) continue;
+          const x = xOf(s.t), y = yOf(s.cm);
+          const r = Math.max(1, Math.min(5, s.mag * 12)) * dpr;
+          ctx.fillStyle = 'rgba(188,18,42,0.45)';
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Latest-point readout (big yellow dot + label) at the right edge.
+        let latest = null;
+        for (let i = smoothed.length - 1; i >= 0; i--) {
+          if (smoothed[i].cm != null) { latest = smoothed[i]; break; }
+        }
+        if (latest && now - latest.t < 300) {
+          const x = xOf(latest.t), y = yOf(latest.cm);
+          ctx.fillStyle = '#E8B923';
+          ctx.beginPath();
+          ctx.arc(x, y, 4 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#0c0c0e';
+          ctx.beginPath();
+          ctx.arc(x, y, 1.6 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#E8B923';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+          ctx.font = 'bold ' + (11 * dpr) + 'px "Roboto Mono", monospace';
+          ctx.fillText(latest.cm.toFixed(1) + ' cm', x - 6 * dpr, y - 4 * dpr);
         }
       }
 
@@ -1078,6 +1233,7 @@
         if (r) {
           drawColumn(r.motion, r.hPeak);
           drawCIR(r.h, state.bgEMA, r.movePeakBin);
+          drawTrack();
           // stats
           rateStat.innerHTML = state.cirRateEMA
             ? state.cirRateEMA.toFixed(0) + '<span class="unit"> Hz</span>'
