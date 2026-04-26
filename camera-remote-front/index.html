@@ -159,6 +159,13 @@
         object-fit: contain;
         background: #0c0c0e;
       }
+      .video-wrap canvas.overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
       .video-wrap .placeholder {
         position: absolute;
         inset: 0;
@@ -401,14 +408,17 @@
 
         <section class="panel needs-phone host-only">
           <h2>Live feed</h2>
-          <div class="video-wrap">
+          <div class="video-wrap" id="liveWrap">
             <video id="remoteVideo" autoplay playsinline muted></video>
+            <canvas id="poseOverlay" class="overlay"></canvas>
             <div class="placeholder" id="videoPlaceholder">Waiting for phone&hellip;</div>
           </div>
           <div class="video-meta">
             <span class="item">Resolution<strong id="metaRes">—</strong></span>
             <span class="item">Frame rate<strong id="metaFps">—</strong></span>
             <span class="item">Bitrate<strong id="metaBitrate">—</strong></span>
+            <span class="item">Pose<strong id="metaPose">—</strong></span>
+            <span class="item">Inference<strong id="metaInf">—</strong></span>
           </div>
         </section>
 
@@ -507,7 +517,17 @@
       </div>
     </main>
 
-    <script>
+    <script type="module">
+      import {
+        PoseLandmarker,
+        FilesetResolver,
+        DrawingUtils,
+      } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+      const MEDIAPIPE_VERSION = '0.10.14';
+      const MEDIAPIPE_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
+      const POSE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+
       const params = new URLSearchParams(location.search);
       const codeParam = params.get('code');
       const FACING = 'user';
@@ -527,15 +547,148 @@
         const joinStatus     = document.getElementById('joinStatus');
         const remoteVideo    = document.getElementById('remoteVideo');
         const videoPlaceholder = document.getElementById('videoPlaceholder');
+        const liveWrap       = document.getElementById('liveWrap');
+        const poseOverlay    = document.getElementById('poseOverlay');
+        const poseCtx        = poseOverlay.getContext('2d');
         const metaRes        = document.getElementById('metaRes');
         const metaFps        = document.getElementById('metaFps');
         const metaBitrate    = document.getElementById('metaBitrate');
+        const metaPose       = document.getElementById('metaPose');
+        const metaInf        = document.getElementById('metaInf');
 
         let peer = null;
         let activeCall = null;
         let statsTimer = null;
         let lastBytes = 0;
         let lastStatsAt = 0;
+
+        /* ---- pose tracking ---- */
+        let poseLandmarker = null;
+        let drawingUtils = null;
+        let poseRafId = null;
+        let lastPoseVideoTime = -1;
+        let infEMA = 0;
+
+        async function ensurePose() {
+          if (poseLandmarker) return;
+          metaPose.textContent = 'loading…';
+          const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM);
+          poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+            baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: 'GPU' },
+            runningMode: 'VIDEO',
+            numPoses: 1,
+          });
+          drawingUtils = new DrawingUtils(poseCtx);
+        }
+
+        // Shoulders are landmarks 11 (left) and 12 (right). The chest ROI
+        // spans them horizontally and extends ~1.2 shoulder-widths down.
+        function shouldersToROI(landmarks) {
+          const L = landmarks[11], R = landmarks[12];
+          if (!L || !R) return null;
+          const vL = L.visibility ?? 1, vR = R.visibility ?? 1;
+          if (vL < 0.5 || vR < 0.5) return null;
+          const left  = Math.min(L.x, R.x);
+          const right = Math.max(L.x, R.x);
+          const top   = Math.max(L.y, R.y);
+          const sw    = right - left;
+          if (sw < 0.05) return null;
+          const padX = sw * 0.05;
+          const x = Math.max(0, left - padX);
+          return {
+            x,
+            y: top,
+            w: Math.min(1, right + padX) - x,
+            h: Math.min(1 - top, sw * 1.2),
+          };
+        }
+
+        function drawROI(roi) {
+          if (!roi) return;
+          const w = poseOverlay.width, h = poseOverlay.height;
+          poseCtx.save();
+          poseCtx.strokeStyle = '#bc122a';
+          poseCtx.lineWidth = 3;
+          poseCtx.setLineDash([8, 6]);
+          poseCtx.strokeRect(roi.x * w, roi.y * h, roi.w * w, roi.h * h);
+          poseCtx.restore();
+        }
+
+        function syncOverlaySize() {
+          const vw = remoteVideo.videoWidth, vh = remoteVideo.videoHeight;
+          if (!vw || !vh) return false;
+          if (poseOverlay.width !== vw || poseOverlay.height !== vh) {
+            poseOverlay.width = vw;
+            poseOverlay.height = vh;
+          }
+          // Match wrap aspect to incoming video so the overlay aligns 1:1
+          // with the (object-fit: contain) <video> contents.
+          const a = vw / vh;
+          liveWrap.style.aspectRatio = a.toString();
+          return true;
+        }
+
+        async function startPoseTracking() {
+          stopPoseTracking();
+          try {
+            await ensurePose();
+          } catch (err) {
+            metaPose.textContent = 'load error';
+            console.warn('pose model load failed', err);
+            return;
+          }
+          metaPose.textContent = 'searching…';
+          const tick = () => {
+            poseRafId = requestAnimationFrame(tick);
+            if (remoteVideo.readyState < 2) return;
+            if (!syncOverlaySize()) return;
+            if (remoteVideo.currentTime === lastPoseVideoTime) return;
+            lastPoseVideoTime = remoteVideo.currentTime;
+
+            const t0 = performance.now();
+            let result;
+            try {
+              result = poseLandmarker.detectForVideo(remoteVideo, t0);
+            } catch (_) {
+              return;
+            }
+            const dt = performance.now() - t0;
+            infEMA = infEMA ? infEMA * 0.85 + dt * 0.15 : dt;
+            metaInf.textContent = infEMA.toFixed(0) + ' ms';
+
+            poseCtx.clearRect(0, 0, poseOverlay.width, poseOverlay.height);
+            const lms = result?.landmarks?.[0];
+            if (lms) {
+              metaPose.textContent = 'tracked';
+              drawingUtils.drawConnectors(lms, PoseLandmarker.POSE_CONNECTIONS, {
+                color: 'rgba(255,255,255,0.85)',
+                lineWidth: 3,
+              });
+              drawingUtils.drawLandmarks(lms, {
+                color: '#bc122a',
+                fillColor: '#fff',
+                radius: 4,
+                lineWidth: 2,
+              });
+              drawROI(shouldersToROI(lms));
+            } else {
+              metaPose.textContent = 'searching…';
+            }
+          };
+          tick();
+        }
+
+        function stopPoseTracking() {
+          if (poseRafId) cancelAnimationFrame(poseRafId);
+          poseRafId = null;
+          lastPoseVideoTime = -1;
+          infEMA = 0;
+          if (poseOverlay.width && poseOverlay.height) {
+            poseCtx.clearRect(0, 0, poseOverlay.width, poseOverlay.height);
+          }
+          metaPose.textContent = '—';
+          metaInf.textContent = '—';
+        }
 
         const charts = {
           r: makeChannelChart('rCanvas', 'rPlaceholder', 'rLegend', 'R', '#e63946'),
@@ -680,6 +833,7 @@
               document.body.dataset.paired = '1';
               startStats(call);
               startRGBSampling(remoteVideo);
+              startPoseTracking();
             });
             call.on('close', () => {
               if (activeCall === call) activeCall = null;
@@ -693,6 +847,7 @@
               metaBitrate.textContent = '—';
               stopStats();
               stopRGBSampling();
+              stopPoseTracking();
               chartsForEach(c => c.clear());
             });
             call.on('error', (err) => {
