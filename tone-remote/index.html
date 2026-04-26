@@ -426,20 +426,39 @@
           const m = sdp.match(/a=rtpmap:(\d+)\s+opus\/48000(?:\/\d+)?/i);
           if (!m) return sdp;
           const pt = m[1];
-          const fmtpRe = new RegExp('(a=fmtp:' + pt + '\\s+)([^\\r\\n]*)', 'g');
+          const fmtpRe = new RegExp('a=fmtp:' + pt + '\\s+[^\\r\\n]*');
           if (fmtpRe.test(sdp)) {
-            return sdp.replace(fmtpRe, '$1' + opusParams);
+            return sdp.replace(fmtpRe, 'a=fmtp:' + pt + ' ' + opusParams);
           }
           return sdp.replace(m[0], m[0] + '\r\na=fmtp:' + pt + ' ' + opusParams);
         }
         const origSet = RTCPeerConnection.prototype.setLocalDescription;
         RTCPeerConnection.prototype.setLocalDescription = function(desc) {
           if (desc && desc.sdp) {
-            try { desc = { type: desc.type, sdp: improve(desc.sdp) }; } catch (e) {}
+            const newSdp = improve(desc.sdp);
+            if (newSdp !== desc.sdp) {
+              console.log('[opus-patch] Forced Opus to fullband 510kbps');
+            }
+            desc = { type: desc.type, sdp: newSdp };
           }
           return origSet.call(this, desc);
         };
       })();
+
+      // Bump RtpSender bitrate too (runtime control, complements SDP fmtp).
+      async function bumpAudioBitrate(peerConnection) {
+        try {
+          const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
+          if (!sender) return;
+          const params = sender.getParameters();
+          if (!params.encodings) params.encodings = [{}];
+          params.encodings[0].maxBitrate = 510000;
+          await sender.setParameters(params);
+          console.log('[opus-patch] Set RtpSender maxBitrate to 510 kbps');
+        } catch (e) {
+          console.warn('[opus-patch] setParameters failed:', e);
+        }
+      }
 
       const PUBLIC_ORIGIN = 'https://sensingschool.com';
       const LOCAL_BASE = '/sensingschool';
