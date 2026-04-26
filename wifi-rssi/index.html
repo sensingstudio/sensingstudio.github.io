@@ -330,7 +330,10 @@
           <div class="tile"><div class="label">Noise floor</div><div class="value" id="t-noise">&mdash;</div></div>
           <div class="tile"><div class="label">SNR</div><div class="value" id="t-snr">&mdash;</div></div>
           <div class="tile"><div class="label">TX rate</div><div class="value" id="t-rate">&mdash;</div></div>
+          <div class="tile"><div class="label">Rate / stream</div><div class="value" id="t-rate-stream">&mdash;</div></div>
           <div class="tile"><div class="label">MCS index</div><div class="value" id="t-mcs">&mdash;</div></div>
+          <div class="tile"><div class="label">Modulation</div><div class="value" id="t-mod">&mdash;</div></div>
+          <div class="tile"><div class="label">Coding</div><div class="value" id="t-coding">&mdash;</div></div>
           <div class="tile"><div class="label">Spatial streams</div><div class="value" id="t-nss">&mdash;</div></div>
           <div class="tile"><div class="label">PHY mode</div><div class="value" id="t-phy">&mdash;</div></div>
           <div class="tile"><div class="label">Channel</div><div class="value" id="t-channel">&mdash;</div></div>
@@ -340,6 +343,25 @@
           <div class="tile"><div class="label">BSSID</div><div class="value" id="t-bssid">&mdash;</div></div>
           <div class="tile"><div class="label">SSID</div><div class="value" id="t-ssid">&mdash;</div></div>
         </div>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
+          <h3 style="margin:0;">Channels around you</h3>
+          <button id="scan-btn" class="download" style="margin:0;" type="button">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+              <path d="M8 4.466V0.5a.5.5 0 0 1 .777-.416l3 2a.5.5 0 0 1 0 .832l-3 2A.5.5 0 0 1 8 4.466z"/>
+            </svg>
+            <span id="scan-btn-label">Scan now</span>
+          </button>
+        </div>
+        <div id="scan-meta" class="legend" style="margin-top:0;">Click <b>Scan now</b> to detect nearby Wi-Fi networks (takes ~6 s &mdash; the radio briefly hops channels).</div>
+        <div id="scan-charts" style="margin-top:14px;"></div>
+        <details style="margin-top:8px;">
+          <summary>Network list</summary>
+          <div id="scan-list" style="margin-top:10px; font-size:13px;"></div>
+        </details>
       </div>
 
       <div class="panel">
@@ -360,18 +382,21 @@
       const $spark  = $('spark');
 
       const TILES = {
-        noise:    { el: $('t-noise'),    fmt: v => v == null ? '—' : `${v}<span class="small">dBm</span>` },
-        snr:      { el: $('t-snr'),      fmt: v => v == null ? '—' : `${v}<span class="small">dB</span>` },
-        rate:     { el: $('t-rate'),     fmt: v => v == null ? '—' : `${formatRate(v)}<span class="small">Mbps</span>` },
-        mcs:      { el: $('t-mcs'),      fmt: v => v == null ? '<span class="value dim">—</span>' : v },
-        nss:      { el: $('t-nss'),      fmt: v => v == null ? '<span class="value dim">—</span>' : `${v}<span class="small">×</span>` },
-        phy:      { el: $('t-phy'),      fmt: v => v ? v : '—' },
-        channel:  { el: $('t-channel'),  fmt: v => v == null ? '—' : v },
-        band:     { el: $('t-band'),     fmt: v => v ? v : '—' },
-        width:    { el: $('t-width'),    fmt: v => v == null ? '—' : `${v}<span class="small">MHz</span>` },
-        sec:      { el: $('t-sec'),      fmt: v => v ? v : '—' },
-        bssid:    { el: $('t-bssid'),    fmt: v => v ? `<span style="font-size:14px">${v}</span>` : '<span class="value dim">hidden</span>' },
-        ssid:     { el: $('t-ssid'),     fmt: v => v ? v : '<span class="value dim">hidden</span>' },
+        noise:      { el: $('t-noise'),       fmt: v => v == null ? '—' : `${v}<span class="small">dBm</span>` },
+        snr:        { el: $('t-snr'),         fmt: v => v == null ? '—' : `${v}<span class="small">dB</span>` },
+        rate:       { el: $('t-rate'),        fmt: v => v == null ? '—' : `${formatRate(v)}<span class="small">Mbps</span>` },
+        ratestream: { el: $('t-rate-stream'), fmt: v => v == null ? '<span class="value dim">—</span>' : `${formatRate(v)}<span class="small">Mbps</span>` },
+        mcs:        { el: $('t-mcs'),         fmt: v => v == null ? '<span class="value dim">—</span>' : v },
+        mod:        { el: $('t-mod'),         fmt: v => v ? v : '<span class="value dim">—</span>' },
+        coding:     { el: $('t-coding'),      fmt: v => v ? v : '<span class="value dim">—</span>' },
+        nss:        { el: $('t-nss'),         fmt: v => v == null ? '<span class="value dim">—</span>' : `${v}<span class="small">×</span>` },
+        phy:        { el: $('t-phy'),         fmt: v => v ? v : '—' },
+        channel:    { el: $('t-channel'),     fmt: v => v == null ? '—' : v },
+        band:       { el: $('t-band'),        fmt: v => v ? v : '—' },
+        width:      { el: $('t-width'),       fmt: v => v == null ? '—' : `${v}<span class="small">MHz</span>` },
+        sec:        { el: $('t-sec'),         fmt: v => v ? v : '—' },
+        bssid:      { el: $('t-bssid'),       fmt: v => v ? `<span style="font-size:14px">${v}</span>` : '<span class="value dim">hidden</span>' },
+        ssid:       { el: $('t-ssid'),        fmt: v => v ? v : '<span class="value dim">hidden</span>' },
       };
 
       function formatRate(v) {
@@ -433,18 +458,21 @@
         $bar.style.width = (pct * 100).toFixed(1) + '%';
         $bar.style.background = colorFromRssi(state.rssi);
 
-        setTile('noise',   state.noise);
-        setTile('snr',     state.snr);
-        setTile('rate',    state.tx_rate_mbps);
-        setTile('mcs',     state.mcs);
-        setTile('nss',     state.nss);
-        setTile('phy',     state.phy);
-        setTile('channel', state.channel);
-        setTile('band',    state.band);
-        setTile('width',   state.width_mhz);
-        setTile('sec',     state.security);
-        setTile('bssid',   state.bssid);
-        setTile('ssid',    state.ssid);
+        setTile('noise',      state.noise);
+        setTile('snr',        state.snr);
+        setTile('rate',       state.tx_rate_mbps);
+        setTile('ratestream', state.rate_per_stream_mbps);
+        setTile('mcs',        state.mcs);
+        setTile('mod',        state.modulation);
+        setTile('coding',     state.coding);
+        setTile('nss',        state.nss);
+        setTile('phy',        state.phy);
+        setTile('channel',    state.channel);
+        setTile('band',       state.band);
+        setTile('width',      state.width_mhz);
+        setTile('sec',        state.security);
+        setTile('bssid',      state.bssid);
+        setTile('ssid',       state.ssid);
 
         samples.push({ t: Date.now(), rssi: state.rssi });
         const cutoff = Date.now() - WINDOW_MS;
@@ -521,6 +549,215 @@
         if (lastTs) $age.textContent = formatAge(lastTs);
         drawSpark();
       }, 1000);
+
+      // ---------- Channel analyzer (on-demand scan) ----------
+
+      const SCAN_RSSI_TOP = -20, SCAN_RSSI_BOT = -100;
+
+      function chFreq(channel, band) {
+        if (!channel || !band) return null;
+        if (band === '2.4 GHz') return 2412 + (channel - 1) * 5;
+        if (band === '5 GHz')   return 5000 + channel * 5;
+        if (band === '6 GHz')   return 5950 + channel * 5;
+        return null;
+      }
+      function colorForKey(key) {
+        let h = 0;
+        const s = key || 'unknown';
+        for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0xffff;
+        return `hsl(${h % 360} 65% 45%)`;
+      }
+      function rssiToY(r, h, padTop, padBot) {
+        const t = (r - SCAN_RSSI_BOT) / (SCAN_RSSI_TOP - SCAN_RSSI_BOT);
+        return padTop + (h - padTop - padBot) * (1 - Math.max(0, Math.min(1, t)));
+      }
+
+      function buildBandChart(title, rangeStart, rangeEnd, chTickFn, networks) {
+        const W = 1000, H = 220, padL = 44, padR = 12, padT = 22, padB = 28;
+        const xOf = f => padL + (W - padL - padR) * (f - rangeStart) / (rangeEnd - rangeStart);
+        const yOf = r => rssiToY(r, H, padT, padB);
+
+        const svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.style.width = '100%';
+        svg.style.height = '220px';
+        svg.style.display = 'block';
+
+        // Y gridlines + labels
+        for (const v of [-30, -50, -70, -90]) {
+          const y = yOf(v);
+          const line = document.createElementNS(SVG_NS, 'line');
+          line.setAttribute('x1', padL); line.setAttribute('x2', W - padR);
+          line.setAttribute('y1', y); line.setAttribute('y2', y);
+          line.setAttribute('stroke', '#dee2e6'); line.setAttribute('stroke-width', '1');
+          svg.appendChild(line);
+          const t = document.createElementNS(SVG_NS, 'text');
+          t.setAttribute('x', padL - 6); t.setAttribute('y', y + 3);
+          t.setAttribute('text-anchor', 'end');
+          t.setAttribute('font-size', '10'); t.setAttribute('fill', '#5b6068');
+          t.textContent = v;
+          svg.appendChild(t);
+        }
+        // Y axis label
+        const ylab = document.createElementNS(SVG_NS, 'text');
+        ylab.setAttribute('x', 4); ylab.setAttribute('y', padT + 4);
+        ylab.setAttribute('font-size', '10'); ylab.setAttribute('fill', '#5b6068');
+        ylab.textContent = 'dBm';
+        svg.appendChild(ylab);
+
+        // X channel ticks
+        for (const ch of chTickFn()) {
+          const f = chFreq(ch.n, title);
+          if (f == null || f < rangeStart || f > rangeEnd) continue;
+          const x = xOf(f);
+          const tick = document.createElementNS(SVG_NS, 'line');
+          tick.setAttribute('x1', x); tick.setAttribute('x2', x);
+          tick.setAttribute('y1', H - padB); tick.setAttribute('y2', H - padB + 4);
+          tick.setAttribute('stroke', '#aab1b8'); tick.setAttribute('stroke-width', '1');
+          svg.appendChild(tick);
+          const lbl = document.createElementNS(SVG_NS, 'text');
+          lbl.setAttribute('x', x); lbl.setAttribute('y', H - padB + 16);
+          lbl.setAttribute('text-anchor', 'middle');
+          lbl.setAttribute('font-size', '10'); lbl.setAttribute('fill', '#5b6068');
+          lbl.textContent = ch.n;
+          svg.appendChild(lbl);
+        }
+        // Band title
+        const tlt = document.createElementNS(SVG_NS, 'text');
+        tlt.setAttribute('x', padL); tlt.setAttribute('y', 14);
+        tlt.setAttribute('font-size', '11'); tlt.setAttribute('font-weight', '700');
+        tlt.setAttribute('fill', '#111'); tlt.setAttribute('letter-spacing', '1');
+        tlt.textContent = title.toUpperCase() + ` · ${networks.length} AP${networks.length === 1 ? '' : 's'}`;
+        svg.appendChild(tlt);
+
+        // Sort by RSSI ascending so strongest paint last (on top)
+        const sorted = [...networks].sort((a, b) => a.rssi - b.rssi);
+        const yBaseline = yOf(SCAN_RSSI_BOT);
+
+        for (const n of sorted) {
+          const f = chFreq(n.channel, n.band);
+          const w = n.width_mhz || 20;
+          if (f == null) continue;
+          const fL = f - w / 2, fR = f + w / 2;
+          if (fR < rangeStart || fL > rangeEnd) continue;
+
+          const xL = xOf(fL), xR = xOf(fR);
+          const xC = xOf(f);
+          const yPeak = yOf(n.rssi);
+          // Cosine-shaped dome from baseline (xL, baseline) up to (xC, yPeak) down to (xR, baseline).
+          const STEPS = 28;
+          let d = `M ${xL.toFixed(1)} ${yBaseline.toFixed(1)} `;
+          for (let i = 0; i <= STEPS; i++) {
+            const t = -1 + 2 * (i / STEPS); // -1..1
+            const cosShape = Math.cos(Math.PI * t / 2) ** 2;
+            const x = xL + (xR - xL) * (i / STEPS);
+            const y = yBaseline - (yBaseline - yPeak) * cosShape;
+            d += `L ${x.toFixed(1)} ${y.toFixed(1)} `;
+          }
+          d += `L ${xR.toFixed(1)} ${yBaseline.toFixed(1)} Z`;
+
+          const color = colorForKey(n.ssid || n.bssid || `${n.channel}-${n.rssi}`);
+          const path = document.createElementNS(SVG_NS, 'path');
+          path.setAttribute('d', d);
+          path.setAttribute('fill', color);
+          path.setAttribute('fill-opacity', '0.28');
+          path.setAttribute('stroke', color);
+          path.setAttribute('stroke-width', '1.6');
+          svg.appendChild(path);
+
+          // SSID label at peak (only if there's room)
+          const lbl = (n.ssid || '(hidden)').slice(0, 18);
+          const text = document.createElementNS(SVG_NS, 'text');
+          text.setAttribute('x', xC); text.setAttribute('y', Math.max(yPeak - 4, padT + 10));
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('font-size', '10'); text.setAttribute('font-weight', '700');
+          text.setAttribute('fill', color);
+          text.textContent = lbl;
+          svg.appendChild(text);
+        }
+        return svg;
+      }
+
+      function ticks24() {
+        return [1,2,3,4,5,6,7,8,9,10,11,12,13].map(n => ({ n }));
+      }
+      function ticks5() {
+        return [36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,144,149,153,157,161,165].map(n => ({ n }));
+      }
+      function ticks6() {
+        return [1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117,121,125,129,133,137,141,145,149,153,157,161,165,169,173,177,181,185,189,193,197,201,205,209,213,217,221,225,229,233].map(n => ({ n }));
+      }
+
+      function renderScan(data) {
+        const $charts = document.getElementById('scan-charts');
+        const $list   = document.getElementById('scan-list');
+        const $meta   = document.getElementById('scan-meta');
+        $charts.innerHTML = '';
+        $list.innerHTML = '';
+
+        if (data.error) {
+          $meta.innerHTML = `<span style="color:var(--red);">${data.error}</span>`;
+          return;
+        }
+        const nets = data.networks || [];
+        if (nets.length === 0) {
+          $meta.textContent = 'No networks detected. (On macOS this is often a Location Services permission issue.)';
+          return;
+        }
+
+        // 2.4 GHz: span ~2400 to 2495; 5 GHz: 5170 to 5835; 6 GHz: 5945 to 7125
+        const by24 = nets.filter(n => n.band === '2.4 GHz');
+        const by5  = nets.filter(n => n.band === '5 GHz');
+        const by6  = nets.filter(n => n.band === '6 GHz');
+
+        if (by24.length) $charts.appendChild(buildBandChart('2.4 GHz', 2400, 2495, ticks24, by24));
+        if (by5.length)  $charts.appendChild(buildBandChart('5 GHz',   5170, 5835, ticks5,  by5));
+        if (by6.length)  $charts.appendChild(buildBandChart('6 GHz',   5945, 7125, ticks6,  by6));
+
+        const sortedList = [...nets].sort((a, b) => b.rssi - a.rssi);
+        const rows = sortedList.map(n => {
+          const ssid = n.ssid || '<span style="color:#888">(hidden)</span>';
+          const bssid = n.bssid || '<span style="color:#888">—</span>';
+          return `<div style="display:grid; grid-template-columns: 32px 1fr 110px 70px 70px 110px; gap:10px; padding:4px 0; border-bottom:1px solid #eef0f2;">
+            <span style="color:${colorForKey(n.ssid || n.bssid || '')};">●</span>
+            <span>${ssid}</span>
+            <span style="color:#5b6068;">${bssid}</span>
+            <span><b>${n.rssi}</b> dBm</span>
+            <span style="color:#5b6068;">ch ${n.channel}</span>
+            <span style="color:#5b6068;">${n.band || ''} ${n.width_mhz ? n.width_mhz + 'MHz' : ''}</span>
+          </div>`;
+        }).join('');
+        $list.innerHTML = rows;
+
+        const ago = Math.round((Date.now()/1000 - data.ts));
+        $meta.innerHTML = `<b>${nets.length}</b> networks &middot; scanned in <b>${data.duration_s}</b>s &middot; ${ago}s ago. Each AP shown as a dome at its center frequency, span = channel width, peak height = RSSI.`;
+      }
+
+      const $scanBtn = document.getElementById('scan-btn');
+      const $scanLabel = document.getElementById('scan-btn-label');
+      $scanBtn.addEventListener('click', async () => {
+        if ($scanBtn.disabled) return;
+        $scanBtn.disabled = true;
+        $scanBtn.style.opacity = '0.7';
+        $scanLabel.textContent = 'Scanning…';
+        const $meta = document.getElementById('scan-meta');
+        $meta.textContent = 'Scanning the airwaves… (~6 s)';
+        try {
+          const url = (location.protocol === 'http:' || location.protocol === 'https:')
+            ? '/scan'
+            : 'http://localhost:8765/scan';
+          const r = await fetch(url, { cache: 'no-store' });
+          const d = await r.json();
+          renderScan(d);
+        } catch (e) {
+          $meta.innerHTML = `<span style="color:var(--red);">Scan failed: ${e.message}. Is helper.py running?</span>`;
+        } finally {
+          $scanBtn.disabled = false;
+          $scanBtn.style.opacity = '';
+          $scanLabel.textContent = 'Scan now';
+        }
+      });
 
       document.getElementById('copy-btn').addEventListener('click', async () => {
         const text = document.getElementById('install-cmd').textContent;

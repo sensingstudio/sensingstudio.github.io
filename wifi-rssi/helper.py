@@ -78,6 +78,33 @@ HT_RATES = {
 }
 
 
+# MCS index -> (modulation, coding rate). Valid for 802.11n MCS 0-7 (and the
+# +8/+16/+24 multi-stream variants), 11ac MCS 0-9, 11ax MCS 0-11.
+MCS_MOD_CODING = {
+    0:  ('BPSK',     '1/2'),
+    1:  ('QPSK',     '1/2'),
+    2:  ('QPSK',     '3/4'),
+    3:  ('16-QAM',   '1/2'),
+    4:  ('16-QAM',   '3/4'),
+    5:  ('64-QAM',   '2/3'),
+    6:  ('64-QAM',   '3/4'),
+    7:  ('64-QAM',   '5/6'),
+    8:  ('256-QAM',  '3/4'),
+    9:  ('256-QAM',  '5/6'),
+    10: ('1024-QAM', '3/4'),
+    11: ('1024-QAM', '5/6'),
+}
+
+
+def decode_mcs(phy, mcs):
+    """Return (modulation, coding) for an MCS index given the PHY mode."""
+    if mcs is None:
+        return (None, None)
+    # 802.11n's MCS encodes both rate and NSS; the modulation/coding repeats every 8.
+    idx = mcs % 8 if phy == '802.11n' else mcs
+    return MCS_MOD_CODING.get(idx, (None, None))
+
+
 def estimate_nss(phy, width_mhz, mcs, tx_rate):
     """Return integer NSS or None if it can't be determined cleanly."""
     if phy is None or width_mhz is None or mcs is None or tx_rate is None:
@@ -132,36 +159,37 @@ def read_corewlan():
     if _corewlan_iface is None:
         return None
     i = _corewlan_iface
-    try:
-        rssi = int(i.rssiValue() or 0)
-        if rssi == 0:
+    with corewlan_lock:
+        try:
+            rssi = int(i.rssiValue() or 0)
+            if rssi == 0:
+                return None
+            noise = int(i.noiseMeasurement() or 0) or None
+            tx = float(i.transmitRate() or 0) or None
+            phy = _PHY_MODE.get(int(i.activePHYMode() or 0))
+            ssid = i.ssid()
+            bssid = i.bssid()
+            sec = _SECURITY.get(int(i.security() or 0))
+            ch = i.wlanChannel()
+            ch_num = int(ch.channelNumber()) if ch else None
+            ch_w = _WIDTH.get(int(ch.channelWidth())) if ch else None
+            ch_b = _BAND.get(int(ch.channelBand())) if ch else None
+            return {
+                'rssi': rssi,
+                'noise': noise,
+                'snr': (rssi - noise) if (rssi is not None and noise is not None) else None,
+                'tx_rate_mbps': tx,
+                'phy': phy,
+                'channel': ch_num,
+                'width_mhz': ch_w,
+                'band': ch_b,
+                'ssid': str(ssid) if ssid else None,
+                'bssid': str(bssid) if bssid else None,
+                'security': sec,
+                'source': 'CoreWLAN',
+            }
+        except Exception:
             return None
-        noise = int(i.noiseMeasurement() or 0) or None
-        tx = float(i.transmitRate() or 0) or None
-        phy = _PHY_MODE.get(int(i.activePHYMode() or 0))
-        ssid = i.ssid()
-        bssid = i.bssid()
-        sec = _SECURITY.get(int(i.security() or 0))
-        ch = i.wlanChannel()
-        ch_num = int(ch.channelNumber()) if ch else None
-        ch_w = _WIDTH.get(int(ch.channelWidth())) if ch else None
-        ch_b = _BAND.get(int(ch.channelBand())) if ch else None
-        return {
-            'rssi': rssi,
-            'noise': noise,
-            'snr': (rssi - noise) if (rssi is not None and noise is not None) else None,
-            'tx_rate_mbps': tx,
-            'phy': phy,
-            'channel': ch_num,
-            'width_mhz': ch_w,
-            'band': ch_b,
-            'ssid': str(ssid) if ssid else None,
-            'bssid': str(bssid) if bssid else None,
-            'security': sec,
-            'source': 'CoreWLAN',
-        }
-    except Exception:
-        return None
 
 
 def _run(cmd, timeout=15):
@@ -206,10 +234,11 @@ def read_system_profiler():
 def scan_corewlan():
     if _corewlan_iface is None:
         return None
-    try:
-        result, err = _corewlan_iface.scanForNetworksWithName_error_(None, None)
-    except Exception:
-        return None
+    with corewlan_lock:
+        try:
+            result, err = _corewlan_iface.scanForNetworksWithName_error_(None, None)
+        except Exception:
+            return None
     if err is not None or result is None:
         return []
     out = []
@@ -309,13 +338,26 @@ latest = {
     'phy': None,
     'ssid': None, 'bssid': None, 'security': None,
     'mcs': None, 'nss': None,
+    'modulation': None, 'coding': None,
+    'rate_per_stream_mbps': None,
     'source': None, 'ts': None, 'error': None,
 }
 sp_extras = {}  # last system_profiler result on macOS
 subscribers = []
-scan_subscribers = []
-scan_lock = threading.Lock()
-latest_scan = {'ts': None, 'networks': [], 'error': None}
+# Scans are now on-demand: an HTTP request to /scan blocks until the scan
+# returns. We serialize all CoreWLAN access through a single lock so the
+# 4 Hz reads in poll_loop don't run concurrently with the ~6 s scan.
+corewlan_lock = threading.Lock()
+
+
+def _attach_modulation(state):
+    mod, coding = decode_mcs(state.get('phy'), state.get('mcs'))
+    state['modulation'] = mod
+    state['coding'] = coding
+    nss = state.get('nss')
+    rate = state.get('tx_rate_mbps')
+    state['rate_per_stream_mbps'] = round(rate / nss, 1) if (rate and nss) else None
+    return state
 
 
 def merge_macos_state():
@@ -325,7 +367,7 @@ def merge_macos_state():
         sp = sp_extras
         if not sp.get('rssi_sp'):
             return None
-        return {
+        snap = {
             'rssi': sp.get('rssi_sp'),
             'noise': sp.get('noise_sp'),
             'snr': (sp['rssi_sp'] - sp['noise_sp']) if sp.get('rssi_sp') is not None and sp.get('noise_sp') is not None else None,
@@ -341,13 +383,14 @@ def merge_macos_state():
             'nss': estimate_nss(sp.get('phy_sp'), sp.get('width_sp'), sp.get('mcs'), sp.get('tx_rate_sp')),
             'source': 'system_profiler',
         }
+        return _attach_modulation(snap)
     # CoreWLAN base + system_profiler enrichment for MCS, SSID.
     sp = sp_extras
     if base.get('ssid') is None and sp.get('ssid_sp'):
         base['ssid'] = sp['ssid_sp']
     base['mcs'] = sp.get('mcs')
     base['nss'] = estimate_nss(base.get('phy'), base.get('width_mhz'), base.get('mcs'), base.get('tx_rate_mbps'))
-    return base
+    return _attach_modulation(base)
 
 
 def poll_loop():
@@ -400,35 +443,6 @@ def system_profiler_loop():
         time.sleep(20)
 
 
-def scan_loop():
-    """Active scan of all nearby APs every ~8 s. macOS only."""
-    while True:
-        t0 = time.time()
-        nets = None
-        err = None
-        try:
-            nets = scan_corewlan()
-        except Exception as e:
-            err = str(e)
-        with scan_lock:
-            if nets is None:
-                latest_scan['error'] = err or 'Wi-Fi scan failed (Location Services permission?)'
-            else:
-                latest_scan['networks'] = nets
-                latest_scan['error'] = None
-            latest_scan['ts'] = time.time()
-            payload = json.dumps(latest_scan)
-        for q in list(scan_subscribers):
-            try:
-                q.put_nowait(payload)
-            except queue.Full:
-                pass
-        # Throttle so radio isn't constantly off the connected channel.
-        elapsed = time.time() - t0
-        if elapsed < 8.0:
-            time.sleep(8.0 - elapsed)
-
-
 # ---------- HTTP / SSE ----------
 
 class Handler(BaseHTTPRequestHandler):
@@ -468,7 +482,27 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if self.path == '/scan':
-            self._serve_sse(scan_subscribers, scan_lock, latest_scan)
+            t0 = time.time()
+            nets = None
+            err = None
+            try:
+                nets = scan_corewlan()
+            except Exception as e:
+                err = str(e)
+            payload = {
+                'ts': time.time(),
+                'duration_s': round(time.time() - t0, 2),
+                'networks': nets if nets is not None else [],
+                'error': None if nets is not None else (err or 'Wi-Fi scan failed (Location Services permission?)'),
+            }
+            body = json.dumps(payload).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             return
 
         self.send_error(404)
@@ -513,8 +547,6 @@ def main():
     threading.Thread(target=poll_loop, daemon=True).start()
     if platform.system() == 'Darwin':
         threading.Thread(target=system_profiler_loop, daemon=True).start()
-        if _corewlan_iface is not None:
-            threading.Thread(target=scan_loop, daemon=True).start()
 
     srv = QuietServer(('127.0.0.1', PORT), Handler)
     url = f'http://localhost:{PORT}'
