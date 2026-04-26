@@ -248,7 +248,8 @@
         flex-wrap: wrap;
         margin: 0;
       }
-      #joinCode {
+      #joinCode,
+      #reconnectCode {
         font-family: ui-monospace, Menlo, Consolas, monospace;
         font-size: 24px;
         font-weight: 700;
@@ -261,7 +262,8 @@
         width: 150px;
         min-width: 0;
       }
-      #joinCode:focus {
+      #joinCode:focus,
+      #reconnectCode:focus {
         outline: none;
         border-color: var(--red);
         background: #fff;
@@ -292,7 +294,8 @@
         body[data-role="laptop"] .join-only { display: block; }
       }
       @media (pointer: coarse) {
-        #joinCode {
+        #joinCode,
+        #reconnectCode {
           font-size: 32px;
           letter-spacing: 8px;
           width: 100%;
@@ -428,6 +431,24 @@
             <button id="phoneStart" class="big">Start</button>
           </div>
           <p class="note">iOS will prompt for motion permission. Some browsers expose the magnetometer only over HTTPS.</p>
+        </section>
+
+        <section class="panel" id="reconnectPanel" hidden>
+          <h2>Try a different code</h2>
+          <p class="join-help">Enter a 4-digit code from the host laptop:</p>
+          <form id="reconnectForm" class="join-form">
+            <input
+              type="text"
+              id="reconnectCode"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              placeholder="0000"
+              autocomplete="off"
+              aria-label="4-digit pairing code"
+            />
+            <button type="submit">Connect</button>
+          </form>
         </section>
 
         <section class="panel" id="phoneReadouts" hidden>
@@ -873,6 +894,28 @@
         const phoneGyro      = document.getElementById('phoneGyro');
         const phoneMag       = document.getElementById('phoneMag');
         const phoneMeta      = document.getElementById('phoneMeta');
+        const reconnectPanel = document.getElementById('reconnectPanel');
+        const reconnectForm  = document.getElementById('reconnectForm');
+        const reconnectCode  = document.getElementById('reconnectCode');
+
+        function showReconnect() {
+          if (!reconnectPanel) return;
+          reconnectPanel.hidden = false;
+          if (codeParam && !reconnectCode.value) reconnectCode.value = codeParam;
+        }
+        if (reconnectCode) {
+          reconnectCode.addEventListener('input', () => {
+            reconnectCode.value = reconnectCode.value.replace(/\D/g, '').slice(0, 4);
+          });
+        }
+        if (reconnectForm) {
+          reconnectForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const v = reconnectCode.value.replace(/\D/g, '').slice(0, 4);
+            if (v.length !== 4) { reconnectCode.focus(); return; }
+            location.href = location.pathname + '?code=' + v;
+          });
+        }
 
         let conn = null;
         let t0 = 0;
@@ -1049,16 +1092,19 @@
               conn.on('close', () => {
                 phoneStatus.textContent = 'Disconnected.';
                 phoneStatus.classList.remove('ok');
+                showReconnect();
               });
               conn.on('error', (err) => {
                 phoneStatus.textContent = 'Connection error: ' + err.message;
                 phoneStatus.classList.add('error');
+                showReconnect();
               });
             });
             peer.on('error', (err) => {
               phoneStatus.textContent = 'Connection error: ' + err.message;
               phoneStatus.classList.add('error');
               phoneStart.disabled = false;
+              showReconnect();
             });
 
             if ('wakeLock' in navigator) {
@@ -1068,6 +1114,7 @@
             phoneStatus.textContent = 'Could not start: ' + err.message;
             phoneStatus.classList.add('error');
             phoneStart.disabled = false;
+            showReconnect();
           }
         });
       }
