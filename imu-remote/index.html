@@ -148,8 +148,14 @@
         position: relative;
         background: #0c0c0e;
         border-radius: 6px;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
         aspect-ratio: 16 / 5;
+      }
+      .canvas-scroller {
+        position: relative;
+        height: 100%;
+        width: calc(100% * var(--plot-scale, 1));
       }
       canvas { width: 100%; height: 100%; display: block; }
       .canvas-wrap .placeholder {
@@ -346,7 +352,7 @@
         <section class="panel needs-phone host-only">
           <h2>Accelerometer <span class="units">(m/s²)</span></h2>
           <div class="canvas-wrap">
-            <canvas id="accelCanvas"></canvas>
+            <div class="canvas-scroller"><canvas id="accelCanvas"></canvas></div>
             <div class="placeholder" id="accelPlaceholder">Waiting for phone&hellip;</div>
           </div>
           <div class="legend" id="accelLegend"></div>
@@ -355,7 +361,7 @@
         <section class="panel needs-phone host-only">
           <h2>Gyroscope <span class="units">(°/s)</span></h2>
           <div class="canvas-wrap">
-            <canvas id="gyroCanvas"></canvas>
+            <div class="canvas-scroller"><canvas id="gyroCanvas"></canvas></div>
             <div class="placeholder" id="gyroPlaceholder">Waiting for phone&hellip;</div>
           </div>
           <div class="legend" id="gyroLegend"></div>
@@ -364,7 +370,7 @@
         <section class="panel needs-phone host-only">
           <h2>Magnetometer <span class="units">(μT)</span></h2>
           <div class="canvas-wrap">
-            <canvas id="magCanvas"></canvas>
+            <div class="canvas-scroller"><canvas id="magCanvas"></canvas></div>
             <div class="placeholder" id="magPlaceholder">Waiting for phone&hellip;</div>
           </div>
           <div class="legend" id="magLegend"></div>
@@ -377,6 +383,11 @@
             <label for="windowSlider">Window</label>
             <input type="range" id="windowSlider" min="0" max="1" step="0.001" />
             <span class="status" id="windowVal" style="min-width: 64px; text-align: right;">5.0 s</span>
+          </div>
+          <div class="row">
+            <label for="widthSlider">Plot width</label>
+            <input type="range" id="widthSlider" min="1" max="6" step="0.1" value="1" />
+            <span class="status" id="widthVal" style="min-width: 64px; text-align: right;">1.0×</span>
           </div>
           <div class="row">
             <label for="accelMode">Accel</label>
@@ -595,6 +606,23 @@
         }
         showSamplesEl.addEventListener('change', applyShowSamples);
         applyShowSamples();
+
+        const widthSlider = document.getElementById('widthSlider');
+        const widthVal    = document.getElementById('widthVal');
+        function applyPlotWidth() {
+          const v = parseFloat(widthSlider.value);
+          document.documentElement.style.setProperty('--plot-scale', v);
+          widthVal.textContent = v.toFixed(1) + '×';
+          // re-render charts at new pixel width and keep latest data visible
+          window.dispatchEvent(new Event('resize'));
+          requestAnimationFrame(() => {
+            for (const wrap of document.querySelectorAll('.canvas-wrap')) {
+              wrap.scrollLeft = wrap.scrollWidth;
+            }
+          });
+        }
+        widthSlider.addEventListener('input', applyPlotWidth);
+        applyPlotWidth();
 
         // periodic stale check
         setInterval(() => {
