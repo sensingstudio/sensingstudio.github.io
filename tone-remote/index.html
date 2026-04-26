@@ -194,51 +194,21 @@
         border-color: rgba(0, 0, 0, 0.15);
         color: var(--grey-text);
       }
-      .pair-content {
-        display: flex;
-        gap: 24px;
-        flex-wrap: wrap;
-        align-items: flex-start;
-      }
-      .qr-wrap {
-        flex: 0 0 auto;
-        padding: 12px;
-        border: 1px solid var(--grey-line);
-        border-radius: 8px;
-        background: #fff;
-      }
-      .qr-wrap img {
-        display: block;
-        width: 240px;
-        height: 240px;
-      }
-      .pair-info {
-        flex: 1 1 280px;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .pair-info input[type="text"] {
-        width: 100%;
-        font-family: ui-monospace, Menlo, Consolas, monospace;
-        font-size: 12px;
-        padding: 8px 10px;
-        border: 1px solid var(--grey-line);
-        border-radius: 5px;
-        background: #f5f5f5;
-        color: var(--black);
-      }
       .pair-help {
         color: var(--grey-text);
         font-size: 13px;
         margin: 0;
         line-height: 1.5;
       }
+      .pair-help strong {
+        color: var(--black);
+        font-weight: 700;
+      }
       .pair-code-block {
         display: flex;
         align-items: baseline;
         gap: 12px;
+        margin-bottom: 8px;
       }
       .pair-code-label {
         font-size: 11px;
@@ -255,11 +225,6 @@
         font-family: ui-monospace, Menlo, Consolas, monospace;
         color: var(--black);
         line-height: 1;
-      }
-      .join-divider {
-        margin: 24px 0 20px;
-        height: 1px;
-        background: var(--grey-line);
       }
       .join-help {
         margin: 0 0 12px;
@@ -307,6 +272,24 @@
         opacity: 0.45;
         pointer-events: none;
       }
+      .join-only { display: none; }
+      @media (pointer: coarse) {
+        body[data-role="laptop"] .host-only { display: none; }
+        body[data-role="laptop"] .join-only { display: block; }
+      }
+      @media (pointer: coarse) {
+        #joinCode {
+          font-size: 32px;
+          letter-spacing: 8px;
+          width: 100%;
+          max-width: 240px;
+          padding: 14px 16px;
+        }
+        .join-form button {
+          font-size: 15px;
+          padding: 14px 24px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -318,29 +301,22 @@
       <!-- LAPTOP ROLE -->
       <div class="laptop-only">
         <h1>Tone &amp; Spectrum (Remote)</h1>
-        <p class="lead">Pair a phone to use as the speaker and microphone. The phone synthesizes the tone locally; its mic stream is sent here over WebRTC and rendered as a live spectrum.</p>
+        <p class="lead host-only">Pair a phone to use as the speaker and microphone. The phone synthesizes the tone locally; its mic stream is sent here over WebRTC and rendered as a live spectrum.</p>
+        <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone as its speaker and microphone.</p>
 
-        <section class="panel">
+        <section class="panel host-only">
           <h2>Pair your phone</h2>
-          <div class="pair-content">
-            <div class="qr-wrap">
-              <img id="qr" alt="Pairing QR code" />
-            </div>
-            <div class="pair-info">
-              <div class="pair-code-block">
-                <span class="pair-code-label">Code</span>
-                <span class="pair-code" id="pairCode">— — — —</span>
-              </div>
-              <p class="status" id="pairStatus">Generating session&hellip;</p>
-              <p class="pair-help">Scan the QR with your phone's camera, enter the 4-digit code on your phone, or open this URL:</p>
-              <input type="text" id="pairUrl" readonly />
-              <div>
-                <button id="copyUrl" class="secondary">Copy link</button>
-              </div>
-            </div>
+          <div class="pair-code-block">
+            <span class="pair-code-label">Code</span>
+            <span class="pair-code" id="pairCode">— — — —</span>
           </div>
-          <div class="join-divider"></div>
-          <p class="join-help">Joining a session from this device?</p>
+          <p class="status" id="pairStatus">Generating session&hellip;</p>
+          <p class="pair-help">On your phone, open <strong>sensingschool.com/tone-remote</strong> and enter this code.</p>
+        </section>
+
+        <section class="panel join-only">
+          <h2>Join a session</h2>
+          <p class="join-help">Enter the 4-digit code from the host laptop:</p>
           <form id="joinForm" class="join-form">
             <input
               type="text"
@@ -357,7 +333,7 @@
           </form>
         </section>
 
-        <section class="panel needs-phone">
+        <section class="panel needs-phone host-only">
           <h2>Tone (synthesized on phone)</h2>
           <div class="row">
             <span class="freq-display" id="freqDisplay">440 Hz</span>
@@ -370,7 +346,7 @@
           </div>
         </section>
 
-        <section class="panel needs-phone">
+        <section class="panel needs-phone host-only">
           <h2>Microphone Spectrum (from phone)</h2>
           <div class="canvas-wrap">
             <canvas id="spectrum"></canvas>
@@ -464,11 +440,8 @@
 
       /* ============ LAPTOP ============ */
       function initLaptop() {
-        const qrImg        = document.getElementById('qr');
-        const pairUrlEl    = document.getElementById('pairUrl');
         const pairCodeEl   = document.getElementById('pairCode');
         const pairStatus   = document.getElementById('pairStatus');
-        const copyUrlBtn   = document.getElementById('copyUrl');
         const joinForm     = document.getElementById('joinForm');
         const joinCodeIn   = document.getElementById('joinCode');
         const joinStatus   = document.getElementById('joinStatus');
@@ -511,10 +484,7 @@
           peer.on('open', () => {
             if (resolved) return;
             resolved = true;
-            const url = PAIR_ORIGIN + publicPath() + '?code=' + code;
             pairCodeEl.textContent = code.split('').join(' ');
-            pairUrlEl.value = url;
-            qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url);
             pairStatus.textContent = 'Waiting for phone…';
             attachPeerHandlers();
           });
@@ -648,16 +618,6 @@
           if (t && (t.tagName === 'INPUT' && t.type === 'text' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
           e.preventDefault();
           toggleTone();
-        });
-
-        copyUrlBtn.addEventListener('click', async () => {
-          try {
-            await navigator.clipboard.writeText(pairUrlEl.value);
-            copyUrlBtn.textContent = 'Copied';
-            setTimeout(() => { copyUrlBtn.textContent = 'Copy link'; }, 1500);
-          } catch (e) {
-            pairUrlEl.select();
-          }
         });
 
         function updateResolution() {

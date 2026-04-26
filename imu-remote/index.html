@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IMU · Remote · Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <script src="https://unpkg.com/peerjs@1/dist/peerjs.min.js"></script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --x: #bc122a;
+        --y: #2a8b2a;
+        --z: #1f4eb6;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+      }
+      header a.brand .red { color: var(--red); }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel h2 .units {
+        margin-left: 8px;
+        color: var(--grey-text);
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        text-transform: none;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 70px;
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.danger { background: var(--red); border-color: var(--red); }
+      button.big { font-size: 16px; padding: 16px 36px; }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--black);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 5;
+      }
+      canvas { width: 100%; height: 100%; display: block; }
+      .canvas-wrap .placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        margin-top: 12px;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--grey-text);
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .legend .axis {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .legend .val {
+        font-weight: 700;
+        color: var(--black);
+        min-width: 70px;
+        display: inline-block;
+        text-align: right;
+      }
+      .status { font-size: 13px; color: var(--grey-text); margin: 0; }
+      .status.error { color: var(--red); }
+      .status.ok { color: var(--green); font-weight: 500; }
+      .note {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 16px;
+        line-height: 1.5;
+      }
+      .pair-content {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .qr-wrap {
+        flex: 0 0 auto;
+        padding: 12px;
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .qr-wrap img {
+        display: block;
+        width: 240px;
+        height: 240px;
+      }
+      .pair-info {
+        flex: 1 1 280px;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .pair-info input[type="text"] {
+        width: 100%;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12px;
+        padding: 8px 10px;
+        border: 1px solid var(--grey-line);
+        border-radius: 5px;
+        background: #f5f5f5;
+        color: var(--black);
+      }
+      .pair-help {
+        color: var(--grey-text);
+        font-size: 13px;
+        margin: 0;
+        line-height: 1.5;
+      }
+      .live-readout {
+        font-variant-numeric: tabular-nums;
+        font-size: clamp(16px, 2.4vw, 22px);
+        font-weight: 700;
+        letter-spacing: -0.3px;
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      body[data-role="laptop"] .phone-only { display: none; }
+      body[data-role="phone"] .laptop-only { display: none; }
+      body:not([data-role]) .laptop-only,
+      body:not([data-role]) .phone-only { display: none; }
+      body[data-role="laptop"]:not([data-paired]) .needs-phone {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../"><span>SENSING</span> <span class="red">SCHOOL</span></a>
+      <span class="crumb">IMU · Remote</span>
+    </header>
+    <main>
+      <!-- LAPTOP ROLE -->
+      <div class="laptop-only">
+        <h1>IMU (Remote)</h1>
+        <p class="lead">Pair a phone to stream its inertial measurement unit. Accelerometer, gyroscope, and magnetometer readings are sent over a WebRTC data channel and plotted live below.</p>
+
+        <section class="panel">
+          <h2>Pair your phone</h2>
+          <div class="pair-content">
+            <div class="qr-wrap">
+              <img id="qr" alt="Pairing QR code" />
+            </div>
+            <div class="pair-info">
+              <p class="status" id="pairStatus">Generating session&hellip;</p>
+              <p class="pair-help">Scan with your phone's camera, or open this URL on your phone:</p>
+              <input type="text" id="pairUrl" readonly />
+              <div>
+                <button id="copyUrl" class="secondary">Copy link</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel needs-phone">
+          <h2>Accelerometer <span class="units">(m/s²)</span></h2>
+          <div class="canvas-wrap">
+            <canvas id="accelCanvas"></canvas>
+            <div class="placeholder" id="accelPlaceholder">Waiting for phone&hellip;</div>
+          </div>
+          <div class="legend" id="accelLegend"></div>
+        </section>
+
+        <section class="panel needs-phone">
+          <h2>Gyroscope <span class="units">(°/s)</span></h2>
+          <div class="canvas-wrap">
+            <canvas id="gyroCanvas"></canvas>
+            <div class="placeholder" id="gyroPlaceholder">Waiting for phone&hellip;</div>
+          </div>
+          <div class="legend" id="gyroLegend"></div>
+        </section>
+
+        <section class="panel needs-phone">
+          <h2>Magnetometer <span class="units">(μT)</span></h2>
+          <div class="canvas-wrap">
+            <canvas id="magCanvas"></canvas>
+            <div class="placeholder" id="magPlaceholder">Waiting for phone&hellip;</div>
+          </div>
+          <div class="legend" id="magLegend"></div>
+          <p class="note" id="magNote">A true magnetometer feed requires Android with the Generic Sensor API; on iOS the only available channel is compass heading, shown here as a single trace.</p>
+        </section>
+
+        <section class="panel needs-phone">
+          <h2>Display</h2>
+          <div class="row">
+            <label for="windowSel">Window</label>
+            <select id="windowSel">
+              <option value="2">2 s</option>
+              <option value="5" selected>5 s</option>
+              <option value="10">10 s</option>
+              <option value="20">20 s</option>
+            </select>
+            <label for="accelMode">Accel</label>
+            <select id="accelMode">
+              <option value="linear" selected>Linear (gravity removed)</option>
+              <option value="raw">Including gravity</option>
+            </select>
+            <span class="status" id="rateEl">— Hz</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- PHONE ROLE -->
+      <div class="phone-only">
+        <h1>Sensor Mode</h1>
+        <p class="lead">This phone streams its IMU readings to the laptop. Tap Start, grant motion access, and keep the screen on.</p>
+
+        <section class="panel">
+          <h2>Status</h2>
+          <p class="status" id="phoneStatus">Tap Start to enable sensors and connect.</p>
+          <div class="row" style="margin-top: 16px;">
+            <button id="phoneStart" class="big">Start</button>
+          </div>
+          <p class="note">iOS will prompt for motion permission. Some browsers expose the magnetometer only over HTTPS.</p>
+        </section>
+
+        <section class="panel" id="phoneReadouts" hidden>
+          <h2>Live readings</h2>
+          <p class="live-readout">Accel <span id="phoneAccel">—</span></p>
+          <p class="live-readout">Gyro&nbsp;&nbsp;<span id="phoneGyro">—</span></p>
+          <p class="live-readout">Mag&nbsp;&nbsp;&nbsp;<span id="phoneMag">—</span></p>
+          <p class="meta" id="phoneMeta">—</p>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const hostId = params.get('host');
+      const role = hostId ? 'phone' : 'laptop';
+      document.body.dataset.role = role;
+
+      const PUBLIC_ORIGIN = 'https://sensingschool.com';
+      const LOCAL_BASE = '/sensingschool';
+      const isLocal =
+        ['localhost', '127.0.0.1', ''].includes(location.hostname) ||
+        location.hostname.startsWith('192.168.') ||
+        location.hostname.startsWith('10.') ||
+        location.protocol === 'file:';
+      const PAIR_ORIGIN = isLocal ? PUBLIC_ORIGIN : location.origin;
+      function publicPath() {
+        let p = location.pathname;
+        if (isLocal && p.startsWith(LOCAL_BASE + '/')) p = p.slice(LOCAL_BASE.length);
+        return p;
+      }
+      const makeId = () => 'sslab-imu-' + Math.random().toString(36).slice(2, 10);
+
+      const fmt = (v, d=2) => (v === null || v === undefined || !isFinite(v)) ? '—' : v.toFixed(d);
+
+      if (role === 'laptop') initLaptop(); else initPhone();
+
+      /* ============ LAPTOP ============ */
+      function initLaptop() {
+        const qrImg      = document.getElementById('qr');
+        const pairUrlEl  = document.getElementById('pairUrl');
+        const pairStatus = document.getElementById('pairStatus');
+        const copyUrlBtn = document.getElementById('copyUrl');
+        const windowSel  = document.getElementById('windowSel');
+        const accelMode  = document.getElementById('accelMode');
+        const rateEl     = document.getElementById('rateEl');
+
+        const charts = {
+          accel: makeChart('accelCanvas', 'accelPlaceholder', 'accelLegend',
+            [['x','--x'],['y','--y'],['z','--z']], 'm/s²'),
+          gyro:  makeChart('gyroCanvas',  'gyroPlaceholder',  'gyroLegend',
+            [['x','--x'],['y','--y'],['z','--z']], '°/s'),
+          mag:   makeChart('magCanvas',   'magPlaceholder',   'magLegend',
+            [['x','--x'],['y','--y'],['z','--z']], 'μT'),
+        };
+
+        const peer = new Peer(makeId());
+        let dataConn = null;
+        let lastSampleAt = 0;
+        let sampleCount = 0;
+        let rateAt = performance.now();
+        let magAvail = null;
+
+        peer.on('open', (id) => {
+          const url = PAIR_ORIGIN + publicPath() + '?host=' + id;
+          pairUrlEl.value = url;
+          qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url);
+          pairStatus.textContent = 'Waiting for phone…';
+        });
+        peer.on('error', (err) => {
+          pairStatus.textContent = 'Pairing error: ' + err.message;
+          pairStatus.classList.add('error');
+        });
+
+        peer.on('connection', (conn) => {
+          dataConn = conn;
+          conn.on('open', () => {
+            pairStatus.textContent = 'Phone connected.';
+            pairStatus.classList.remove('error');
+            pairStatus.classList.add('ok');
+            document.body.dataset.paired = '1';
+            sendConfig();
+          });
+          conn.on('data', (msg) => {
+            if (!msg) return;
+            if (msg.type === 'imu') onSample(msg);
+            else if (msg.type === 'caps') onCaps(msg);
+          });
+          conn.on('close', () => {
+            dataConn = null;
+            delete document.body.dataset.paired;
+            pairStatus.textContent = 'Phone disconnected.';
+            pairStatus.classList.remove('ok');
+          });
+        });
+
+        function onCaps(c) {
+          magAvail = !!c.mag;
+          const note = document.getElementById('magNote');
+          if (magAvail) {
+            note.textContent = 'Three-axis magnetometer detected. Values are in microteslas; expect ~25–65 μT for Earth\'s field plus local distortions.';
+          } else if (c.heading) {
+            note.textContent = 'No raw magnetometer on this device. Showing compass heading (degrees from magnetic north) as a single trace.';
+          } else {
+            note.textContent = 'Magnetometer not available on this device.';
+          }
+        }
+
+        function onSample(s) {
+          const t = s.t;
+          const win = parseFloat(windowSel.value);
+          const acc = (accelMode.value === 'raw') ? s.accelG : s.accel;
+          if (acc) charts.accel.push(t, acc);
+          if (s.gyro) charts.gyro.push(t, s.gyro);
+          if (s.mag) charts.mag.push(t, s.mag);
+          else if (s.heading != null) charts.mag.push(t, { x: s.heading, y: NaN, z: NaN });
+
+          for (const k of ['accel','gyro','mag']) charts[k].setWindow(win);
+
+          sampleCount++;
+          const now = performance.now();
+          if (now - rateAt > 500) {
+            const hz = sampleCount * 1000 / (now - rateAt);
+            rateEl.textContent = hz.toFixed(0) + ' Hz';
+            rateAt = now;
+            sampleCount = 0;
+          }
+          lastSampleAt = now;
+        }
+
+        function sendConfig() {
+          if (!dataConn || !dataConn.open) return;
+          dataConn.send({ type: 'config' });
+        }
+
+        windowSel.addEventListener('change', () => {
+          const w = parseFloat(windowSel.value);
+          for (const k of ['accel','gyro','mag']) charts[k].setWindow(w);
+        });
+
+        copyUrlBtn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(pairUrlEl.value);
+            copyUrlBtn.textContent = 'Copied';
+            setTimeout(() => { copyUrlBtn.textContent = 'Copy link'; }, 1500);
+          } catch (e) {
+            pairUrlEl.select();
+          }
+        });
+
+        // periodic stale check
+        setInterval(() => {
+          if (!dataConn || !dataConn.open) {
+            rateEl.textContent = '— Hz';
+          } else if (performance.now() - lastSampleAt > 1500) {
+            rateEl.textContent = 'idle';
+          }
+        }, 500);
+      }
+
+      /* ----- chart helper: scrolling time-series with auto-range ----- */
+      function makeChart(canvasId, placeholderId, legendId, axes, units) {
+        const canvas = document.getElementById(canvasId);
+        const placeholder = document.getElementById(placeholderId);
+        const legend = document.getElementById(legendId);
+        const ctx = canvas.getContext('2d');
+
+        // legend
+        const legendEntries = axes.map(([name, varName]) => {
+          const span = document.createElement('span');
+          span.className = 'axis';
+          const sw = document.createElement('span');
+          sw.className = 'swatch';
+          sw.style.background = `var(${varName})`;
+          const lab = document.createElement('span');
+          lab.textContent = name;
+          const val = document.createElement('span');
+          val.className = 'val';
+          val.textContent = '—';
+          span.append(sw, lab, val);
+          legend.append(span);
+          return { name, varName, valEl: val };
+        });
+
+        const buf = axes.map(() => []); // [{t, v}]
+        let windowSec = 5;
+        let firstSampleAt = null;
+        let lastT = 0;
+        let drawScheduled = false;
+
+        function setWindow(s) { windowSec = s; }
+
+        function push(t, sample) {
+          if (firstSampleAt === null) {
+            firstSampleAt = t;
+            placeholder.style.display = 'none';
+          }
+          lastT = t;
+          const vs = [sample.x, sample.y, sample.z];
+          for (let i = 0; i < axes.length; i++) {
+            buf[i].push({ t, v: vs[i] });
+            // trim old
+            const cutoff = t - windowSec * 1.2;
+            const arr = buf[i];
+            let drop = 0;
+            while (drop < arr.length && arr[drop].t < cutoff) drop++;
+            if (drop > 0) arr.splice(0, drop);
+            // legend value (most recent finite)
+            for (let j = arr.length - 1; j >= 0; j--) {
+              if (isFinite(arr[j].v)) {
+                legendEntries[i].valEl.textContent = arr[j].v.toFixed(2);
+                break;
+              }
+            }
+          }
+          if (!drawScheduled) {
+            drawScheduled = true;
+            requestAnimationFrame(() => { drawScheduled = false; draw(); });
+          }
+        }
+
+        function draw() {
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          const w = Math.round(rect.width * dpr);
+          const h = Math.round(rect.height * dpr);
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+          }
+
+          ctx.fillStyle = '#0c0c0e';
+          ctx.fillRect(0, 0, w, h);
+
+          const tEnd = lastT;
+          const tStart = tEnd - windowSec;
+          const xOf = t => ((t - tStart) / windowSec) * w;
+
+          // y range — symmetric about zero
+          let absMax = 0;
+          for (const arr of buf) {
+            for (const { t, v } of arr) {
+              if (t < tStart) continue;
+              if (isFinite(v) && Math.abs(v) > absMax) absMax = Math.abs(v);
+            }
+          }
+          if (absMax < 1e-6) absMax = 1;
+          // pad
+          absMax *= 1.15;
+          // nice round
+          const niceStep = niceTickStep(absMax / 3);
+          absMax = Math.max(absMax, niceStep);
+          const yOf = v => h * 0.5 - (v / absMax) * (h * 0.5 - 6 * dpr);
+
+          // gridlines
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+          ctx.lineWidth = 1 * dpr;
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.font = (10 * dpr) + 'px Roboto, sans-serif';
+
+          // horizontal grid every niceStep
+          for (let v = -Math.floor(absMax / niceStep) * niceStep; v <= absMax; v += niceStep) {
+            const y = yOf(v);
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+            if (v !== 0) ctx.fillText(v.toFixed(niceStep < 1 ? 2 : niceStep < 10 ? 1 : 0), 4 * dpr, y - 2 * dpr);
+          }
+          // zero line emphasized
+          ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+          ctx.lineWidth = 1 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(0, yOf(0));
+          ctx.lineTo(w, yOf(0));
+          ctx.stroke();
+
+          // vertical seconds grid
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+          for (let s = Math.ceil(tStart); s <= tEnd; s += 1) {
+            const x = xOf(s);
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+          }
+
+          // traces
+          const styles = getComputedStyle(document.body);
+          for (let i = 0; i < axes.length; i++) {
+            const arr = buf[i];
+            if (arr.length === 0) continue;
+            ctx.strokeStyle = styles.getPropertyValue(axes[i][1]).trim() || '#fff';
+            ctx.lineWidth = 1.4 * dpr;
+            ctx.beginPath();
+            let pen = false;
+            for (const { t, v } of arr) {
+              if (!isFinite(v)) { pen = false; continue; }
+              const x = xOf(t);
+              const y = yOf(v);
+              if (!pen) { ctx.moveTo(x, y); pen = true; }
+              else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+
+          // y-range label (top right)
+          ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          ctx.textAlign = 'right';
+          ctx.fillText('±' + absMax.toFixed(absMax < 1 ? 2 : absMax < 10 ? 1 : 0) + ' ' + units, w - 6 * dpr, 12 * dpr);
+          ctx.textAlign = 'left';
+        }
+
+        function niceTickStep(target) {
+          if (target <= 0) return 1;
+          const p = Math.pow(10, Math.floor(Math.log10(target)));
+          const n = target / p;
+          let m;
+          if (n < 1.5) m = 1;
+          else if (n < 3) m = 2;
+          else if (n < 7) m = 5;
+          else m = 10;
+          return m * p;
+        }
+
+        // re-render on window resize so DPR / size stays sharp
+        window.addEventListener('resize', () => {
+          if (firstSampleAt !== null) draw();
+        });
+
+        return { push, setWindow };
+      }
+
+      /* ============ PHONE ============ */
+      function initPhone() {
+        const phoneStatus    = document.getElementById('phoneStatus');
+        const phoneStart     = document.getElementById('phoneStart');
+        const phoneReadouts  = document.getElementById('phoneReadouts');
+        const phoneAccel     = document.getElementById('phoneAccel');
+        const phoneGyro      = document.getElementById('phoneGyro');
+        const phoneMag       = document.getElementById('phoneMag');
+        const phoneMeta      = document.getElementById('phoneMeta');
+
+        let conn = null;
+        let t0 = 0;
+        const latest = {
+          accel: null,    // linear
+          accelG: null,   // including gravity
+          gyro: null,
+          mag: null,
+          heading: null,
+        };
+        let lastSent = 0;
+        let lastUI = 0;
+        const sendInterval = 1000 / 60;
+        const uiInterval = 100;
+
+        async function requestMotionPermissions() {
+          // iOS 13+: requestPermission on DeviceMotionEvent / DeviceOrientationEvent
+          const tasks = [];
+          if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+            tasks.push(DeviceMotionEvent.requestPermission());
+          }
+          if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            tasks.push(DeviceOrientationEvent.requestPermission());
+          }
+          if (tasks.length === 0) return true;
+          const results = await Promise.all(tasks);
+          return results.every(r => r === 'granted');
+        }
+
+        function attachMotion() {
+          window.addEventListener('devicemotion', (e) => {
+            const a = e.acceleration;
+            const ag = e.accelerationIncludingGravity;
+            const r = e.rotationRate;
+            if (a && (a.x !== null || a.y !== null || a.z !== null)) {
+              latest.accel = { x: a.x || 0, y: a.y || 0, z: a.z || 0 };
+            }
+            if (ag && (ag.x !== null || ag.y !== null || ag.z !== null)) {
+              latest.accelG = { x: ag.x || 0, y: ag.y || 0, z: ag.z || 0 };
+              if (!latest.accel) {
+                // some browsers don't expose linear; we'll use accelG as fallback
+                latest.accel = latest.accelG;
+              }
+            }
+            if (r && (r.alpha !== null || r.beta !== null || r.gamma !== null)) {
+              latest.gyro = { x: r.beta || 0, y: r.gamma || 0, z: r.alpha || 0 };
+            }
+          }, { passive: true });
+        }
+
+        function attachOrientation() {
+          window.addEventListener('deviceorientation', (e) => {
+            // webkitCompassHeading on iOS, otherwise alpha is heading-ish (relative)
+            if (typeof e.webkitCompassHeading === 'number') {
+              latest.heading = e.webkitCompassHeading;
+            } else if (typeof e.alpha === 'number') {
+              latest.heading = (360 - e.alpha) % 360;
+            }
+          }, { passive: true });
+        }
+
+        function attachMagnetometer() {
+          if (!('Magnetometer' in window)) return false;
+          try {
+            const mag = new window.Magnetometer({ frequency: 60, referenceFrame: 'device' });
+            mag.addEventListener('reading', () => {
+              latest.mag = { x: mag.x, y: mag.y, z: mag.z };
+            });
+            mag.addEventListener('error', () => {});
+            mag.start();
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function tick() {
+          const now = performance.now();
+          const t = (now - t0) / 1000;
+
+          if (now - lastSent >= sendInterval) {
+            lastSent = now;
+            if (conn && conn.open) {
+              conn.send({
+                type: 'imu',
+                t,
+                accel: latest.accel,
+                accelG: latest.accelG,
+                gyro: latest.gyro,
+                mag: latest.mag,
+                heading: latest.heading,
+              });
+            }
+          }
+          if (now - lastUI >= uiInterval) {
+            lastUI = now;
+            phoneAccel.textContent = latest.accel
+              ? `${fmt(latest.accel.x)}, ${fmt(latest.accel.y)}, ${fmt(latest.accel.z)} m/s²`
+              : '—';
+            phoneGyro.textContent = latest.gyro
+              ? `${fmt(latest.gyro.x)}, ${fmt(latest.gyro.y)}, ${fmt(latest.gyro.z)} °/s`
+              : '—';
+            if (latest.mag) {
+              phoneMag.textContent = `${fmt(latest.mag.x)}, ${fmt(latest.mag.y)}, ${fmt(latest.mag.z)} μT`;
+            } else if (latest.heading != null) {
+              phoneMag.textContent = `${fmt(latest.heading, 1)}° (compass)`;
+            } else {
+              phoneMag.textContent = '—';
+            }
+          }
+          requestAnimationFrame(tick);
+        }
+
+        phoneStart.addEventListener('click', async () => {
+          phoneStart.disabled = true;
+          phoneStatus.classList.remove('error', 'ok');
+          try {
+            phoneStatus.textContent = 'Requesting motion permission…';
+            const granted = await requestMotionPermissions();
+            if (!granted) throw new Error('Motion permission denied');
+
+            attachMotion();
+            attachOrientation();
+            const magOk = attachMagnetometer();
+
+            t0 = performance.now();
+            phoneReadouts.hidden = false;
+            phoneMeta.textContent = magOk ? 'Magnetometer: native' : 'Magnetometer: compass only';
+
+            phoneStatus.textContent = 'Connecting…';
+            const peer = new Peer();
+            peer.on('open', () => {
+              conn = peer.connect(hostId, { reliable: false, serialization: 'json' });
+              conn.on('open', () => {
+                phoneStatus.textContent = 'Connected. Streaming IMU to laptop.';
+                phoneStatus.classList.add('ok');
+                conn.send({ type: 'caps', mag: magOk, heading: latest.heading != null });
+                requestAnimationFrame(tick);
+              });
+              conn.on('data', (msg) => {
+                if (msg && msg.type === 'config') {
+                  conn.send({ type: 'caps', mag: magOk, heading: latest.heading != null });
+                }
+              });
+              conn.on('close', () => {
+                phoneStatus.textContent = 'Disconnected.';
+                phoneStatus.classList.remove('ok');
+              });
+              conn.on('error', (err) => {
+                phoneStatus.textContent = 'Connection error: ' + err.message;
+                phoneStatus.classList.add('error');
+              });
+            });
+            peer.on('error', (err) => {
+              phoneStatus.textContent = 'Connection error: ' + err.message;
+              phoneStatus.classList.add('error');
+              phoneStart.disabled = false;
+            });
+
+            if ('wakeLock' in navigator) {
+              navigator.wakeLock.request('screen').catch(() => {});
+            }
+          } catch (err) {
+            phoneStatus.textContent = 'Could not start: ' + err.message;
+            phoneStatus.classList.add('error');
+            phoneStart.disabled = false;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
