@@ -528,6 +528,7 @@
             conn.on('data', (msg) => {
               if (!msg) return;
               if (msg.type === 'imu') onSample(msg);
+              else if (msg.type === 'orient') onOrient(msg);
               else if (msg.type === 'caps') onCaps(msg);
             });
             conn.on('close', () => {
@@ -555,6 +556,30 @@
         });
 
         tryClaimPeer();
+
+        const alphaValEl = document.getElementById('alphaVal');
+        const betaValEl  = document.getElementById('betaVal');
+        const gammaValEl = document.getElementById('gammaVal');
+        const orientMeta = document.getElementById('orientMeta');
+        let orientCount = 0;
+        let orientRateAt = performance.now();
+
+        function onOrient(o) {
+          alphaValEl.textContent = (o.alpha == null) ? '—' : o.alpha.toFixed(1) + '°';
+          betaValEl.textContent  = (o.beta  == null) ? '—' : o.beta.toFixed(1) + '°';
+          gammaValEl.textContent = (o.gamma == null) ? '—' : o.gamma.toFixed(1) + '°';
+          orientCount++;
+          const now = performance.now();
+          if (now - orientRateAt > 500) {
+            const hz = orientCount * 1000 / (now - orientRateAt);
+            const src = o.absolute ? 'absolute (compass-referenced)' : 'relative';
+            const head = (o.heading != null) ? ' · heading ' + o.heading.toFixed(0) + '°' : '';
+            orientMeta.textContent = hz.toFixed(0) + ' Hz · ' + src + head;
+            orientMeta.classList.add('ok');
+            orientRateAt = now;
+            orientCount = 0;
+          }
+        }
 
         function onCaps(c) {
           magAvail = !!c.mag;
