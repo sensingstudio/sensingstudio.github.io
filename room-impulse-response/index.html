@@ -279,6 +279,26 @@
         margin-top: 14px;
         line-height: 1.5;
       }
+      .param-hint {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin: 0 0 14px 88px;
+        line-height: 1.45;
+        max-width: 60ch;
+      }
+      .room-hint {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 13px;
+        color: var(--black);
+        background: #fffdf6;
+        border: 1px solid #ecdda3;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin: 14px 0 14px;
+      }
+      @media (max-width: 600px) {
+        .param-hint { margin-left: 0; }
+      }
       details summary {
         cursor: pointer;
         font-size: 13px;
@@ -379,13 +399,13 @@
         <div class="legend"><span><span class="swatch" style="background:#bc122a"></span>mic waveform</span></div>
 
         <div class="canvas-title">Impulse response <em>h(t)</em>
-          <span class="sub">recording deconvolved with the inverse sweep</span>
+          <span class="sub">log-magnitude envelope of the deconvolved signal (energy-time curve)</span>
         </div>
         <div class="canvas-wrap"><canvas id="irCanvas"></canvas></div>
         <div class="legend">
-          <span><span class="swatch" style="background:#bc122a"></span>|h(t)|, normalized</span>
-          <span><span class="swatch" style="background:rgba(232,185,35,0.55)"></span>early reflections (&le;50 ms)</span>
-          <span><span class="swatch" style="background:rgba(42,139,42,0.45)"></span>late reverberation</span>
+          <span><span class="swatch" style="background:#bc122a"></span>20&middot;log&#8321;&#8320;|h(t)| / peak (dB)</span>
+          <span><span class="swatch" style="background:rgba(232,185,35,0.18)"></span>early reflections (&le;50 ms)</span>
+          <span><span class="swatch" style="background:rgba(42,139,42,0.16)"></span>late reverberation</span>
         </div>
 
         <div class="canvas-title">Energy decay curve (Schroeder integration)
@@ -403,6 +423,64 @@
           <p class="note" style="margin-top: 4px;">You can use this IR in any convolution reverb plugin. The first non-zero sample roughly marks the direct sound; the rest is your room.</p>
           <button id="dlBtn" class="secondary" style="margin-top: 4px;">Download impulse_response.wav</button>
         </details>
+      </section>
+
+      <section class="panel" id="hearPanel">
+        <h2>Hear it</h2>
+        <p style="font-size: 14px; color: var(--grey-text); margin: 0 0 18px; line-height: 1.5;">Pick a source signal and play it through a room. The default is a real public-domain speech clip (Armstrong on the Moon, 1969). The synthetic room is built from a velvet-noise reverb tail with controllable RT60, pre-delay, and reflection density &mdash; the same idea as classic Schroeder/Moorer artificial reverbs. <em>Headphones recommended</em> so the playback isn&rsquo;t coloured by your real room.</p>
+
+        <div class="row">
+          <label for="srcSel">Source</label>
+          <select id="srcSel">
+            <option value="realspeech" selected>Speech (Apollo 11 &middot; public domain)</option>
+            <option value="ljspeech">Speech (LJSpeech &middot; clean studio read)</option>
+            <option value="speech">Voice (synthetic babble)</option>
+            <option value="clap">Hand clap</option>
+            <option value="drum">Drum hit</option>
+            <option value="chord">Chord</option>
+          </select>
+          <span class="status" id="srcStatus"></span>
+        </div>
+
+        <h3 style="margin: 22px 0 12px; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey-text); font-weight: 700;">Synthetic room</h3>
+
+        <div class="row" style="margin-bottom: 4px;">
+          <label for="synRT">RT60</label>
+          <input type="range" id="synRT" min="0.1" max="4" step="0.05" value="0.8" />
+          <span class="val" id="synRTVal">0.80 s</span>
+        </div>
+        <p class="param-hint">How long the tail takes to fade by 60&nbsp;dB (i.e. to inaudibility). Big number = &ldquo;live&rdquo; room with a long ringing tail.</p>
+
+        <div class="row" style="margin-bottom: 4px;">
+          <label for="synPre">Pre-delay</label>
+          <input type="range" id="synPre" min="0" max="100" step="1" value="20" />
+          <span class="val" id="synPreVal">20 ms</span>
+        </div>
+        <p class="param-hint">Gap between the direct sound and the first wall reflection. Long pre-delay reads as a &ldquo;big&rdquo; room without smearing the source.</p>
+
+        <div class="row" style="margin-bottom: 4px;">
+          <label for="synDens">Density</label>
+          <input type="range" id="synDens" min="50" max="3000" step="10" value="800" />
+          <span class="val" id="synDensVal">800 /s</span>
+        </div>
+        <p class="param-hint">How tightly packed the reflections are. Sparse&nbsp;= you hear individual echoes (slap-back), dense&nbsp;= a smooth wash.</p>
+
+        <p id="roomHint" class="room-hint">&nbsp;</p>
+
+        <div class="canvas-wrap"><canvas id="synthIRCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#bc122a"></span>reflection magnitude in dB rel. peak</span>
+          <span><span class="swatch" style="background:#E8B923"></span>direct sound + first reflection markers</span>
+          <span><span class="swatch" style="background:rgba(255,255,255,0.5)"></span>&minus;60&nbsp;dB reference (RT60 boundary)</span>
+        </div>
+
+        <div class="row" style="margin-top: 22px;">
+          <button id="playDryBtn">Play dry</button>
+          <button id="playSynthBtn">Play through synthetic room</button>
+          <button id="playMeasBtn" disabled>Play through measured room</button>
+          <button id="stopBtn" class="secondary">Stop</button>
+        </div>
+        <p class="note">Try RT60 0.4&nbsp;s for a small office, 1.5&nbsp;s for a hall, 3&nbsp;s+ for a cathedral. Drop density to 80&nbsp;/s and you can hear individual reflections; raise it past 1500&nbsp;/s for a smooth diffuse tail. Pre-delay above ~30&nbsp;ms is what makes a reverb feel &ldquo;big.&rdquo;</p>
       </section>
 
       <section class="panel teach">
@@ -671,12 +749,13 @@
           const ir = await deconvolve(recording, inv, sr);
 
           setStatus('Analyzing...', 'busy');
+          progWrap.classList.add('hidden');
+          resultPanel.classList.remove('hidden');
+          // Wait for layout so the canvases have a non-zero bounding box.
           await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
           analyzeAndRender(recording, ir, sweep, sr, N);
           setStatus('Done. Try a different room or change parameters.');
-          progWrap.classList.add('hidden');
-          resultPanel.classList.remove('hidden');
         } catch (err) {
           console.error(err);
           setStatus(err.message || String(err), 'error');
@@ -709,6 +788,7 @@
 
       // ---------- Analysis ----------
       let lastIR = null, lastIRStart = 0, lastSR = 48000;
+      let lastRender = null;
 
       function analyzeAndRender(recording, fullIR, sweep, sr, sweepLen) {
         // The "true" IR begins at index sweepLen-1 in the deconvolution output.
@@ -720,10 +800,25 @@
         const ir = new Float32Array(irLen);
         for (let i = 0; i < irLen; i++) ir[i] = fullIR[irStartIdx + i] || 0;
 
-        // Find direct-sound peak (largest |sample| in a window around lookback)
-        const searchEnd = Math.min(irLen, lookbackSamples + Math.round(0.2 * sr));
-        let peakIdx = lookbackSamples, peakVal = 0;
-        for (let i = lookbackSamples; i < searchEnd; i++) {
+        // Find direct-sound arrival: the FIRST significant peak in the search window.
+        // Using "first peak above threshold" rather than global max protects against the
+        // common case where a strong late reflection (or a startup glitch) is as large as
+        // the true direct sound and would otherwise hijack t=0.
+        const searchStart = lookbackSamples + Math.round(0.001 * sr); // skip 1ms of edge artifact
+        const searchEnd = Math.min(irLen, lookbackSamples + Math.round(0.5 * sr));
+        let globalMax = 0;
+        for (let i = searchStart; i < searchEnd; i++) {
+          const v = Math.abs(ir[i]);
+          if (v > globalMax) globalMax = v;
+        }
+        const arrivalThresh = 0.5 * globalMax;
+        let peakIdx = searchStart, peakVal = 0;
+        for (let i = searchStart; i < searchEnd; i++) {
+          if (Math.abs(ir[i]) >= arrivalThresh) { peakIdx = i; break; }
+        }
+        // Refine to local max within ±5 ms of the threshold crossing
+        const refineWin = Math.round(0.005 * sr);
+        for (let i = Math.max(searchStart, peakIdx - refineWin); i < Math.min(searchEnd, peakIdx + refineWin); i++) {
           const v = Math.abs(ir[i]);
           if (v > peakVal) { peakVal = v; peakIdx = i; }
         }
@@ -796,15 +891,24 @@
         srStatEl.firstChild.textContent = sr.toFixed(0) + ' ';
         snrEl.firstChild.textContent = snrDb.toFixed(0) + ' ';
 
-        // Save for download
+        // Save for download + resize redraw
         lastIR = ir.slice(0);
         lastIRStart = lookbackSamples;
         lastSR = sr;
+        lastRender = { recording, ir, sr, lookbackSamples, edcDb, fit: { fitSlope, fitIntercept, i5, i25 } };
 
-        // Render
+        renderAll();
+      }
+
+      function renderAll() {
+        if (!lastRender) return;
+        const { recording, ir, sr, lookbackSamples, edcDb, fit } = lastRender;
         drawWaveform('recCanvas', recording, sr, { color: '#bc122a' });
-        drawIR('irCanvas', ir, sr, lookbackSamples);
-        drawEDC('edcCanvas', edcDb, sr, { fitSlope, fitIntercept, i5, i25 });
+        drawIR('irCanvas', ir, sr, lookbackSamples, {
+          xLabel: 'time after sweep onset',
+          shadeEarlyLate: true
+        });
+        drawEDC('edcCanvas', edcDb, sr, fit);
       }
 
       // ---------- Drawing ----------
@@ -942,72 +1046,134 @@
         ctx.stroke();
       }
 
-      function drawIR(id, ir, sr, zeroIdx) {
+      function drawIR(id, ir, sr, zeroIdx, opts) {
+        opts = opts || {};
         const { ctx, w, h, dpr } = setupCanvas(id);
         const padL = 50 * dpr, padR = 12 * dpr, padT = 10 * dpr, padB = 30 * dpr;
 
-        // X axis: time in ms from zero (the direct sound is shortly after t=0)
+        // X axis: time in ms from zero
         const tMinMs = -zeroIdx / sr * 1000;
         const tMaxMs = (ir.length - zeroIdx) / sr * 1000;
         const xTicksRaw = niceTicks(tMinMs, tMaxMs, 9);
         const xTicks = xTicksRaw.map(t => ({
           t, label: Math.abs(t) >= 1000 ? (t/1000).toFixed(1) + 's' : t.toFixed(0) + 'ms'
         }));
+
+        // Y axis: log-magnitude in dB.
+        const yDbMin = -80, yDbMax = 0;
+        const yTicks = [];
+        for (let v = 0; v >= yDbMin; v -= 10) yTicks.push({ v, label: v + ' dB' });
+
         const { x0, x1, y0, y1 } = drawAxes(ctx, w, h, dpr, padL, padR, padT, padB, {
           xMin: tMinMs, xMax: tMaxMs, xTicks,
-          yMin: 0, yMax: 1,
-          yTicks: [{v:0,label:'0'},{v:0.25,label:'0.25'},{v:0.5,label:'0.5'},{v:0.75,label:'0.75'},{v:1,label:'1'}],
-          xLabel: 'time after sweep onset', yLabel: '|h(t)|'
+          yMin: yDbMin, yMax: yDbMax,
+          yTicks,
+          xLabel: opts.xLabel || 'time after sweep onset',
+          yLabel: '|h(t)| (dB rel. peak)'
         });
 
-        // Find direct peak
-        let peakIdx = zeroIdx, peakVal = 0;
-        for (let i = zeroIdx; i < Math.min(ir.length, zeroIdx + Math.round(0.2 * sr)); i++) {
-          const v = Math.abs(ir[i]);
-          if (v > peakVal) { peakVal = v; peakIdx = i; }
+        // Direct-sound peak in the search window
+        const searchEnd = Math.min(ir.length, zeroIdx + Math.round(0.5 * sr));
+        let globalMax = 0;
+        for (let i = zeroIdx; i < searchEnd; i++) {
+          const v = Math.abs(ir[i]); if (v > globalMax) globalMax = v;
         }
+        const arrivalThresh = 0.5 * globalMax;
+        let peakIdx = zeroIdx;
+        for (let i = zeroIdx; i < searchEnd; i++) {
+          if (Math.abs(ir[i]) >= arrivalThresh) { peakIdx = i; break; }
+        }
+        const peakAbs = Math.max(globalMax, 1e-12);
 
-        // Shaded regions: early reflections (peakIdx -> +50ms), late reverb (after)
-        const earlyEndIdx = Math.min(ir.length, peakIdx + Math.round(0.05 * sr));
         const idxToX = (i) => {
           const tms = (i - zeroIdx) / sr * 1000;
           return x0 + (tms - tMinMs) / (tMaxMs - tMinMs) * (x1 - x0);
         };
-        ctx.fillStyle = 'rgba(232,185,35,0.18)';
-        ctx.fillRect(idxToX(peakIdx), y0, idxToX(earlyEndIdx) - idxToX(peakIdx), y1 - y0);
-        ctx.fillStyle = 'rgba(42,139,42,0.16)';
-        ctx.fillRect(idxToX(earlyEndIdx), y0, x1 - idxToX(earlyEndIdx), y1 - y0);
+        const tMsToX = (tms) => x0 + (tms - tMinMs) / (tMaxMs - tMinMs) * (x1 - x0);
 
-        // Zero-time reference line
-        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        // Shaded early/late regions (only when explicitly requested)
+        if (opts.shadeEarlyLate) {
+          const earlyEndIdx = Math.min(ir.length, peakIdx + Math.round(0.05 * sr));
+          ctx.fillStyle = 'rgba(232,185,35,0.10)';
+          ctx.fillRect(idxToX(peakIdx), y0, idxToX(earlyEndIdx) - idxToX(peakIdx), y1 - y0);
+          ctx.fillStyle = 'rgba(42,139,42,0.08)';
+          ctx.fillRect(idxToX(earlyEndIdx), y0, x1 - idxToX(earlyEndIdx), y1 - y0);
+        }
+
+        // Direct-sound reference line at peakIdx
+        ctx.strokeStyle = 'rgba(255,255,255,0.30)';
         ctx.lineWidth = 1 * dpr;
         ctx.setLineDash([3 * dpr, 3 * dpr]);
         ctx.beginPath();
-        const x0line = x0 + (0 - tMinMs) / (tMaxMs - tMinMs) * (x1 - x0);
-        ctx.moveTo(x0line, y0); ctx.lineTo(x0line, y1);
+        const xDirect = idxToX(peakIdx);
+        ctx.moveTo(xDirect, y0); ctx.lineTo(xDirect, y1);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Plot |h| as min/max stems, but really just |h| curve since we're absolute-value.
+        // Reflection stems: dB of max(|h|) per pixel column.
+        const dbToY = db => y1 - (Math.max(yDbMin, Math.min(yDbMax, db)) - yDbMin) / (yDbMax - yDbMin) * (y1 - y0);
         const px = Math.max(1, x1 - x0);
         const samplesPerPx = ir.length / px;
-        ctx.strokeStyle = '#bc122a';
-        ctx.lineWidth = 1 * dpr;
-        ctx.beginPath();
+        ctx.fillStyle = '#bc122a';
         for (let p = 0; p < px; p++) {
           const i0 = Math.floor(p * samplesPerPx);
           const i1 = Math.min(ir.length, Math.floor((p + 1) * samplesPerPx));
           let mx = 0;
           for (let i = i0; i < i1; i++) {
-            const v = Math.abs(ir[i]);
-            if (v > mx) mx = v;
+            const v = Math.abs(ir[i]); if (v > mx) mx = v;
           }
-          const x = x0 + p;
-          const yA = y1 - Math.min(1, mx) * (y1 - y0);
-          ctx.moveTo(x, y1);
-          ctx.lineTo(x, yA);
+          if (mx <= 0) continue;
+          const db = 20 * Math.log10(mx / peakAbs);
+          if (db <= yDbMin) continue;
+          const yTop = dbToY(db);
+          ctx.fillRect(x0 + p, yTop, 1 * dpr, y1 - yTop);
         }
-        ctx.stroke();
+
+        // Optional annotations layered on top.
+        if (opts.annotations) {
+          ctx.font = (11 * dpr) + 'px Roboto, sans-serif';
+          for (const ann of opts.annotations) {
+            if (ann.type === 'vline') {
+              const xx = tMsToX(ann.tMs);
+              if (xx < x0 || xx > x1) continue;
+              ctx.strokeStyle = ann.color || '#E8B923';
+              ctx.lineWidth = 1.2 * dpr;
+              ctx.setLineDash([4 * dpr, 3 * dpr]);
+              ctx.beginPath();
+              ctx.moveTo(xx, y0); ctx.lineTo(xx, y1);
+              ctx.stroke();
+              ctx.setLineDash([]);
+              if (ann.label) {
+                // label box for legibility
+                ctx.fillStyle = ann.color || '#E8B923';
+                ctx.textBaseline = 'top';
+                ctx.textAlign = ann.labelAlign || 'left';
+                const tx = ann.labelAlign === 'right' ? xx - 5 * dpr : xx + 5 * dpr;
+                ctx.fillText(ann.label, tx, y0 + 5 * dpr);
+              }
+            } else if (ann.type === 'hline') {
+              const yy = dbToY(ann.db);
+              ctx.strokeStyle = ann.color || 'rgba(255,255,255,0.45)';
+              ctx.lineWidth = 1 * dpr;
+              ctx.setLineDash([5 * dpr, 4 * dpr]);
+              ctx.beginPath();
+              ctx.moveTo(x0, yy); ctx.lineTo(x1, yy);
+              ctx.stroke();
+              ctx.setLineDash([]);
+              if (ann.label) {
+                ctx.fillStyle = ann.color || 'rgba(255,255,255,0.7)';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(ann.label, x1 - 6 * dpr, yy - 3 * dpr);
+              }
+            } else if (ann.type === 'text') {
+              ctx.fillStyle = ann.color || 'rgba(255,255,255,0.85)';
+              ctx.textAlign = ann.align || 'left';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(ann.label, tMsToX(ann.tMs), dbToY(ann.db));
+            }
+          }
+        }
       }
 
       function drawEDC(id, edcDb, sr, fit) {
@@ -1131,14 +1297,408 @@
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       });
 
+      // ---------- "Hear it" panel ----------
+      const srcSel       = document.getElementById('srcSel');
+      const synRT        = document.getElementById('synRT');
+      const synPre       = document.getElementById('synPre');
+      const synDens      = document.getElementById('synDens');
+      const synRTVal     = document.getElementById('synRTVal');
+      const synPreVal    = document.getElementById('synPreVal');
+      const synDensVal   = document.getElementById('synDensVal');
+      const playDryBtn   = document.getElementById('playDryBtn');
+      const playSynthBtn = document.getElementById('playSynthBtn');
+      const playMeasBtn  = document.getElementById('playMeasBtn');
+      const stopBtn      = document.getElementById('stopBtn');
+
+      function refreshSynVals() {
+        synRTVal.textContent   = (+synRT.value).toFixed(2) + ' s';
+        synPreVal.textContent  = (+synPre.value).toFixed(0) + ' ms';
+        synDensVal.textContent = (+synDens.value).toFixed(0) + ' /s';
+      }
+      refreshSynVals();
+
+      // ---------- Synthetic RIR (velvet-noise tail with exp envelope) ----------
+      function makeSyntheticRIR(rt60, predelaySec, density, sr) {
+        const tailLen = Math.round((predelaySec + rt60 * 1.1 + 0.05) * sr);
+        const ir = new Float32Array(tailLen);
+        ir[0] = 1.0;                         // direct sound at t=0
+        // 60 dB decay over rt60: amplitude ∝ exp(-k t) with k = 3 ln(10) / rt60
+        const k = 3 * Math.log(10) / rt60;
+        const cellSize = Math.max(2, Math.round(sr / density));
+        const startCell = Math.max(1, Math.round(predelaySec * sr));
+        for (let cellStart = startCell; cellStart < tailLen; cellStart += cellSize) {
+          const t = cellStart / sr;
+          const sign = Math.random() < 0.5 ? -1 : 1;
+          const offset = Math.floor(Math.random() * cellSize);
+          const idx = cellStart + offset;
+          if (idx >= tailLen) break;
+          ir[idx] = sign * 0.7 * Math.exp(-k * t);   // 0.7 keeps reflections clearly below direct
+        }
+        return ir;
+      }
+
+      let cachedSynth = null;
+      function getSynthIR(sr) {
+        const rt60 = +synRT.value;
+        const pre  = +synPre.value / 1000;
+        const dens = +synDens.value;
+        if (cachedSynth && cachedSynth.rt60 === rt60 && cachedSynth.pre === pre &&
+            cachedSynth.dens === dens && cachedSynth.sr === sr) {
+          return cachedSynth.ir;
+        }
+        const ir = makeSyntheticRIR(rt60, pre, dens, sr);
+        cachedSynth = { rt60, pre, dens, sr, ir };
+        return ir;
+      }
+
+      // Plain-English description of the current synthetic-room settings.
+      function describeSynthRoom(rt60, predelaySec, density) {
+        const roomKind =
+          rt60 < 0.25 ? 'a heavily-treated booth (almost anechoic)' :
+          rt60 < 0.5  ? 'a small bedroom or recording booth'        :
+          rt60 < 0.9  ? 'an office or small classroom'              :
+          rt60 < 1.5  ? 'a living room or lecture hall'             :
+          rt60 < 2.2  ? 'a concert hall'                            :
+          rt60 < 3.2  ? 'a large theatre'                           :
+                        'a stone cathedral';
+
+        // Pre-delay → distance: sound bounces off a wall and returns. d ≈ predelay·c/2.
+        const wallDist = predelaySec * 343 / 2;
+        const wallText = predelaySec < 0.003
+          ? 'walls right against you'
+          : 'first wall ~' + (wallDist < 1 ? wallDist.toFixed(2) : wallDist.toFixed(1)) + ' m away';
+
+        const densText =
+          density < 150  ? 'sparse — you can hear individual reflections (slap-back)' :
+          density < 500  ? 'audible reflection texture (slightly metallic)'           :
+          density < 1200 ? 'diffuse, smooth tail'                                     :
+                            'very dense wash (lush hall-like)';
+
+        return '≈ ' + roomKind + ': ' + wallText + ', ' + densText + '.';
+      }
+
+      const roomHintEl = document.getElementById('roomHint');
+
+      function redrawSynth() {
+        refreshSynVals();
+        cachedSynth = null;     // force regen on slider change so plot moves
+        const sr = audioCtx ? audioCtx.sampleRate : 48000;
+        const rt60 = +synRT.value;
+        const predelaySec = +synPre.value / 1000;
+        const density = +synDens.value;
+        const ir = getSynthIR(sr);
+
+        // Build annotations for the synthetic IR plot.
+        const predelayMs = predelaySec * 1000;
+        const annotations = [
+          { type: 'vline', tMs: 0, label: 'direct sound', color: '#E8B923' }
+        ];
+        if (predelayMs > 3) {
+          annotations.push({
+            type: 'vline', tMs: predelayMs,
+            label: 'first reflection (← pre-delay→)',
+            color: 'rgba(232,185,35,0.75)'
+          });
+        }
+        annotations.push({ type: 'hline', db: -60, label: '−60 dB — RT60 boundary' });
+        // Callout where the decay slope crosses around -30 dB
+        annotations.push({
+          type: 'text', tMs: predelayMs + rt60 * 1000 * 0.5, db: -28,
+          label: 'RT60 = ' + rt60.toFixed(2) + ' s',
+          color: 'rgba(255,255,255,0.85)', align: 'left'
+        });
+
+        drawIR('synthIRCanvas', ir, sr, 0, {
+          xLabel: 'time after the impulse (ms)',
+          annotations
+        });
+
+        if (roomHintEl) roomHintEl.textContent = describeSynthRoom(rt60, predelaySec, density);
+      }
+
+      [synRT, synPre, synDens].forEach(el => el.addEventListener('input', () => {
+        clearTimeout(redrawSynth._to);
+        redrawSynth._to = setTimeout(redrawSynth, 30);
+      }));
+
+      // ---------- Source signal generators ----------
+      function normalize(buf, target) {
+        let peak = 0;
+        for (let i = 0; i < buf.length; i++) { const a = Math.abs(buf[i]); if (a > peak) peak = a; }
+        if (peak > 0) { const s = (target || 0.9) / peak; for (let i = 0; i < buf.length; i++) buf[i] *= s; }
+        return buf;
+      }
+
+      function makeDrumHit(sr) {
+        const dur = 0.9, N = Math.round(dur * sr);
+        const buf = new Float32Array(N);
+        // Pitched body: fast frequency drop from ~200 Hz down to ~60 Hz
+        for (let i = 0; i < N; i++) {
+          const t = i / sr;
+          const f = 60 + 140 * Math.exp(-t * 30);
+          const env = Math.exp(-t * 5);
+          buf[i] = Math.sin(2 * Math.PI * f * t) * env * 0.7;
+        }
+        // Noise transient on top for the "click"
+        for (let i = 0; i < Math.min(N, Math.round(0.04 * sr)); i++) {
+          const t = i / sr;
+          buf[i] += (Math.random() * 2 - 1) * Math.exp(-t * 80) * 0.4;
+        }
+        return normalize(buf, 0.9);
+      }
+
+      function makeHandClap(sr) {
+        const dur = 0.4, N = Math.round(dur * sr);
+        const buf = new Float32Array(N);
+        const bursts = [{t:0, a:0.6}, {t:0.012, a:1.0}, {t:0.026, a:0.7}];
+        for (const b of bursts) {
+          const i0 = Math.round(b.t * sr);
+          const burstLen = Math.round(0.022 * sr);
+          for (let i = 0; i < burstLen && i0 + i < N; i++) {
+            const t = i / sr;
+            buf[i0 + i] += (Math.random() * 2 - 1) * Math.exp(-t * 110) * b.a;
+          }
+        }
+        // Cheap HF emphasis
+        const hf = new Float32Array(N);
+        for (let i = 1; i < N; i++) hf[i] = buf[i] - buf[i-1];
+        for (let i = 0; i < N; i++) buf[i] = 0.4 * buf[i] + 0.6 * hf[i];
+        return normalize(buf, 0.9);
+      }
+
+      function makeChord(sr) {
+        const dur = 1.6, N = Math.round(dur * sr);
+        const buf = new Float32Array(N);
+        const freqs = [261.63, 329.63, 392.00, 523.25];   // C major
+        for (let i = 0; i < N; i++) {
+          const t = i / sr;
+          const env = Math.min(1, t * 8) * Math.exp(-t * 1.0);
+          let s = 0;
+          for (const f of freqs) {
+            s += Math.sin(2 * Math.PI * f * t);
+            s += 0.25 * Math.sin(2 * Math.PI * f * 2 * t);
+          }
+          buf[i] = s / freqs.length * env;
+        }
+        return normalize(buf, 0.85);
+      }
+
+      // Speech-like babble: glottal source + 3 parallel formant filters, vowel sequence.
+      async function makeBabble(sr) {
+        const dur = 2.6, N = Math.round(dur * sr);
+        const ctx = new OfflineAudioContext(1, N, sr);
+
+        const glottal = ctx.createOscillator();
+        glottal.type = 'sawtooth';
+        glottal.frequency.setValueAtTime(115, 0);
+        glottal.frequency.linearRampToValueAtTime(95, dur);
+
+        const voiceEnv = ctx.createGain();
+        voiceEnv.gain.value = 0;
+        glottal.connect(voiceEnv);
+
+        const pre = ctx.createBiquadFilter();
+        pre.type = 'highshelf';
+        pre.frequency.value = 1000;
+        pre.gain.value = 6;
+        voiceEnv.connect(pre);
+
+        const Qs = [8, 10, 12];
+        const formantGains = [1.0, 0.6, 0.35];
+        const filters = [];
+        for (let k = 0; k < 3; k++) {
+          const f = ctx.createBiquadFilter();
+          f.type = 'bandpass';
+          f.Q.value = Qs[k];
+          pre.connect(f);
+          const g = ctx.createGain();
+          g.gain.value = formantGains[k];
+          f.connect(g).connect(ctx.destination);
+          filters.push(f);
+        }
+
+        // Fricative noise channel (for sibilants)
+        const noiseBuf = ctx.createBuffer(1, N, sr);
+        const nch = noiseBuf.getChannelData(0);
+        for (let i = 0; i < N; i++) nch[i] = (Math.random() * 2 - 1);
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuf;
+        const noiseEnv = ctx.createGain();
+        noiseEnv.gain.value = 0;
+        const noiseHP = ctx.createBiquadFilter();
+        noiseHP.type = 'highpass';
+        noiseHP.frequency.value = 3500;
+        noise.connect(noiseEnv).connect(noiseHP).connect(ctx.destination);
+
+        const vowels = [
+          [730, 1090, 2440],   // a
+          [400, 1700, 2400],   // ə
+          [270, 2290, 3010],   // i
+          [570,  840, 2410],   // o
+          [530, 1840, 2480],   // e
+          [300,  870, 2240],   // u
+        ];
+
+        const syllableDur = 0.18;
+        const numSyllables = Math.floor(dur / syllableDur);
+        for (let i = 0; i < numSyllables; i++) {
+          const t = i * syllableDur;
+          const v = vowels[Math.floor(Math.random() * vowels.length)];
+          const trans = 0.03;
+          if (i === 0) {
+            filters[0].frequency.setValueAtTime(v[0], t);
+            filters[1].frequency.setValueAtTime(v[1], t);
+            filters[2].frequency.setValueAtTime(v[2], t);
+          } else {
+            filters[0].frequency.linearRampToValueAtTime(v[0], t + trans);
+            filters[1].frequency.linearRampToValueAtTime(v[1], t + trans);
+            filters[2].frequency.linearRampToValueAtTime(v[2], t + trans);
+          }
+          voiceEnv.gain.setValueAtTime(0, t);
+          voiceEnv.gain.linearRampToValueAtTime(0.4, t + 0.025);
+          voiceEnv.gain.setValueAtTime(0.4, t + syllableDur * 0.7);
+          voiceEnv.gain.linearRampToValueAtTime(0, t + syllableDur - 0.04);
+
+          if (Math.random() < 0.25) {
+            const tf = t + syllableDur - 0.05;
+            noiseEnv.gain.setValueAtTime(0, tf);
+            noiseEnv.gain.linearRampToValueAtTime(0.18, tf + 0.008);
+            noiseEnv.gain.linearRampToValueAtTime(0, tf + 0.04);
+          }
+        }
+
+        glottal.start(0);
+        noise.start(0);
+        const rendered = await ctx.startRendering();
+        return normalize(rendered.getChannelData(0).slice(), 0.9);
+      }
+
+      const sourceCache = {};
+
+      // Fetch + decode a bundled audio file. decodeAudioData auto-resamples to the
+      // current AudioContext's sample rate, so the returned buffer is ready for ConvolverNode.
+      async function loadAudioFile(path) {
+        const resp = await fetch(path, { cache: 'force-cache' });
+        if (!resp.ok) throw new Error('Could not load ' + path + ' (HTTP ' + resp.status + ')');
+        const arr = await resp.arrayBuffer();
+        const decoded = await audioCtx.decodeAudioData(arr);
+        const N = decoded.length;
+        const mono = new Float32Array(N);
+        if (decoded.numberOfChannels === 1) {
+          mono.set(decoded.getChannelData(0));
+        } else {
+          const l = decoded.getChannelData(0), r = decoded.getChannelData(1);
+          for (let i = 0; i < N; i++) mono[i] = (l[i] + r[i]) * 0.5;
+        }
+        return normalize(mono, 0.85);
+      }
+
+      async function getSource(name, sr) {
+        const key = name + '@' + sr;
+        if (sourceCache[key]) return sourceCache[key];
+        let buf;
+        if (name === 'realspeech')   buf = await loadAudioFile('voice.mp3');
+        else if (name === 'ljspeech') buf = await loadAudioFile('voice-lj.wav');
+        else if (name === 'drum')    buf = makeDrumHit(sr);
+        else if (name === 'clap')    buf = makeHandClap(sr);
+        else if (name === 'chord')   buf = makeChord(sr);
+        else                         buf = await makeBabble(sr);
+        sourceCache[key] = buf;
+        return buf;
+      }
+
+      // ---------- Playback ----------
+      let activeSource = null;
+
+      async function ensureCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        return audioCtx;
+      }
+
+      async function playSourceWithIR(irBuf) {
+        stopPlayback();
+        await ensureCtx();
+        const sr = audioCtx.sampleRate;
+        const dryBuf = await getSource(srcSel.value, sr);
+
+        const sBuf = audioCtx.createBuffer(1, dryBuf.length, sr);
+        sBuf.copyToChannel(dryBuf, 0);
+        const src = audioCtx.createBufferSource();
+        src.buffer = sBuf;
+
+        const out = audioCtx.createGain();
+        out.gain.value = 0.55;
+        out.connect(audioCtx.destination);
+
+        if (irBuf) {
+          const iBuf = audioCtx.createBuffer(1, irBuf.length, sr);
+          iBuf.copyToChannel(irBuf, 0);
+          const conv = audioCtx.createConvolver();
+          conv.normalize = false;
+          conv.buffer = iBuf;
+          src.connect(conv).connect(out);
+        } else {
+          src.connect(out);
+        }
+
+        src.start();
+        activeSource = src;
+        src.onended = () => { if (activeSource === src) activeSource = null; };
+      }
+
+      function stopPlayback() {
+        if (activeSource) {
+          try { activeSource.stop(); } catch (e) {}
+          activeSource = null;
+        }
+      }
+
+      const srcStatus = document.getElementById('srcStatus');
+      function setSrcStatus(msg, isError) {
+        srcStatus.textContent = msg || '';
+        srcStatus.classList.toggle('error', !!isError);
+      }
+      async function safePlay(irBuf) {
+        try {
+          setSrcStatus('Loading source...');
+          await playSourceWithIR(irBuf);
+          setSrcStatus('');
+        } catch (e) {
+          console.error(e);
+          setSrcStatus(e.message || String(e), true);
+        }
+      }
+
+      playDryBtn.addEventListener('click', () => safePlay(null));
+      playSynthBtn.addEventListener('click', async () => {
+        await ensureCtx();
+        safePlay(getSynthIR(audioCtx.sampleRate));
+      });
+      playMeasBtn.addEventListener('click', () => {
+        if (!lastIR) return;
+        safePlay(lastIR.subarray(Math.max(0, lastIRStart - 16)));
+      });
+      stopBtn.addEventListener('click', stopPlayback);
+
+      // Enable the "measured room" button after a successful measurement.
+      const _origRender = renderAll;
+      renderAll = function() {
+        _origRender();
+        if (lastIR) playMeasBtn.disabled = false;
+      };
+
+      // Initial draw of the synthetic IR (uses default sr=48000 until audioCtx exists).
+      requestAnimationFrame(() => requestAnimationFrame(redrawSynth));
+
       // Re-render on resize
       let resizeTO = null;
       window.addEventListener('resize', () => {
-        if (!lastIR) return;
         clearTimeout(resizeTO);
         resizeTO = setTimeout(() => {
-          // Cheapest: just leave it; user can re-run. (Avoids holding all data.)
-        }, 200);
+          renderAll();
+          redrawSynth();
+        }, 120);
       });
     </script>
   </body>

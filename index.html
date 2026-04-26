@@ -679,6 +679,96 @@
             <span class="arrow">Open</span>
           </div>
         </a>
+        <a class="card-link" href="beamforming/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- DOA half-circle -->
+              <g fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.7">
+                <path d="M 28 84 A 72 72 0 0 1 172 84"/>
+              </g>
+              <!-- angle lines to two sources -->
+              <g stroke="#bc122a" stroke-width="1" stroke-dasharray="3 3" opacity="0.9">
+                <line x1="100" y1="84" x2="62"  y2="22"/>
+                <line x1="100" y1="84" x2="146" y2="32"/>
+              </g>
+              <!-- ULA elements along the bottom -->
+              <g>
+                <line x1="64" y1="84" x2="136" y2="84" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+                <g fill="#fafafa" stroke="#bc122a" stroke-width="1">
+                  <circle cx="68"  cy="84" r="2.4"/>
+                  <circle cx="78"  cy="84" r="2.4"/>
+                  <circle cx="88"  cy="84" r="2.4"/>
+                  <circle cx="98"  cy="84" r="2.4"/>
+                  <circle cx="108" cy="84" r="2.4"/>
+                  <circle cx="118" cy="84" r="2.4"/>
+                  <circle cx="128" cy="84" r="2.4"/>
+                </g>
+              </g>
+              <!-- source pucks -->
+              <g stroke="#fff" stroke-width="1.2">
+                <circle cx="62"  cy="22" r="5" fill="#2a8b2a"/>
+                <circle cx="146" cy="32" r="5" fill="#bc122a"/>
+              </g>
+              <!-- mini spatial spectrum across the top: three overlaid curves -->
+              <g fill="none" stroke-width="1.1">
+                <path d="M 28 18 Q 50 16 62 6 Q 80 16 110 14 Q 140 12 146 4 Q 170 16 178 18"
+                      stroke="#bc122a"/>
+                <path d="M 28 18 Q 50 17 62 9 Q 80 17 110 16 Q 140 14 146 7 Q 170 17 178 18"
+                      stroke="#2c6fbb" opacity="0.85"/>
+                <path d="M 28 18 Q 60 14 92 12 Q 124 10 156 12 Q 168 14 178 18"
+                      stroke="#E8B923" opacity="0.85"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <h2>Beamforming</h2>
+            <p>Drag sound sources past a uniform linear array. Watch Bartlett, MVDR, and MUSIC argue about where they are &mdash; and how spacing, frequency, and grating lobes change everything.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="range-resolution/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- baseline -->
+              <line x1="14" y1="74" x2="186" y2="74" stroke="rgba(255,255,255,0.18)" stroke-width="0.7"/>
+              <!-- two true target markers -->
+              <g stroke="rgba(232,185,35,0.7)" stroke-width="0.9" stroke-dasharray="2 2">
+                <line x1="86"  y1="22" x2="86"  y2="74"/>
+                <line x1="116" y1="22" x2="116" y2="74"/>
+              </g>
+              <!-- c/(2B) calibration bar -->
+              <g stroke="#E8B923" stroke-width="1.6" stroke-linecap="round">
+                <line x1="86"  y1="16" x2="116" y2="16"/>
+                <line x1="86"  y1="13" x2="86"  y2="19"/>
+                <line x1="116" y1="13" x2="116" y2="19"/>
+              </g>
+              <!-- two compressed peaks at the dashed lines -->
+              <g fill="none" stroke="#bc122a" stroke-width="1.6" stroke-linejoin="round">
+                <path d="M 14 73
+                         L 60 72 L 70 71 L 78 60 L 84 38 L 86 30 L 88 38 L 94 60 L 102 71
+                         L 110 71 L 114 60 L 116 32 L 118 60 L 124 71 L 132 72
+                         L 186 73"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <h2>Range Resolution</h2>
+            <p>Slide the bandwidth and watch two nearby targets merge into one peak. Shows visually why a chirp&rsquo;s range resolution is c&nbsp;/&nbsp;(2B).</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
         <a class="card-link" href="room-impulse-response/">
           <div class="cover" aria-hidden="true">
             <svg viewBox="0 0 200 100" preserveAspectRatio="none">

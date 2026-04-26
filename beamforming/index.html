@@ -324,6 +324,16 @@
       </section>
 
       <section class="panel">
+        <h2>Wavefront · what each element sees</h2>
+        <div class="canvas-wrap" style="height: 200px;">
+          <canvas id="wfCanvas"></canvas>
+          <div class="canvas-label">Time × element</div>
+          <div class="canvas-meta" id="wfMeta"></div>
+        </div>
+        <p class="note">Each row is one element. The wave from an off-broadside source hits the elements at staggered times &mdash; that tilt across rows is what the algorithms read. When d&nbsp;&gt;&nbsp;λ/2 the tilt aliases, which is the same fact as a grating lobe.</p>
+      </section>
+
+      <section class="panel">
         <h2>Spatial spectrum</h2>
         <div class="canvas-wrap" style="height: 320px;">
           <canvas id="specCanvas"></canvas>
@@ -376,6 +386,7 @@
           </div>
           <div class="control" style="justify-content: center;">
             <label class="checkbox-row"><input type="checkbox" id="coherent"> Coherent sources (multipath)</label>
+            <label class="checkbox-row"><input type="checkbox" id="smoothing"> Spatial smoothing (decorrelate multipath)</label>
             <label class="checkbox-row"><input type="checkbox" id="oracleK" checked> MUSIC knows # sources</label>
           </div>
         </div>
@@ -408,6 +419,10 @@
           <button class="ghost preset" data-preset="coherent">
             <span class="pt">Coherent multipath</span>
             <span class="pd">Two arrivals of the same signal. MVDR &amp; MUSIC collapse; Bartlett still works.</span>
+          </button>
+          <button class="ghost preset" data-preset="smoothed">
+            <span class="pt">Smoothed multipath</span>
+            <span class="pd">Same scene, but spatial smoothing on. Aperture shrinks; MVDR &amp; MUSIC recover.</span>
           </button>
           <button class="ghost preset" data-preset="grating">
             <span class="pt">Grating lobes</span>
@@ -572,18 +587,13 @@
       }
 
       // ----------------------------------------------------------
-      // Synthesize K snapshots and form the sample covariance.
-      // R has dimension N×N; sources is [{theta_deg, power}, ...].
+      // Snapshot synthesis. Returns flat Float64Arrays of length
+      // snapshots*N indexed as t*N + n. Kept separate from covariance
+      // so the same snapshots can feed the regular and spatially-smoothed
+      // estimators.
       // ----------------------------------------------------------
-      function buildCovariance(N, dOverLambda, sources, snapshots, snrDb, coherent, rng) {
-        // Per-source amplitude. Noise is unit-variance complex per element.
+      function generateSnapshots(N, dOverLambda, sources, snapshots, snrDb, coherent, rng) {
         const snrLin = Math.pow(10, snrDb / 10);
-        const Re = [], Im = [];
-        for (let i = 0; i < N; i++) {
-          Re.push(new Float64Array(N));
-          Im.push(new Float64Array(N));
-        }
-        // Precompute steering vectors a_k(θ)
         const A = sources.map(src => {
           const re = new Float64Array(N);
           const im = new Float64Array(N);
@@ -594,15 +604,12 @@
           }
           return { re, im, amp: Math.sqrt(snrLin * Math.max(src.power, 1e-9)) };
         });
-
-        const xRe = new Float64Array(N);
-        const xIm = new Float64Array(N);
+        const Re = new Float64Array(snapshots * N);
+        const Im = new Float64Array(snapshots * N);
         for (let t = 0; t < snapshots; t++) {
-          xRe.fill(0); xIm.fill(0);
           let sharedRe = 0, sharedIm = 0;
-          if (coherent) {
-            const z = cnormal(rng); sharedRe = z[0]; sharedIm = z[1];
-          }
+          if (coherent) { const z = cnormal(rng); sharedRe = z[0]; sharedIm = z[1]; }
+          const off = t * N;
           for (let k = 0; k < A.length; k++) {
             let zRe, zIm;
             if (coherent) { zRe = sharedRe; zIm = sharedIm; }
@@ -611,33 +618,70 @@
             const sIm = A[k].amp * zIm;
             const aR = A[k].re, aI = A[k].im;
             for (let n = 0; n < N; n++) {
-              // s * a = (sRe+i sIm)(aR+i aI)
-              xRe[n] += sRe * aR[n] - sIm * aI[n];
-              xIm[n] += sRe * aI[n] + sIm * aR[n];
+              Re[off + n] += sRe * aR[n] - sIm * aI[n];
+              Im[off + n] += sRe * aI[n] + sIm * aR[n];
             }
           }
-          // Add white noise per element, CN(0, 1).
           for (let n = 0; n < N; n++) {
             const nz = cnormal(rng);
-            xRe[n] += nz[0];
-            xIm[n] += nz[1];
+            Re[off + n] += nz[0];
+            Im[off + n] += nz[1];
           }
-          // R += x x^H / K
-          const w = 1 / snapshots;
+        }
+        return { Re, Im, N, snapshots };
+      }
+
+      // Empirical N×N covariance from the full snapshot vectors.
+      function covarianceFromSnapshots(snaps) {
+        const { Re, Im, N, snapshots } = snaps;
+        const RRe = [], RIm = [];
+        for (let i = 0; i < N; i++) { RRe.push(new Float64Array(N)); RIm.push(new Float64Array(N)); }
+        const w = 1 / snapshots;
+        for (let t = 0; t < snapshots; t++) {
+          const off = t * N;
           for (let i = 0; i < N; i++) {
-            const xri = xRe[i], xii = xIm[i];
+            const xri = Re[off + i], xii = Im[off + i];
             for (let j = 0; j < N; j++) {
-              const xrj = xRe[j], xij = xIm[j];
-              // (x_i)(x_j)^* = (xri + i xii)(xrj - i xij)
-              Re[i][j] += w * (xri * xrj + xii * xij);
-              Im[i][j] += w * (xii * xrj - xri * xij);
+              const xrj = Re[off + j], xij = Im[off + j];
+              RRe[i][j] += w * (xri * xrj + xii * xij);
+              RIm[i][j] += w * (xii * xrj - xri * xij);
             }
           }
         }
-        // Force exact Hermitian symmetry to fight numerical drift.
-        for (let i = 0; i < N; i++) {
+        return hermitianize(RRe, RIm);
+      }
+
+      // Forward spatial smoothing. Splits the N-element array into L
+      // overlapping subarrays of size M = N - L + 1 and averages the L
+      // subarray covariances. Decorrelates up to L coherent sources, at
+      // the cost of aperture (effective array shrinks to M elements).
+      function smoothedCovariance(snaps, M) {
+        const { Re, Im, N, snapshots } = snaps;
+        const L = N - M + 1;
+        const RRe = [], RIm = [];
+        for (let i = 0; i < M; i++) { RRe.push(new Float64Array(M)); RIm.push(new Float64Array(M)); }
+        const w = 1 / (L * snapshots);
+        for (let l = 0; l < L; l++) {
+          for (let t = 0; t < snapshots; t++) {
+            const off = t * N + l;
+            for (let i = 0; i < M; i++) {
+              const xri = Re[off + i], xii = Im[off + i];
+              for (let j = 0; j < M; j++) {
+                const xrj = Re[off + j], xij = Im[off + j];
+                RRe[i][j] += w * (xri * xrj + xii * xij);
+                RIm[i][j] += w * (xii * xrj - xri * xij);
+              }
+            }
+          }
+        }
+        return hermitianize(RRe, RIm);
+      }
+
+      function hermitianize(Re, Im) {
+        const M = Re.length;
+        for (let i = 0; i < M; i++) {
           Im[i][i] = 0;
-          for (let j = i + 1; j < N; j++) {
+          for (let j = i + 1; j < M; j++) {
             const re = 0.5 * (Re[i][j] + Re[j][i]);
             const im = 0.5 * (Im[i][j] - Im[j][i]);
             Re[i][j] = re; Re[j][i] = re;
@@ -742,6 +786,7 @@
         snrDb: 10,
         snapshots: 200,
         coherent: false,
+        smoothing: false,
         oracleK: true,
         sources: [
           { theta: -8, power: 1 },
@@ -768,16 +813,32 @@
       function recompute() {
         const rng = mulberry32(state.noiseSeed);
         const dl = dOverLambda();
-        const R = buildCovariance(
+        const snaps = generateSnapshots(
           state.N, dl, state.sources,
           state.snapshots, state.snrDb,
           state.coherent, rng
         );
+
+        // Decide effective array size. Forward smoothing uses L = K+1
+        // subarrays of size M = N - L + 1, so we lose K elements of
+        // aperture but can resolve up to L coherent sources.
+        let M = state.N;
+        if (state.smoothing) {
+          const K = state.sources.length;
+          const L = Math.max(2, K + 1);
+          const cand = state.N - L + 1;
+          if (cand >= 2) M = cand;
+        }
+        const R = (M < state.N)
+          ? smoothedCovariance(snaps, M)
+          : covarianceFromSnapshots(snaps);
+
         const Ksig = state.oracleK
-          ? Math.min(state.sources.length, state.N - 1)
-          : Math.max(1, Math.min(estimateK(R, state.N), state.N - 1));
-        cachedSpectra = computeSpectra(state.N, dl, R, Ksig, angles);
+          ? Math.min(state.sources.length, M - 1)
+          : Math.max(1, Math.min(estimateK(R, M), M - 1));
+        cachedSpectra = computeSpectra(M, dl, R, Ksig, angles);
         cachedSpectra.Ksig = Ksig;
+        cachedSpectra.M    = M;
       }
 
       // Quick AIC-style model order: gap between eigenvalues. Not rigorous
@@ -798,8 +859,10 @@
       // ----------------------------------------------------------
       const sceneCanvas = document.getElementById('sceneCanvas');
       const specCanvas  = document.getElementById('specCanvas');
+      const wfCanvas    = document.getElementById('wfCanvas');
       const sceneMeta   = document.getElementById('sceneMeta');
       const specMeta    = document.getElementById('specMeta');
+      const wfMeta      = document.getElementById('wfMeta');
 
       function setupCanvas(canvas) {
         const dpr = window.devicePixelRatio || 1;
@@ -1028,12 +1091,145 @@
         ctx.fillText('Direction of arrival θ', padL + plotW / 2, padT + plotH + 26);
 
         const Ksig = cachedSpectra.Ksig;
+        const M    = cachedSpectra.M;
         specMeta.textContent =
-          state.snapshots + ' snapshots · MUSIC subspace K = ' + Ksig;
+          state.snapshots + ' snapshots · K = ' + Ksig +
+          (M < state.N ? ' · smoothed: M = ' + M : '');
       }
 
       function getCss(name) {
         return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      }
+
+      // ----------------------------------------------------------
+      // Drawing — waterfall (per-element time signal)
+      //
+      // For each element n, the source from angle θ arrives delayed
+      // by τ_n = -n d sinθ / c relative to element 0, so
+      //   s_n(t) = sum_k √P_k · cos(2π f t + 2π n (d/λ) sinθ_k)
+      // The phase progression across n shows up as a tilted stripe.
+      // ----------------------------------------------------------
+      function drawWaterfall() {
+        const { ctx, w, h } = setupCanvas(wfCanvas);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+
+        const padL = 44, padR = 14, padT = 26, padB = 22;
+        const plotW = Math.max(1, Math.round(w - padL - padR));
+        const plotH = Math.max(1, Math.round(h - padT - padB));
+        const N     = state.N;
+        const dl    = dOverLambda();
+        const periods = 4;
+        const f_Hz  = state.freqKHz * 1000;
+        const T_s   = periods / f_Hz;
+
+        // Per-source steering phase progression (per element).
+        const Cn = new Array(state.sources.length);
+        const Sn = new Array(state.sources.length);
+        for (let k = 0; k < state.sources.length; k++) {
+          const phi = 2 * Math.PI * dl * Math.sin(state.sources[k].theta * Math.PI / 180);
+          Cn[k] = new Float64Array(N);
+          Sn[k] = new Float64Array(N);
+          for (let n = 0; n < N; n++) {
+            Cn[k][n] = Math.cos(n * phi);
+            Sn[k][n] = Math.sin(n * phi);
+          }
+        }
+        const amp = state.sources.map(s => Math.sqrt(Math.max(s.power, 0)));
+
+        // Per-time cos/sin of the carrier.
+        const Ct = new Float64Array(plotW);
+        const St = new Float64Array(plotW);
+        for (let col = 0; col < plotW; col++) {
+          const t = (col / Math.max(1, plotW - 1)) * T_s;
+          const phi = 2 * Math.PI * f_Hz * t;
+          Ct[col] = Math.cos(phi);
+          St[col] = Math.sin(phi);
+        }
+
+        // For each element, collapse all sources into single (Cn_sum, Sn_sum)
+        // weighted by amp, so the per-pixel cost is one mul + one mul.
+        const C_per_n = new Float64Array(N);
+        const S_per_n = new Float64Array(N);
+        let normMax = 1e-9;
+        for (let n = 0; n < N; n++) {
+          let cs = 0, ss = 0;
+          for (let k = 0; k < state.sources.length; k++) {
+            cs += amp[k] * Cn[k][n];
+            ss += amp[k] * Sn[k][n];
+          }
+          C_per_n[n] = cs; S_per_n[n] = ss;
+          const env = Math.hypot(cs, ss);
+          if (env > normMax) normMax = env;
+        }
+        const inv = 1 / normMax;
+
+        const img = ctx.createImageData(plotW, plotH);
+        const data = img.data;
+        for (let row = 0; row < plotH; row++) {
+          const n = Math.min(N - 1, Math.floor(row / plotH * N));
+          const cs = C_per_n[n], ss = S_per_n[n];
+          const base = row * plotW * 4;
+          for (let col = 0; col < plotW; col++) {
+            // s_n(t) = cos(2π f t) · Σ amp cos(nφ) - sin(2π f t) · Σ amp sin(nφ)
+            let v = (Ct[col] * cs - St[col] * ss) * inv;
+            if (v < -1) v = -1; else if (v > 1) v = 1;
+            let r, g, b;
+            if (v >= 0) {
+              const u = v;
+              r = (12 + (188 - 12) * u) | 0;
+              g = (12 + ( 18 - 12) * u) | 0;
+              b = (14 + ( 42 - 14) * u) | 0;
+            } else {
+              const u = -v;
+              r = (12 + ( 44 - 12) * u) | 0;
+              g = (12 + (111 - 12) * u) | 0;
+              b = (14 + (187 - 14) * u) | 0;
+            }
+            const idx = base + col * 4;
+            data[idx] = r; data[idx + 1] = g; data[idx + 2] = b; data[idx + 3] = 255;
+          }
+        }
+        ctx.putImageData(img, padL, padT);
+
+        // Element row separators.
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 1;
+        for (let n = 1; n < N; n++) {
+          const y = Math.round(padT + n * (plotH / N)) + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y);
+          ctx.stroke();
+        }
+        // Frame
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.strokeRect(padL + 0.5, padT + 0.5, plotW, plotH);
+
+        // Element labels
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '10px ui-monospace, Menlo, monospace';
+        ctx.textAlign = 'right';
+        // Show first/last and a couple in between to avoid clutter.
+        const showRows = new Set([0, N - 1]);
+        if (N >= 4) showRows.add(Math.floor(N / 2));
+        if (N >= 8) { showRows.add(Math.floor(N / 4)); showRows.add(Math.floor(3 * N / 4)); }
+        showRows.forEach(n => {
+          const y = padT + (n + 0.5) * (plotH / N) + 3.5;
+          ctx.fillText('#' + n, padL - 6, y);
+        });
+
+        // Time axis
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '11px Roboto, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('element', 4, padT - 10);
+        ctx.textAlign = 'center';
+        ctx.fillText('time → (' + periods + ' source periods)',
+          padL + plotW / 2, padT + plotH + 16);
+
+        wfMeta.textContent =
+          state.sources.length + ' source' + (state.sources.length === 1 ? '' : 's') +
+          ' · ƒ = ' + state.freqKHz.toFixed(1) + ' kHz';
       }
 
       // ----------------------------------------------------------
@@ -1170,6 +1366,7 @@
           updateStats();
           recompute();
           drawScene();
+          drawWaterfall();
           drawSpectrum();
         });
       }
@@ -1257,6 +1454,9 @@
       document.getElementById('coherent').addEventListener('change', (e) => {
         state.coherent = e.target.checked; requestRender();
       });
+      document.getElementById('smoothing').addEventListener('change', (e) => {
+        state.smoothing = e.target.checked; requestRender();
+      });
       document.getElementById('oracleK').addEventListener('change', (e) => {
         state.oracleK = e.target.checked; requestRender();
       });
@@ -1289,8 +1489,9 @@
         document.getElementById('f').value   = state.freqKHz;
         document.getElementById('snr').value = state.snrDb;
         document.getElementById('K').value   = state.snapshots;
-        document.getElementById('coherent').checked = state.coherent;
-        document.getElementById('oracleK').checked  = state.oracleK;
+        document.getElementById('coherent').checked  = state.coherent;
+        document.getElementById('smoothing').checked = state.smoothing;
+        document.getElementById('oracleK').checked   = state.oracleK;
         document.getElementById('Nval').textContent   = state.N;
         document.getElementById('dval').textContent   = state.dCm.toFixed(1) + ' cm';
         document.getElementById('fval').textContent   = state.freqKHz.toFixed(1) + ' kHz';
@@ -1303,32 +1504,37 @@
       const PRESETS = {
         aperture: {
           N: 10, dCm: 4.3, freqKHz: 4.0,
-          snrDb: 20, snapshots: 200, coherent: false, oracleK: true,
+          snrDb: 20, snapshots: 200, coherent: false, smoothing: false, oracleK: true,
           sources: [{ theta: -3, power: 1 }, { theta: 5, power: 1 }],
         },
         interferer: {
           N: 8, dCm: 4.3, freqKHz: 4.0,
-          snrDb: 20, snapshots: 200, coherent: false, oracleK: true,
+          snrDb: 20, snapshots: 200, coherent: false, smoothing: false, oracleK: true,
           sources: [{ theta: -10, power: 0.05 }, { theta: 10, power: 1 }],
         },
         snapshots: {
           N: 8, dCm: 4.3, freqKHz: 4.0,
-          snrDb: 10, snapshots: 8, coherent: false, oracleK: true,
+          snrDb: 10, snapshots: 8, coherent: false, smoothing: false, oracleK: true,
           sources: [{ theta: -15, power: 1 }, { theta: 20, power: 1 }],
         },
         coherent: {
           N: 8, dCm: 4.3, freqKHz: 4.0,
-          snrDb: 20, snapshots: 200, coherent: true, oracleK: true,
+          snrDb: 20, snapshots: 200, coherent: true, smoothing: false, oracleK: true,
+          sources: [{ theta: -15, power: 1 }, { theta: 18, power: 1 }],
+        },
+        smoothed: {
+          N: 12, dCm: 4.3, freqKHz: 4.0,
+          snrDb: 20, snapshots: 200, coherent: true, smoothing: true, oracleK: true,
           sources: [{ theta: -15, power: 1 }, { theta: 18, power: 1 }],
         },
         grating: {
           N: 8, dCm: 8.6, freqKHz: 8.0,
-          snrDb: 20, snapshots: 200, coherent: false, oracleK: true,
+          snrDb: 20, snapshots: 200, coherent: false, smoothing: false, oracleK: true,
           sources: [{ theta: 10, power: 1 }],
         },
         undersampled: {
           N: 4, dCm: 12, freqKHz: 6.0,
-          snrDb: 20, snapshots: 200, coherent: false, oracleK: true,
+          snrDb: 20, snapshots: 200, coherent: false, smoothing: false, oracleK: true,
           sources: [{ theta: -25, power: 1 }, { theta: 30, power: 1 }],
         },
       };

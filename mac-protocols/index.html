@@ -878,9 +878,8 @@
 
       window.addEventListener('resize', () => { fitCanvas(); drawTimeline(); });
 
-      // Boot
+      // Boot -- start paused so the user can read the page first.
       setProtocol('aloha');
-      setPlaying(true);
     </script>
   </body>
 </html>

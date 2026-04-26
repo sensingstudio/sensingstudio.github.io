@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Range Resolution · Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 960px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 64ch;
+        line-height: 1.55;
+      }
+      p.lead strong { color: var(--black); }
+      p.lead em { font-style: italic; color: var(--black); }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+      .canvas-label {
+        position: absolute;
+        top: 8px;
+        left: 12px;
+        color: rgba(255,255,255,0.65);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .note {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin: 12px 0 0;
+        line-height: 1.5;
+      }
+      .slider-row {
+        display: grid;
+        grid-template-columns: 180px 1fr 110px;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+      .slider-row:last-child { margin-bottom: 0; }
+      .slider-row label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--black);
+      }
+      .slider-row input[type=range] {
+        width: 100%;
+        accent-color: var(--red);
+      }
+      .slider-row .slider-val {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 14px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--black);
+        text-align: right;
+      }
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+      .result-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 14px 16px;
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        background: #fafafa;
+      }
+      .result-cell.highlight { background: #fff; }
+      .result-cell.highlight.resolved { border-color: var(--green); }
+      .result-cell.highlight.merged { border-color: var(--red); }
+      .result-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .result-value {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 22px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--black);
+        line-height: 1.1;
+      }
+      .result-value.big { font-size: 28px; letter-spacing: -0.5px; }
+      .result-cell.resolved .result-value.big { color: var(--green); }
+      .result-cell.merged .result-value.big { color: var(--red); }
+      .result-help { font-size: 11px; color: var(--grey-text); line-height: 1.4; }
+      details.explainer { margin: 0; }
+      details.explainer summary {
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        list-style: none;
+      }
+      details.explainer summary::-webkit-details-marker { display: none; }
+      details.explainer summary::before {
+        content: '\25B8';
+        display: inline-block;
+        width: 14px;
+        transition: transform 0.15s;
+      }
+      details.explainer[open] summary::before { transform: rotate(90deg); }
+      details.explainer .body { padding-top: 14px; line-height: 1.6; color: var(--black); font-size: 14px; }
+      details.explainer .body p { margin: 0 0 12px; max-width: 64ch; }
+      details.explainer .body p:last-child { margin-bottom: 0; }
+      details.explainer .body em { font-style: italic; }
+      details.explainer .body code {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        background: #f5f5f5;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 13px;
+      }
+      details.explainer .body .step {
+        font-weight: 700;
+        color: var(--black);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 11px;
+        display: block;
+        margin-top: 4px;
+      }
+      .formula {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        background: #f5f5f5;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 8px 0;
+      }
+      .attribution { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--grey-line); width: 100%; font-size: 13px; letter-spacing: 0.5px; color: var(--grey-text); display: flex; align-items: center; justify-content: center; gap: 8px; }
+      .attribution a { display: inline-flex; align-items: center; gap: 8px; color: var(--black); text-decoration: none; font-weight: 700; transition: color 0.15s, opacity 0.15s; }
+      .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+      .attribution a:hover { color: var(--red); }
+      .attribution a:hover img { opacity: 0.85; }
+      @media (max-width: 600px) {
+        .slider-row { grid-template-columns: 1fr; gap: 6px; }
+        .slider-row .slider-val { text-align: left; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="../">
+        <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+          <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+        </svg>
+        <span><span>SENSING</span> <span class="red">SCHOOL</span></span>
+      </a>
+      <span class="crumb">Range Resolution</span>
+    </header>
+
+    <main>
+      <h1>Range Resolution</h1>
+      <p class="lead">A pulse-compression sonar (or radar) can only tell two reflectors apart if they are separated by more than <strong>c&nbsp;/&nbsp;(2B)</strong>, where <em>c</em> is the wave speed and <em>B</em> is the transmitted bandwidth. Drag the sliders below: as you shrink&nbsp;<em>B</em>, the matched-filter peaks fatten until two distinct targets merge into a single blob.</p>
+
+      <section class="panel">
+        <h2>Controls</h2>
+        <div class="slider-row">
+          <label for="bSlider">Bandwidth&nbsp;B</label>
+          <input type="range" id="bSlider" min="200" max="5000" step="50" value="2000" />
+          <span class="slider-val" id="bVal">2000&nbsp;Hz</span>
+        </div>
+        <div class="slider-row">
+          <label for="r1Slider">Target&nbsp;1 distance R&#8321;</label>
+          <input type="range" id="r1Slider" min="0.3" max="2.5" step="0.01" value="1.00" />
+          <span class="slider-val" id="r1Val">1.00&nbsp;m</span>
+        </div>
+        <div class="slider-row">
+          <label for="r2Slider">Target&nbsp;2 distance R&#8322;</label>
+          <input type="range" id="r2Slider" min="0.3" max="2.5" step="0.01" value="1.20" />
+          <span class="slider-val" id="r2Val">1.20&nbsp;m</span>
+        </div>
+        <p class="note">Chirp: 8&nbsp;ms linear sweep starting at 500&nbsp;Hz, sweeping a bandwidth&nbsp;<em>B</em>. Wave speed c&nbsp;=&nbsp;343&nbsp;m/s. Both targets reflect with equal amplitude.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Predicted resolution</h2>
+        <div class="result-grid">
+          <div class="result-cell">
+            <span class="result-label">Target separation</span>
+            <span class="result-value" id="sepVal">&mdash;</span>
+            <span class="result-help">|R&#8322;&nbsp;&minus;&nbsp;R&#8321;|</span>
+          </div>
+          <div class="result-cell">
+            <span class="result-label">c&nbsp;/&nbsp;(2B)</span>
+            <span class="result-value" id="resVal">&mdash;</span>
+            <span class="result-help">smallest separation that resolves</span>
+          </div>
+          <div class="result-cell highlight" id="statusCell">
+            <span class="result-label">Status</span>
+            <span class="result-value big" id="statusVal">&mdash;</span>
+            <span class="result-help" id="statusHelp">&mdash;</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Matched-filter envelope &middot; distance axis</h2>
+        <div class="canvas-wrap" style="height: 280px;">
+          <canvas id="mfCanvas"></canvas>
+          <div class="canvas-label">|matched filter|²</div>
+        </div>
+        <p class="note">Yellow dashed lines mark the true target positions R&#8321;, R&#8322;. The yellow bar at the top is c&nbsp;/&nbsp;(2B) drawn to scale &mdash; if it is narrower than the gap between the dashed lines, you should see two peaks; otherwise the peaks merge.</p>
+      </section>
+
+      <section class="panel">
+        <h2>What the receiver sees, before pulse compression</h2>
+        <div class="canvas-wrap" style="height: 140px;">
+          <canvas id="rxCanvas"></canvas>
+          <div class="canvas-label">received signal r(t)</div>
+        </div>
+        <p class="note">Sum of two delayed copies of the transmitted chirp. As you bring the targets close, the two echoes overlap into a single complicated waveform &mdash; raw inspection cannot count the targets.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Transmitted chirp</h2>
+        <div class="canvas-wrap" style="height: 110px;">
+          <canvas id="txCanvas"></canvas>
+          <div class="canvas-label">s(t)</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <details class="explainer" open>
+          <summary>Why c&nbsp;/&nbsp;(2B)?</summary>
+          <div class="body">
+            <span class="step">Step 1 &middot; the matched filter compresses to width 1/B</span>
+            <p>A chirp of duration <em>T</em> and bandwidth <em>B</em> spreads its energy across <em>both</em> time and frequency. After matched filtering, all of that energy concentrates into a single peak whose width in time is approximately <em>1/B</em> &mdash; a sinc-shaped main lobe set by the <em>frequency support</em>, not by <em>T</em>. (This is the time&ndash;bandwidth uncertainty principle: the narrowest pulse you can synthesize from frequencies in a band of width <em>B</em> is about 1/B wide.)</p>
+            <span class="step">Step 2 &middot; round trip divides delay by 2</span>
+            <p>A target at one-way distance <em>R</em> produces a round-trip delay <em>&tau;&nbsp;=&nbsp;2R/c</em>. Two targets separated in range by <em>&Delta;R</em> are separated in delay by <em>2&Delta;R/c</em>. To distinguish them after matched filtering, this delay gap must exceed the peak width 1/B:</p>
+            <div class="formula">2 &middot; &Delta;R / c &nbsp;&gt;&nbsp; 1 / B &nbsp;&nbsp;&hArr;&nbsp;&nbsp; &Delta;R &nbsp;&gt;&nbsp; c / (2B)</div>
+            <p>Notice what is <em>not</em> in the answer: pulse duration <em>T</em>, transmit power, or the carrier frequency. <em>T</em> only buys signal-to-noise ratio (more energy on target). The resolution is set by how much spectrum you sweep through, full stop.</p>
+            <span class="step">Implication</span>
+            <p>Range resolution is bought with bandwidth, not with time or power. A long, narrow-band tone (B&nbsp;&rarr;&nbsp;0) has zero resolution no matter how loud or how long. A short broadband click resolves down to <em>cT</em>/2&nbsp;&approx;&nbsp;<em>c</em>/(2B). Wideband chirps give you both: the SNR of a long pulse <em>and</em> the resolution of a short one. That trick is called <em>pulse compression</em>.</p>
+          </div>
+        </details>
+      </section>
+
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      // ============================================================
+      // Range-resolution simulation
+      //
+      // We synthesize an analytic (complex) linear-FM chirp template,
+      // build an analytic received signal as the sum of two delayed
+      // copies (one per target), correlate the two via FFT, and plot
+      // the magnitude envelope on a one-way distance axis.
+      // ============================================================
+
+      const FS = 96000;     // simulation sample rate (Hz)
+      const C  = 343;        // m/s, sound in air
+      const F0 = 500;        // chirp start frequency (Hz)
+      const T_CHIRP = 0.008; // chirp duration (s) — long enough that TB >> 1 across the slider range
+
+      // ---- analytic linear-FM chirp template, rectangular window ----
+      // Rectangular (unwindowed) keeps the matched-filter main lobe at its
+      // true sinc shape, so the visible peak width matches 1/B exactly and
+      // the c/(2B) formula lines up with what the user sees on screen.
+      // After squaring for the power display, the -13 dB sinc sidelobes
+      // drop to -26 dB and disappear visually.
+      function analyticChirp(T, f0, B) {
+        const N = Math.max(2, Math.round(FS * T));
+        const re = new Float32Array(N);
+        const im = new Float32Array(N);
+        const k = B / T;
+        for (let i = 0; i < N; i++) {
+          const t = i / FS;
+          const phi = 2 * Math.PI * (f0 * t + 0.5 * k * t * t);
+          re[i] = Math.cos(phi);
+          im[i] = Math.sin(phi);
+        }
+        return { re, im };
+      }
+
+      // ---- analytic received signal: sum of delayed analytic chirps ----
+      function analyticReceived(recSec, T, f0, B, targets) {
+        const N = Math.max(2, Math.round(FS * recSec));
+        const re = new Float32Array(N);
+        const im = new Float32Array(N);
+        const k = B / T;
+        for (const tgt of targets) {
+          const tau = 2 * tgt.R / C;          // round-trip delay (s)
+          const A = tgt.amp;
+          const nStart = Math.max(0, Math.ceil(tau * FS));
+          const nEnd   = Math.min(N, Math.floor((tau + T) * FS) + 1);
+          for (let n = nStart; n < nEnd; n++) {
+            const t = n / FS - tau;
+            if (t < 0 || t >= T) continue;
+            const phi = 2 * Math.PI * (f0 * t + 0.5 * k * t * t);
+            re[n] += A * Math.cos(phi);
+            im[n] += A * Math.sin(phi);
+          }
+        }
+        return { re, im };
+      }
+
+      // ---- in-place radix-2 FFT on Float32Arrays (re, im) ----
+      function fftInPlace(re, im, inverse) {
+        const N = re.length;
+        for (let i = 1, j = 0; i < N; i++) {
+          let bit = N >> 1;
+          for (; j & bit; bit >>= 1) j ^= bit;
+          j ^= bit;
+          if (i < j) {
+            let t = re[i]; re[i] = re[j]; re[j] = t;
+            t = im[i]; im[i] = im[j]; im[j] = t;
+          }
+        }
+        const sign = inverse ? 1 : -1;
+        for (let len = 2; len <= N; len <<= 1) {
+          const half = len >> 1;
+          const ang = sign * 2 * Math.PI / len;
+          const wRe0 = Math.cos(ang), wIm0 = Math.sin(ang);
+          for (let i = 0; i < N; i += len) {
+            let cRe = 1, cIm = 0;
+            for (let kk = 0; kk < half; kk++) {
+              const aRe = re[i + kk], aIm = im[i + kk];
+              const bRe = re[i + kk + half], bIm = im[i + kk + half];
+              const tRe = bRe * cRe - bIm * cIm;
+              const tIm = bRe * cIm + bIm * cRe;
+              re[i + kk]        = aRe + tRe;
+              im[i + kk]        = aIm + tIm;
+              re[i + kk + half] = aRe - tRe;
+              im[i + kk + half] = aIm - tIm;
+              const nRe = cRe * wRe0 - cIm * wIm0;
+              cIm = cRe * wIm0 + cIm * wRe0;
+              cRe = nRe;
+            }
+          }
+        }
+        if (inverse) {
+          const inv = 1 / N;
+          for (let i = 0; i < N; i++) { re[i] *= inv; im[i] *= inv; }
+        }
+      }
+      function nextPow2(n) { let p = 1; while (p < n) p <<= 1; return p; }
+
+      // ---- complex cross-correlation y[s] = sum_k r[s+k] conj(h[k]) ----
+      // Output index s corresponds to "chirp template aligns starting at
+      // recording sample s", so s/FS is the round-trip delay.
+      function complexCorrelate(rRe, rIm, hRe, hIm) {
+        const N = rRe.length, M = hRe.length;
+        const L = nextPow2(N + M);
+        const xRe = new Float32Array(L), xIm = new Float32Array(L);
+        const yRe = new Float32Array(L), yIm = new Float32Array(L);
+        for (let i = 0; i < N; i++) { xRe[i] = rRe[i]; xIm[i] = rIm[i]; }
+        for (let i = 0; i < M; i++) { yRe[i] = hRe[i]; yIm[i] = hIm[i]; }
+        fftInPlace(xRe, xIm, false);
+        fftInPlace(yRe, yIm, false);
+        for (let i = 0; i < L; i++) {
+          const aRe = xRe[i], aIm = xIm[i];
+          const bRe = yRe[i], bIm = yIm[i];
+          // a * conj(b) = (aRe*bRe + aIm*bIm) + i*(aIm*bRe - aRe*bIm)
+          xRe[i] = aRe * bRe + aIm * bIm;
+          xIm[i] = aIm * bRe - aRe * bIm;
+        }
+        fftInPlace(xRe, xIm, true);
+        return { re: xRe.subarray(0, N), im: xIm.subarray(0, N) };
+      }
+
+      function envelope(cRe, cIm) {
+        const N = cRe.length;
+        const out = new Float32Array(N);
+        for (let i = 0; i < N; i++) out[i] = Math.hypot(cRe[i], cIm[i]);
+        return out;
+      }
+      function powerEnv(cRe, cIm) {
+        // |z|² — sharper main lobes, much lower sidelobes than |z|.
+        // This is the "matched-filter power" output used in most radar/sonar
+        // displays, and it gives the canonical Rayleigh ~19% dip at exactly
+        // sep = c/(2B).
+        const N = cRe.length;
+        const out = new Float32Array(N);
+        for (let i = 0; i < N; i++) out[i] = cRe[i] * cRe[i] + cIm[i] * cIm[i];
+        return out;
+      }
+
+      // ============================================================
+      // Drawing
+      // ============================================================
+
+      function sizeCanvas(canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.round(rect.width * dpr);
+        const h = Math.round(rect.height * dpr);
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w; canvas.height = h;
+        }
+        return { dpr, w, h };
+      }
+
+      function drawMatchedFilter(canvas, env, R1, R2, B, maxDist) {
+        const { dpr, w, h } = sizeCanvas(canvas);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+
+        const padTop = 40 * dpr;
+        const padBot = 22 * dpr;
+        const padLeft = 12 * dpr;
+        const padRight = 12 * dpr;
+        const plotW = w - padLeft - padRight;
+        const plotH = h - padTop - padBot;
+        const baseY = h - padBot;
+
+        const idxFromDist = (d) => d * 2 * FS / C;
+
+        // distance gridlines
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = (10 * dpr) + 'px ui-monospace, Menlo, monospace';
+        ctx.lineWidth = 1 * dpr;
+        const gridStep = maxDist > 2.5 ? 0.5 : (maxDist > 1.2 ? 0.25 : 0.1);
+        for (let d = 0; d <= maxDist + 1e-6; d += gridStep) {
+          const x = padLeft + (d / maxDist) * plotW;
+          ctx.beginPath();
+          ctx.moveTo(x, padTop);
+          ctx.lineTo(x, baseY);
+          ctx.stroke();
+          ctx.fillText(d.toFixed(gridStep < 0.5 ? 2 : 1) + ' m', x + 3 * dpr, baseY + 14 * dpr);
+        }
+
+        // baseline
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(padLeft, baseY);
+        ctx.lineTo(w - padRight, baseY);
+        ctx.stroke();
+
+        // resolution bar c/(2B), drawn to scale, centered on the midpoint
+        const dr = C / (2 * B);
+        const midR = (R1 + R2) / 2;
+        const xMid = padLeft + (midR / maxDist) * plotW;
+        const halfPx = (dr / 2 / maxDist) * plotW;
+        const x0 = xMid - halfPx, x1 = xMid + halfPx;
+        const barY = padTop - 18 * dpr;
+        ctx.strokeStyle = '#E8B923';
+        ctx.lineWidth = 2.4 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(x0, barY); ctx.lineTo(x1, barY);
+        ctx.stroke();
+        ctx.lineWidth = 1.6 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(x0, barY - 5 * dpr); ctx.lineTo(x0, barY + 5 * dpr);
+        ctx.moveTo(x1, barY - 5 * dpr); ctx.lineTo(x1, barY + 5 * dpr);
+        ctx.stroke();
+        ctx.fillStyle = '#E8B923';
+        ctx.font = '700 ' + (10 * dpr) + 'px Roboto, sans-serif';
+        const labelText = 'c / (2B) = ' + (dr >= 1 ? dr.toFixed(2) + ' m' : (dr * 100).toFixed(1) + ' cm');
+        const lbW = ctx.measureText(labelText).width;
+        ctx.fillText(labelText, xMid - lbW / 2, barY - 8 * dpr);
+
+        // target dashed lines
+        ctx.setLineDash([4 * dpr, 4 * dpr]);
+        ctx.lineWidth = 1.25 * dpr;
+        for (const [R, label] of [[R1, 'R₁'], [R2, 'R₂']]) {
+          const x = padLeft + (R / maxDist) * plotW;
+          ctx.strokeStyle = 'rgba(232,185,35,0.55)';
+          ctx.beginPath();
+          ctx.moveTo(x, padTop);
+          ctx.lineTo(x, baseY);
+          ctx.stroke();
+          ctx.fillStyle = '#E8B923';
+          ctx.font = '700 ' + (11 * dpr) + 'px Roboto, sans-serif';
+          ctx.fillText(label, x + 3 * dpr, padTop + 10 * dpr);
+        }
+        ctx.setLineDash([]);
+
+        // envelope curve, peak-decimated per pixel column
+        ctx.strokeStyle = '#bc122a';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.beginPath();
+        const sMaxAvail = env.length;
+        for (let px = 0; px < plotW; px++) {
+          const dLo = (px / plotW) * maxDist;
+          const dHi = ((px + 1) / plotW) * maxDist;
+          const sLo = Math.max(0, Math.floor(idxFromDist(dLo)));
+          const sHi = Math.min(sMaxAvail, Math.ceil(idxFromDist(dHi)) + 1);
+          let mx = 0;
+          for (let s = sLo; s < sHi; s++) if (env[s] > mx) mx = env[s];
+          const y = baseY - mx * plotH;
+          const xPx = padLeft + px;
+          if (px === 0) ctx.moveTo(xPx, y); else ctx.lineTo(xPx, y);
+        }
+        ctx.stroke();
+      }
+
+      function drawRealWaveform(canvas, samples, fs, label) {
+        const { dpr, w, h } = sizeCanvas(canvas);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, w, h);
+
+        const padTop = 28 * dpr;
+        const padBot = 18 * dpr;
+        const plotH = h - padTop - padBot;
+        const midY = padTop + plotH / 2;
+        const totalT = samples.length / fs;
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = (10 * dpr) + 'px ui-monospace, Menlo, monospace';
+        const tStep = totalT > 0.05 ? 0.01 : (totalT > 0.01 ? 0.002 : 0.001);
+        for (let t = 0; t <= totalT + 1e-9; t += tStep) {
+          const x = (t / totalT) * w;
+          ctx.beginPath();
+          ctx.moveTo(x, padTop);
+          ctx.lineTo(x, h - padBot);
+          ctx.stroke();
+          const ms = t * 1000;
+          if (Math.abs(ms - Math.round(ms)) < 1e-6 && Math.round(ms) % Math.max(1, Math.round(tStep * 5000)) === 0) {
+            ctx.fillText(ms.toFixed(0) + ' ms', x + 3 * dpr, h - 5 * dpr);
+          }
+        }
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath();
+        ctx.moveTo(0, midY);
+        ctx.lineTo(w, midY);
+        ctx.stroke();
+
+        // peak amplitude for normalisation
+        let peak = 1e-9;
+        for (let i = 0; i < samples.length; i++) {
+          const a = Math.abs(samples[i]);
+          if (a > peak) peak = a;
+        }
+
+        const N = samples.length;
+        ctx.strokeStyle = '#bc122a';
+        ctx.lineWidth = 1 * dpr;
+        ctx.beginPath();
+        let prevTop = midY, prevBot = midY;
+        for (let px = 0; px < w; px++) {
+          const i0 = Math.floor(px * N / w);
+          const i1 = Math.max(i0 + 1, Math.floor((px + 1) * N / w));
+          let mn = 1, mx = -1;
+          for (let i = i0; i < i1 && i < N; i++) {
+            const v = samples[i] / peak;
+            if (v < mn) mn = v;
+            if (v > mx) mx = v;
+          }
+          if (mn > mx) { mn = 0; mx = 0; }
+          const yMax = midY - mx * (plotH / 2);
+          const yMin = midY - mn * (plotH / 2);
+          if (px === 0) {
+            ctx.moveTo(px, yMin);
+            ctx.lineTo(px, yMax);
+          } else {
+            ctx.moveTo(px, Math.min(prevTop, yMax));
+            ctx.lineTo(px, Math.max(prevBot, yMin));
+          }
+          prevTop = yMax;
+          prevBot = yMin;
+        }
+        ctx.stroke();
+      }
+
+      // ============================================================
+      // Wire-up
+      // ============================================================
+
+      const bSlider  = document.getElementById('bSlider');
+      const r1Slider = document.getElementById('r1Slider');
+      const r2Slider = document.getElementById('r2Slider');
+      const bVal     = document.getElementById('bVal');
+      const r1Val    = document.getElementById('r1Val');
+      const r2Val    = document.getElementById('r2Val');
+      const sepVal   = document.getElementById('sepVal');
+      const resVal   = document.getElementById('resVal');
+      const statusVal  = document.getElementById('statusVal');
+      const statusHelp = document.getElementById('statusHelp');
+      const statusCell = document.getElementById('statusCell');
+      const mfCanvas = document.getElementById('mfCanvas');
+      const rxCanvas = document.getElementById('rxCanvas');
+      const txCanvas = document.getElementById('txCanvas');
+
+      function fmtMeters(d) {
+        return d >= 1 ? d.toFixed(2) + ' m' : (d * 100).toFixed(1) + ' cm';
+      }
+
+      function update() {
+        const B  = +bSlider.value;
+        const R1 = +r1Slider.value;
+        const R2 = +r2Slider.value;
+        const T  = T_CHIRP;
+
+        bVal.textContent  = B.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' Hz';
+        r1Val.textContent = R1.toFixed(2) + ' m';
+        r2Val.textContent = R2.toFixed(2) + ' m';
+
+        const sep = Math.abs(R2 - R1);
+        const dr  = C / (2 * B);
+        sepVal.textContent = fmtMeters(sep);
+        resVal.textContent = fmtMeters(dr);
+
+        const resolved = sep > dr;
+        statusVal.textContent  = resolved ? 'Resolved' : 'Merged';
+        statusHelp.textContent = resolved
+          ? 'separation > c/(2B) by ' + fmtMeters(sep - dr)
+          : 'separation < c/(2B) by ' + fmtMeters(dr - sep);
+        statusCell.classList.toggle('resolved', resolved);
+        statusCell.classList.toggle('merged', !resolved);
+
+        // distance plot range — auto-fit to targets with some padding
+        const maxR = Math.max(R1, R2);
+        const span = Math.max(0.4, sep);
+        const maxDist = Math.min(3.5, maxR + Math.max(0.4, span));
+
+        const recSec = (2 * maxDist) / C + T + 0.002;
+
+        // Transmitted analytic chirp.
+        const tx = analyticChirp(T, F0, B);
+
+        // Coherent received signal — the physically real signal a receiver
+        // would pick up. Used only for visualisation in the rx panel.
+        const rx = analyticReceived(recSec, T, F0, B, [
+          { R: R1, amp: 1.0 },
+          { R: R2, amp: 1.0 },
+        ]);
+
+        // Single-target matched-filter envelope = autocorrelation envelope
+        // of the chirp template. We then place a copy at each target's
+        // round-trip delay and sum INCOHERENTLY (magnitude sum, not complex
+        // sum). This is the textbook resolution argument: it isolates the
+        // matched-filter pulse-compression behaviour from the coherent
+        // multi-scatterer interference that adds (or subtracts) phase-
+        // dependent peaks. Most real systems decorrelate over enough
+        // observations that this is what you see in practice.
+        const auto = complexCorrelate(tx.re, tx.im, tx.re, tx.im);
+        const autoEnv = powerEnv(auto.re, auto.im);
+        let autoPk = 1e-9;
+        for (let i = 0; i < autoEnv.length; i++) if (autoEnv[i] > autoPk) autoPk = autoEnv[i];
+        const autoNorm = 1 / autoPk;
+        for (let i = 0; i < autoEnv.length; i++) autoEnv[i] *= autoNorm;
+
+        const NRec = Math.round(FS * recSec);
+        const env = new Float32Array(NRec);
+        const targets = [
+          { R: R1, amp: 1.0 },
+          { R: R2, amp: 1.0 },
+        ];
+        for (const tgt of targets) {
+          const sCenter = Math.round(2 * tgt.R / C * FS);
+          const M = autoEnv.length;
+          const lo = Math.max(0, sCenter - M + 1);
+          const hi = Math.min(NRec, sCenter + M);
+          for (let s = lo; s < hi; s++) {
+            const dlag = Math.abs(s - sCenter);
+            if (dlag < M) env[s] += tgt.amp * autoEnv[dlag];
+          }
+        }
+        let peak = 1e-9;
+        for (let i = 0; i < env.length; i++) if (env[i] > peak) peak = env[i];
+        const invPk = 1 / peak;
+        for (let i = 0; i < env.length; i++) env[i] *= invPk;
+
+        drawMatchedFilter(mfCanvas, env, R1, R2, B, maxDist);
+        drawRealWaveform(rxCanvas, rx.re, FS);
+        drawRealWaveform(txCanvas, tx.re, FS);
+      }
+
+      [bSlider, r1Slider, r2Slider].forEach((el) => el.addEventListener('input', update));
+      window.addEventListener('resize', update);
+      update();
+    </script>
+  </body>
+</html>
