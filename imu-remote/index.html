@@ -398,9 +398,9 @@
 
         <section class="panel needs-phone host-only">
           <h2>3D box</h2>
-          <div class="canvas-wrap" style="aspect-ratio: 16 / 9;">
+          <div class="canvas-wrap" style="aspect-ratio: 16 / 9; background: #ffffff;">
             <canvas id="boxCanvas"></canvas>
-            <div class="placeholder" id="boxPlaceholder">Waiting for phone&hellip;</div>
+            <div class="placeholder" id="boxPlaceholder" style="color: rgba(0,0,0,0.4);">Waiting for phone&hellip;</div>
           </div>
           <div class="row" style="margin-top: 12px;">
             <button id="recenterBtn" class="secondary">Recenter</button>
@@ -637,7 +637,7 @@
 
           const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
           renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-          renderer.setClearColor(0x0c0c0e, 1);
+          renderer.setClearColor(0xffffff, 1);
 
           const scene = new THREE.Scene();
 
@@ -645,14 +645,14 @@
           camera.position.set(2.0, 2.6, 3.0);
           camera.lookAt(0, 0, 0);
 
-          scene.add(new THREE.AmbientLight(0xffffff, 0.45));
-          const key = new THREE.DirectionalLight(0xffffff, 0.95);
+          scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+          const key = new THREE.DirectionalLight(0xffffff, 0.85);
           key.position.set(5, 7, 4);
           scene.add(key);
-          const fill = new THREE.DirectionalLight(0xffffff, 0.30);
+          const fill = new THREE.DirectionalLight(0xffffff, 0.35);
           fill.position.set(-5, 3, -2);
           scene.add(fill);
-          const rim = new THREE.DirectionalLight(0xbc122a, 0.20);
+          const rim = new THREE.DirectionalLight(0xbc122a, 0.18);
           rim.position.set(0, -2, -5);
           scene.add(rim);
 
@@ -761,7 +761,7 @@
           body.add(volDn);
 
           // Faint floor grid as a "table"
-          const grid = new THREE.GridHelper(4, 12, 0x333333, 0x1c1c1f);
+          const grid = new THREE.GridHelper(4, 12, 0xb8b8b8, 0xdedede);
           grid.position.y = -0.085;
           scene.add(grid);
 
