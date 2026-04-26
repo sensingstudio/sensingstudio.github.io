@@ -442,6 +442,11 @@
             </select>
           </div>
           <div class="row">
+            <label for="torchBtn">Light</label>
+            <button id="torchBtn" type="button" class="secondary" disabled>Off</button>
+            <span class="status" id="torchStatus">Checking torch support&hellip;</span>
+          </div>
+          <div class="row">
             <div class="preview-wrap" style="flex: 1 1 240px;">
               <video id="phonePreview" autoplay playsinline muted></video>
             </div>
@@ -478,6 +483,89 @@
         let statsTimer = null;
         let lastBytes = 0;
         let lastStatsAt = 0;
+
+        const rgbChart = makeRGBChart('rgbCanvas', 'rgbPlaceholder', 'rgbLegend');
+        const rgbRateEl = document.getElementById('rgbRate');
+        const windowSlider = document.getElementById('windowSlider');
+        const windowVal = document.getElementById('windowVal');
+        const WMIN = 1, WMAX = 120;
+        const sliderToWin = t => WMIN * Math.pow(WMAX / WMIN, t);
+        const winToSlider = s => Math.log(s / WMIN) / Math.log(WMAX / WMIN);
+        const fmtWin = s => s < 10 ? s.toFixed(1) + ' s'
+                          : s < 60 ? s.toFixed(0) + ' s'
+                          : (s / 60).toFixed(1) + ' min';
+        let windowSec = 5;
+        windowSlider.value = winToSlider(windowSec);
+        windowVal.textContent = fmtWin(windowSec);
+        windowSlider.addEventListener('input', () => {
+          windowSec = sliderToWin(parseFloat(windowSlider.value));
+          windowVal.textContent = fmtWin(windowSec);
+          rgbChart.setWindow(windowSec);
+        });
+        rgbChart.setWindow(windowSec);
+
+        // Hidden downsampling canvas for cheap per-frame averaging.
+        const sampleCanvas = document.createElement('canvas');
+        sampleCanvas.width = 64;
+        sampleCanvas.height = 36;
+        const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+        let samplingId = null;
+        let sampleT0 = 0;
+        let sampleCount = 0;
+        let sampleRateAt = 0;
+
+        function startRGBSampling(videoEl) {
+          stopRGBSampling();
+          rgbChart.clear();
+          sampleT0 = performance.now() / 1000;
+          sampleCount = 0;
+          sampleRateAt = performance.now();
+          rgbRateEl.textContent = 'Waiting for frame…';
+
+          // Try to coax the video to actually start playing — autoplay can be
+          // ambiguous for srcObject streams in some browsers.
+          if (videoEl.paused) {
+            const p = videoEl.play();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+          }
+
+          const tick = () => {
+            samplingId = requestAnimationFrame(tick);
+            const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+            if (!vw || !vh) return;
+            const sw = sampleCanvas.width, sh = sampleCanvas.height;
+            try {
+              sampleCtx.drawImage(videoEl, 0, 0, sw, sh);
+              const data = sampleCtx.getImageData(0, 0, sw, sh).data;
+              let r = 0, g = 0, b = 0;
+              const px = data.length / 4;
+              for (let i = 0; i < data.length; i += 4) {
+                r += data[i]; g += data[i + 1]; b += data[i + 2];
+              }
+              r /= px; g /= px; b /= px;
+              const t = performance.now() / 1000 - sampleT0;
+              rgbChart.push(t, r, g, b);
+              sampleCount++;
+              const now = performance.now();
+              if (now - sampleRateAt > 500) {
+                const hz = sampleCount * 1000 / (now - sampleRateAt);
+                rgbRateEl.textContent = hz.toFixed(0) + ' Hz';
+                sampleRateAt = now;
+                sampleCount = 0;
+              }
+            } catch (err) {
+              cancelAnimationFrame(samplingId);
+              samplingId = null;
+              rgbRateEl.textContent = 'Sampling error: ' + err.message;
+            }
+          };
+          tick();
+        }
+        function stopRGBSampling() {
+          if (samplingId) cancelAnimationFrame(samplingId);
+          samplingId = null;
+          rgbRateEl.textContent = '— Hz';
+        }
 
         function makeNumericCode() {
           return ('0000' + Math.floor(Math.random() * 10000)).slice(-4);
@@ -531,6 +619,7 @@
               pairStatus.classList.add('ok');
               document.body.dataset.paired = '1';
               startStats(call);
+              startRGBSampling(remoteVideo);
             });
             call.on('close', () => {
               if (activeCall === call) activeCall = null;
@@ -543,6 +632,8 @@
               metaFps.textContent = '—';
               metaBitrate.textContent = '—';
               stopStats();
+              stopRGBSampling();
+              rgbChart.clear();
             });
             call.on('error', (err) => {
               pairStatus.textContent = 'Call error: ' + err.message;
@@ -607,6 +698,118 @@
         tryClaimPeer();
       }
 
+      /* ----- RGB chart: scrolling time-series, fixed 0–255 Y range ----- */
+      function makeRGBChart(canvasId, placeholderId, legendId) {
+        const canvas = document.getElementById(canvasId);
+        const placeholder = document.getElementById(placeholderId);
+        const legend = document.getElementById(legendId);
+        const ctx = canvas.getContext('2d');
+
+        const channels = [
+          { name: 'R', color: '#e63946' },
+          { name: 'G', color: '#2a8b2a' },
+          { name: 'B', color: '#1f6feb' },
+        ];
+        channels.forEach((c) => {
+          const span = document.createElement('span');
+          span.className = 'axis';
+          const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = c.color;
+          const lab = document.createElement('span'); lab.textContent = c.name;
+          const val = document.createElement('span'); val.className = 'val'; val.textContent = '—';
+          span.append(sw, lab, val);
+          legend.append(span);
+          c.valEl = val;
+        });
+
+        const buf = [[], [], []];
+        let windowSec = 5;
+        let lastT = 0;
+        let firstT = null;
+        let drawScheduled = false;
+
+        function setWindow(s) { windowSec = s; scheduleDraw(); }
+        function clear() {
+          buf[0].length = buf[1].length = buf[2].length = 0;
+          firstT = null; lastT = 0;
+          placeholder.style.display = '';
+          channels.forEach(c => c.valEl.textContent = '—');
+          scheduleDraw();
+        }
+        function push(t, r, g, b) {
+          if (firstT === null) { firstT = t; placeholder.style.display = 'none'; }
+          lastT = t;
+          const vs = [r, g, b];
+          for (let i = 0; i < 3; i++) {
+            buf[i].push({ t, v: vs[i] });
+            const cutoff = t - windowSec * 1.2;
+            const arr = buf[i];
+            let drop = 0;
+            while (drop < arr.length && arr[drop].t < cutoff) drop++;
+            if (drop > 0) arr.splice(0, drop);
+            channels[i].valEl.textContent = vs[i].toFixed(0);
+          }
+          scheduleDraw();
+        }
+        function scheduleDraw() {
+          if (drawScheduled) return;
+          drawScheduled = true;
+          requestAnimationFrame(() => { drawScheduled = false; draw(); });
+        }
+
+        function draw() {
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          const w = Math.round(rect.width * dpr);
+          const h = Math.round(rect.height * dpr);
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w; canvas.height = h;
+          }
+          ctx.fillStyle = '#0c0c0e';
+          ctx.fillRect(0, 0, w, h);
+
+          const tEnd = lastT;
+          const tStart = tEnd - windowSec;
+          const xOf = t => ((t - tStart) / windowSec) * w;
+          const pad = 6 * dpr;
+          const yOf = v => h - pad - (v / 255) * (h - 2 * pad);
+
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+          ctx.lineWidth = 1 * dpr;
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.font = (10 * dpr) + 'px Roboto, sans-serif';
+          [0, 64, 128, 192, 255].forEach(v => {
+            const y = yOf(v);
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            ctx.fillText(String(v), 4 * dpr, y - 2 * dpr);
+          });
+
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+          for (let s = Math.ceil(tStart); s <= tEnd; s += 1) {
+            const x = xOf(s);
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+          }
+
+          for (let i = 0; i < 3; i++) {
+            const arr = buf[i];
+            if (!arr.length) continue;
+            ctx.strokeStyle = channels[i].color;
+            ctx.lineWidth = 1.6 * dpr;
+            ctx.beginPath();
+            let pen = false;
+            for (const { t, v } of arr) {
+              if (!isFinite(v)) { pen = false; continue; }
+              const x = xOf(t); const y = yOf(v);
+              if (!pen) { ctx.moveTo(x, y); pen = true; }
+              else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+        }
+
+        window.addEventListener('resize', () => { if (firstT !== null) draw(); });
+        return { push, setWindow, clear };
+      }
+
       /* ============ PHONE ============ */
       function initPhone() {
         const phoneStatus    = document.getElementById('phoneStatus');
@@ -616,10 +819,14 @@
         const phoneMeta      = document.getElementById('phoneMeta');
         const facingSelect   = document.getElementById('facingSelect');
         const qualitySelect  = document.getElementById('qualitySelect');
+        const torchBtn       = document.getElementById('torchBtn');
+        const torchStatus    = document.getElementById('torchStatus');
 
         let stream = null;
         let call = null;
         let videoSender = null;
+        let torchOn = false;
+        let torchSupported = false;
 
         const QUALITIES = {
           '480':  { width: { ideal: 854 },  height: { ideal: 480 },  frameRate: { ideal: 30 } },
@@ -637,6 +844,40 @@
           };
           return await navigator.mediaDevices.getUserMedia(constraints);
         }
+
+        function currentVideoTrack() {
+          return stream ? stream.getVideoTracks()[0] : null;
+        }
+        function refreshTorchSupport() {
+          torchOn = false;
+          const track = currentVideoTrack();
+          const caps = (track && typeof track.getCapabilities === 'function') ? track.getCapabilities() : {};
+          torchSupported = !!caps.torch;
+          torchBtn.disabled = !torchSupported;
+          torchBtn.classList.toggle('secondary', true);
+          torchBtn.textContent = 'Off';
+          if (!track) {
+            torchStatus.textContent = '';
+          } else if (torchSupported) {
+            torchStatus.textContent = 'Tap to toggle.';
+          } else {
+            torchStatus.textContent = 'Not supported on this camera.';
+          }
+        }
+        async function applyTorch(on) {
+          const track = currentVideoTrack();
+          if (!track || !torchSupported) return;
+          try {
+            await track.applyConstraints({ advanced: [{ torch: on }] });
+            torchOn = on;
+            torchBtn.textContent = on ? 'On' : 'Off';
+            torchBtn.classList.toggle('secondary', !on);
+            torchStatus.textContent = on ? 'Light on.' : 'Tap to toggle.';
+          } catch (err) {
+            torchStatus.textContent = 'Could not toggle: ' + err.message;
+          }
+        }
+        torchBtn.addEventListener('click', () => applyTorch(!torchOn));
 
         function updateMeta() {
           if (!stream) { phoneMeta.textContent = '—'; return; }
@@ -672,6 +913,7 @@
           }
           oldTracks.forEach(t => t.stop());
           updateMeta();
+          refreshTorchSupport();
           phoneStatus.textContent = 'Streaming to laptop.';
           phoneStatus.classList.add('ok');
         }
@@ -688,6 +930,7 @@
             phonePreview.srcObject = stream;
             phoneControls.hidden = false;
             updateMeta();
+            refreshTorchSupport();
 
             phoneStatus.textContent = 'Connecting…';
             const peer = new Peer();

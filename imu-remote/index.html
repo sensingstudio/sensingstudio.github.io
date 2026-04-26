@@ -148,14 +148,8 @@
         position: relative;
         background: #0c0c0e;
         border-radius: 6px;
-        overflow-x: auto;
-        overflow-y: hidden;
+        overflow: hidden;
         aspect-ratio: 16 / 5;
-      }
-      .canvas-scroller {
-        position: relative;
-        height: 100%;
-        width: calc(100% * var(--plot-scale, 1));
       }
       canvas { width: 100%; height: 100%; display: block; }
       .canvas-wrap .placeholder {
@@ -352,7 +346,7 @@
         <section class="panel needs-phone host-only">
           <h2>Accelerometer <span class="units">(m/s²)</span></h2>
           <div class="canvas-wrap">
-            <div class="canvas-scroller"><canvas id="accelCanvas"></canvas></div>
+            <canvas id="accelCanvas"></canvas>
             <div class="placeholder" id="accelPlaceholder">Waiting for phone&hellip;</div>
           </div>
           <div class="legend" id="accelLegend"></div>
@@ -361,7 +355,7 @@
         <section class="panel needs-phone host-only">
           <h2>Gyroscope <span class="units">(°/s)</span></h2>
           <div class="canvas-wrap">
-            <div class="canvas-scroller"><canvas id="gyroCanvas"></canvas></div>
+            <canvas id="gyroCanvas"></canvas>
             <div class="placeholder" id="gyroPlaceholder">Waiting for phone&hellip;</div>
           </div>
           <div class="legend" id="gyroLegend"></div>
@@ -370,11 +364,19 @@
         <section class="panel needs-phone host-only">
           <h2>Magnetometer <span class="units">(μT)</span></h2>
           <div class="canvas-wrap">
-            <div class="canvas-scroller"><canvas id="magCanvas"></canvas></div>
+            <canvas id="magCanvas"></canvas>
             <div class="placeholder" id="magPlaceholder">Waiting for phone&hellip;</div>
           </div>
           <div class="legend" id="magLegend"></div>
           <p class="note" id="magNote">A true magnetometer feed requires Android with the Generic Sensor API; on iOS the only available channel is compass heading, shown here as a single trace.</p>
+        </section>
+
+        <section class="panel needs-phone host-only">
+          <h2>Orientation <span class="units">(°, from DeviceOrientationEvent)</span></h2>
+          <p class="live-readout" style="margin: 0 0 6px;">α (yaw / Z) <span id="alphaVal">—</span></p>
+          <p class="live-readout" style="margin: 0 0 6px;">β (pitch / X) <span id="betaVal">—</span></p>
+          <p class="live-readout" style="margin: 0 0 6px;">γ (roll / Y) <span id="gammaVal">—</span></p>
+          <p class="status" id="orientMeta">Waiting for phone&hellip;</p>
         </section>
 
         <section class="panel needs-phone host-only">
@@ -386,11 +388,6 @@
             <label style="min-width: 0; display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0;">
               <input type="checkbox" id="showAll" /> All since connect
             </label>
-          </div>
-          <div class="row">
-            <label for="widthSlider">Plot width</label>
-            <input type="range" id="widthSlider" min="1" max="6" step="0.1" value="1" />
-            <span class="status" id="widthVal" style="min-width: 64px; text-align: right;">1.0×</span>
           </div>
           <div class="row">
             <label for="accelMode">Accel</label>
@@ -619,22 +616,6 @@
         showAllEl.addEventListener('change', applyShowAll);
         applyShowAll();
 
-        const widthSlider = document.getElementById('widthSlider');
-        const widthVal    = document.getElementById('widthVal');
-        function applyPlotWidth() {
-          const v = parseFloat(widthSlider.value);
-          document.documentElement.style.setProperty('--plot-scale', v);
-          widthVal.textContent = v.toFixed(1) + '×';
-          // re-render charts at new pixel width and keep latest data visible
-          window.dispatchEvent(new Event('resize'));
-          requestAnimationFrame(() => {
-            for (const wrap of document.querySelectorAll('.canvas-wrap')) {
-              wrap.scrollLeft = wrap.scrollWidth;
-            }
-          });
-        }
-        widthSlider.addEventListener('input', applyPlotWidth);
-        applyPlotWidth();
 
         // periodic stale check
         setInterval(() => {
@@ -863,6 +844,7 @@
           gyro: null,
           mag: null,
           heading: null,
+          orient: null,   // { alpha, beta, gamma, absolute }
         };
         let lastUI = 0;
         const uiInterval = 100;
@@ -877,6 +859,21 @@
             accelG: latest.accelG,
             gyro: latest.gyro,
             mag: latest.mag,
+            heading: latest.heading,
+          });
+        }
+
+        function sendOrient() {
+          if (!conn || !conn.open) return;
+          if (!latest.orient) return;
+          const t = (performance.now() - t0) / 1000;
+          conn.send({
+            type: 'orient',
+            t,
+            alpha: latest.orient.alpha,
+            beta:  latest.orient.beta,
+            gamma: latest.orient.gamma,
+            absolute: latest.orient.absolute,
             heading: latest.heading,
           });
         }
@@ -917,13 +914,29 @@
         }
 
         function attachOrientation() {
-          window.addEventListener('deviceorientation', (e) => {
-            // webkitCompassHeading on iOS, otherwise alpha is heading-ish (relative)
+          let absoluteSeen = false;
+
+          function handle(e, absolute) {
+            const alpha = e.alpha, beta = e.beta, gamma = e.gamma;
+            if (alpha !== null || beta !== null || gamma !== null) {
+              latest.orient = { alpha, beta, gamma, absolute };
+            }
             if (typeof e.webkitCompassHeading === 'number') {
               latest.heading = e.webkitCompassHeading;
-            } else if (typeof e.alpha === 'number') {
-              latest.heading = (360 - e.alpha) % 360;
+            } else if (typeof alpha === 'number') {
+              latest.heading = (360 - alpha) % 360;
             }
+            sendOrient();
+          }
+
+          window.addEventListener('deviceorientationabsolute', (e) => {
+            absoluteSeen = true;
+            handle(e, true);
+          }, { passive: true });
+
+          window.addEventListener('deviceorientation', (e) => {
+            if (absoluteSeen) return;  // prefer absolute when both fire
+            handle(e, false);
           }, { passive: true });
         }
 
