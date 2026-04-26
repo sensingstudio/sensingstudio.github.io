@@ -533,10 +533,10 @@
               keepalive = new Audio();
               keepalive.srcObject = remoteStream;
               keepalive.muted = true;
-              keepalive.play().catch(() => {});
+              keepalive.play().catch((err) => console.warn('keepalive play() failed:', err));
 
               if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-              if (audioCtx.state === 'suspended') audioCtx.resume();
+              audioCtx.resume().catch(() => {});
               const src = audioCtx.createMediaStreamSource(remoteStream);
               analyser = audioCtx.createAnalyser();
               analyser.fftSize = parseInt(fftSel.value, 10);
@@ -544,9 +544,16 @@
               analyser.minDecibels = -150;
               analyser.maxDecibels = -10;
               src.connect(analyser);
+              // Silent sink to force the audio graph to process.
+              // Without a path to destination, Chrome may skip pulling data through the analyser.
+              const silent = audioCtx.createGain();
+              silent.gain.value = 0;
+              analyser.connect(silent);
+              silent.connect(audioCtx.destination);
               dataBuf = new Float32Array(analyser.frequencyBinCount);
               updateResolution();
               placeholder.style.display = 'none';
+              pairStatus.textContent = 'Phone connected · receiving audio.';
               if (!drawing) { drawing = true; requestAnimationFrame(draw); }
             });
           });

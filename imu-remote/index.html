@@ -200,46 +200,67 @@
         margin-top: 16px;
         line-height: 1.5;
       }
-      .pair-content {
-        display: flex;
-        gap: 24px;
-        flex-wrap: wrap;
-        align-items: flex-start;
-      }
-      .qr-wrap {
-        flex: 0 0 auto;
-        padding: 12px;
-        border: 1px solid var(--grey-line);
-        border-radius: 8px;
-        background: #fff;
-      }
-      .qr-wrap img {
-        display: block;
-        width: 240px;
-        height: 240px;
-      }
-      .pair-info {
-        flex: 1 1 280px;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .pair-info input[type="text"] {
-        width: 100%;
-        font-family: ui-monospace, Menlo, Consolas, monospace;
-        font-size: 12px;
-        padding: 8px 10px;
-        border: 1px solid var(--grey-line);
-        border-radius: 5px;
-        background: #f5f5f5;
-        color: var(--black);
-      }
       .pair-help {
         color: var(--grey-text);
         font-size: 13px;
         margin: 0;
         line-height: 1.5;
+      }
+      .pair-help strong {
+        color: var(--black);
+        font-weight: 700;
+      }
+      .pair-code-block {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .pair-code-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .pair-code {
+        font-size: 44px;
+        font-weight: 900;
+        letter-spacing: 6px;
+        font-variant-numeric: tabular-nums;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        color: var(--black);
+        line-height: 1;
+      }
+      .join-help {
+        margin: 0 0 12px;
+        color: var(--grey-text);
+        font-size: 13px;
+      }
+      .join-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 0;
+      }
+      #joinCode {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        text-align: center;
+        padding: 10px 14px;
+        border: 1px solid var(--grey-line);
+        border-radius: 6px;
+        background: #f5f5f5;
+        width: 150px;
+        min-width: 0;
+      }
+      #joinCode:focus {
+        outline: none;
+        border-color: var(--red);
+        background: #fff;
       }
       .live-readout {
         font-variant-numeric: tabular-nums;
@@ -261,6 +282,24 @@
         opacity: 0.45;
         pointer-events: none;
       }
+      .join-only { display: none; }
+      @media (pointer: coarse) {
+        body[data-role="laptop"] .host-only { display: none; }
+        body[data-role="laptop"] .join-only { display: block; }
+      }
+      @media (pointer: coarse) {
+        #joinCode {
+          font-size: 32px;
+          letter-spacing: 8px;
+          width: 100%;
+          max-width: 240px;
+          padding: 14px 16px;
+        }
+        .join-form button {
+          font-size: 15px;
+          padding: 14px 24px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -272,26 +311,39 @@
       <!-- LAPTOP ROLE -->
       <div class="laptop-only">
         <h1>IMU (Remote)</h1>
-        <p class="lead">Pair a phone to stream its inertial measurement unit. Accelerometer, gyroscope, and magnetometer readings are sent over a WebRTC data channel and plotted live below.</p>
+        <p class="lead host-only">Pair a phone to stream its inertial measurement unit. Accelerometer, gyroscope, and magnetometer readings are sent over a WebRTC data channel and plotted live below.</p>
+        <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone as its sensor.</p>
 
-        <section class="panel">
+        <section class="panel host-only">
           <h2>Pair your phone</h2>
-          <div class="pair-content">
-            <div class="qr-wrap">
-              <img id="qr" alt="Pairing QR code" />
-            </div>
-            <div class="pair-info">
-              <p class="status" id="pairStatus">Generating session&hellip;</p>
-              <p class="pair-help">Scan with your phone's camera, or open this URL on your phone:</p>
-              <input type="text" id="pairUrl" readonly />
-              <div>
-                <button id="copyUrl" class="secondary">Copy link</button>
-              </div>
-            </div>
+          <div class="pair-code-block">
+            <span class="pair-code-label">Code</span>
+            <span class="pair-code" id="pairCode">— — — —</span>
           </div>
+          <p class="status" id="pairStatus">Generating session&hellip;</p>
+          <p class="pair-help">On your phone, open <strong>sensingschool.com/imu-remote</strong> and enter this code.</p>
         </section>
 
-        <section class="panel needs-phone">
+        <section class="panel join-only">
+          <h2>Join a session</h2>
+          <p class="join-help">Enter the 4-digit code from the host laptop:</p>
+          <form id="joinForm" class="join-form">
+            <input
+              type="text"
+              id="joinCode"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              placeholder="0000"
+              autocomplete="off"
+              aria-label="4-digit pairing code"
+            />
+            <button type="submit">Connect</button>
+            <span class="status" id="joinStatus"></span>
+          </form>
+        </section>
+
+        <section class="panel needs-phone host-only">
           <h2>Accelerometer <span class="units">(m/s²)</span></h2>
           <div class="canvas-wrap">
             <canvas id="accelCanvas"></canvas>
@@ -300,7 +352,7 @@
           <div class="legend" id="accelLegend"></div>
         </section>
 
-        <section class="panel needs-phone">
+        <section class="panel needs-phone host-only">
           <h2>Gyroscope <span class="units">(°/s)</span></h2>
           <div class="canvas-wrap">
             <canvas id="gyroCanvas"></canvas>
@@ -309,7 +361,7 @@
           <div class="legend" id="gyroLegend"></div>
         </section>
 
-        <section class="panel needs-phone">
+        <section class="panel needs-phone host-only">
           <h2>Magnetometer <span class="units">(μT)</span></h2>
           <div class="canvas-wrap">
             <canvas id="magCanvas"></canvas>
@@ -319,7 +371,7 @@
           <p class="note" id="magNote">A true magnetometer feed requires Android with the Generic Sensor API; on iOS the only available channel is compass heading, shown here as a single trace.</p>
         </section>
 
-        <section class="panel needs-phone">
+        <section class="panel needs-phone host-only">
           <h2>Display</h2>
           <div class="row">
             <label for="windowSel">Window</label>
@@ -365,24 +417,10 @@
 
     <script>
       const params = new URLSearchParams(location.search);
-      const hostId = params.get('host');
+      const codeParam = params.get('code');
+      const hostId = codeParam ? 'sslab-imu-' + codeParam : null;
       const role = hostId ? 'phone' : 'laptop';
       document.body.dataset.role = role;
-
-      const PUBLIC_ORIGIN = 'https://sensingschool.com';
-      const LOCAL_BASE = '/sensingschool';
-      const isLocal =
-        ['localhost', '127.0.0.1', ''].includes(location.hostname) ||
-        location.hostname.startsWith('192.168.') ||
-        location.hostname.startsWith('10.') ||
-        location.protocol === 'file:';
-      const PAIR_ORIGIN = isLocal ? PUBLIC_ORIGIN : location.origin;
-      function publicPath() {
-        let p = location.pathname;
-        if (isLocal && p.startsWith(LOCAL_BASE + '/')) p = p.slice(LOCAL_BASE.length);
-        return p;
-      }
-      const makeId = () => 'sslab-imu-' + Math.random().toString(36).slice(2, 10);
 
       const fmt = (v, d=2) => (v === null || v === undefined || !isFinite(v)) ? '—' : v.toFixed(d);
 
@@ -825,7 +863,7 @@
             phoneStatus.textContent = 'Connecting…';
             const peer = new Peer();
             peer.on('open', () => {
-              conn = peer.connect(hostId, { reliable: false, serialization: 'json' });
+              conn = peer.connect(hostId, { reliable: true });
               conn.on('open', () => {
                 phoneStatus.textContent = 'Connected. Streaming IMU to laptop.';
                 phoneStatus.classList.add('ok');
