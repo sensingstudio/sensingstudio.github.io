@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sensing School</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;900&display=swap" rel="stylesheet" />
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
     <script>
@@ -14,22 +18,116 @@
       gtag('config', 'G-XTHNL4559K');
     </script>
     <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --gold: #E8B923;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --wordmark: clamp(44px, 9vw, 86px);
+      }
       html, body { height: 100%; margin: 0; }
       body {
         display: grid;
         place-items: center;
-        font-family: Helvetica, Arial, sans-serif;
-        background: #f7f7f7;
-        color: #222;
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: #fafafa;
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
       }
-      h1 { font-weight: 300; font-size: 3rem; letter-spacing: 0.02em; }
-      p  { color: #666; }
+      .lockup {
+        display: flex;
+        align-items: center;
+        gap: clamp(20px, 4vw, 36px);
+        padding: 40px 24px;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      .bullseye {
+        width: clamp(96px, 18vw, 180px);
+        height: auto;
+        flex: 0 0 auto;
+      }
+      .wordmark {
+        min-width: 0;
+      }
+      .row {
+        font-weight: 900;
+        font-size: var(--wordmark);
+        line-height: 0.95;
+        letter-spacing: -1px;
+      }
+      .row.sensing {
+        position: relative;
+        display: inline-block;
+        color: var(--black);
+      }
+      .row.school {
+        color: var(--red);
+        margin-top: 6px;
+      }
+      .cap {
+        position: absolute;
+        top:   calc(var(--wordmark) * -0.78);
+        right: calc(var(--wordmark) * -0.75);
+        width: calc(var(--wordmark) * 1.51);
+        height: auto;
+        overflow: visible;
+        transform: rotate(12deg);
+        transform-origin: 50% 19.5%;
+        pointer-events: none;
+      }
+      .divider {
+        height: 1px;
+        background: var(--grey-line);
+        margin: 18px 0 10px;
+      }
+      .institution {
+        font-weight: 400;
+        font-size: clamp(12px, 1.4vw, 18px);
+        letter-spacing: 2px;
+        color: var(--grey-text);
+        text-transform: uppercase;
+      }
+      @media (max-width: 640px) {
+        .lockup { flex-direction: column; align-items: flex-start; padding: 32px 20px; }
+        .institution { letter-spacing: 1.5px; }
+      }
     </style>
   </head>
   <body>
-    <main>
-      <h1>Hello, world.</h1>
-      <p>Sensing School &mdash; coming soon.</p>
+    <main class="lockup" aria-label="Sensing School">
+      <svg class="bullseye" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#bc122a" stroke-width="2" opacity="0.55"/>
+        <circle cx="50" cy="50" r="36" fill="none" stroke="#bc122a" stroke-width="2.5" opacity="0.7"/>
+        <circle cx="50" cy="50" r="26" fill="none" stroke="#bc122a" stroke-width="3"/>
+        <circle cx="50" cy="50" r="14" fill="none" stroke="#bc122a" stroke-width="3.5"/>
+        <circle cx="50" cy="50" r="6"  fill="#bc122a"/>
+      </svg>
+      <div class="wordmark">
+        <div class="row sensing">
+          <span>SENSING</span>
+          <svg class="cap" viewBox="0 0 100 154" aria-hidden="true">
+            <path d="M 24 20 L 76 20 L 70 56 Q 50 64 30 56 Z" fill="#111"/>
+            <path d="M 50 2 L 98 20 L 50 38 L 2 20 Z" fill="#111"/>
+            <path d="M 50 38 L 98 20 L 96 21.6 L 50 39.6 Z" fill="#000" opacity="0.18"/>
+            <path d="M 24 20 L 76 20 L 75 24 L 25 24 Z" fill="#000" opacity="0.18"/>
+            <circle cx="50" cy="20" r="2.6" fill="#E8B923"/>
+            <path d="M 50 20 C 75 20, 92 22, 97 28 C 99 36, 96 55, 95 100"
+                  fill="none" stroke="#E8B923" stroke-width="3" stroke-linecap="round"/>
+            <g transform="translate(95 100)">
+              <circle cx="0" cy="-1" r="3.4" fill="#E8B923"/>
+              <line x1="-3" y1="0" x2="-5" y2="13" stroke="#E8B923" stroke-width="2.4" stroke-linecap="round"/>
+              <line x1="-1" y1="1" x2="-2" y2="14" stroke="#E8B923" stroke-width="2.4" stroke-linecap="round"/>
+              <line x1="1"  y1="1" x2="2"  y2="14" stroke="#E8B923" stroke-width="2.4" stroke-linecap="round"/>
+              <line x1="3"  y1="0" x2="5"  y2="13" stroke="#E8B923" stroke-width="2.4" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+        <div class="row school">SCHOOL</div>
+        <div class="divider"></div>
+        <div class="institution">Carnegie Mellon University</div>
+      </div>
     </main>
   </body>
 </html>
