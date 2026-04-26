@@ -423,6 +423,15 @@
         </section>
 
         <section class="panel needs-phone host-only">
+          <h2>Shoulder vertical position <span class="units">(raw, normalized 0–1; 0 = top of frame)</span></h2>
+          <div class="canvas-wrap">
+            <canvas id="shoulderCanvas"></canvas>
+            <div class="placeholder" id="shoulderPlaceholder">Waiting for pose&hellip;</div>
+          </div>
+          <div class="legend" id="shoulderLegend"></div>
+        </section>
+
+        <section class="panel needs-phone host-only">
           <h2>Red channel <span class="units">(0–255)</span></h2>
           <div class="canvas-wrap">
             <canvas id="rCanvas"></canvas>
@@ -568,6 +577,7 @@
         let poseRafId = null;
         let lastPoseVideoTime = -1;
         let infEMA = 0;
+        let poseT0 = 0;
 
         async function ensurePose() {
           if (poseLandmarker) return;
@@ -638,6 +648,8 @@
             return;
           }
           metaPose.textContent = 'searching…';
+          poseT0 = performance.now() / 1000;
+          charts.shoulder.clear();
           const tick = () => {
             poseRafId = requestAnimationFrame(tick);
             if (remoteVideo.readyState < 2) return;
@@ -671,6 +683,17 @@
                 lineWidth: 2,
               });
               drawROI(shouldersToROI(lms));
+
+              // Raw breathing signal: average shoulder Y. Only push when both
+              // shoulders are confidently visible — gaps appear as breaks in
+              // the trace, which is what we want.
+              const L = lms[11], R = lms[12];
+              const vL = L?.visibility ?? 1, vR = R?.visibility ?? 1;
+              if (L && R && vL >= 0.5 && vR >= 0.5) {
+                const shoulderY = (L.y + R.y) / 2;
+                const t = performance.now() / 1000 - poseT0;
+                charts.shoulder.push(t, shoulderY);
+              }
             } else {
               metaPose.textContent = 'searching…';
             }
@@ -688,14 +711,27 @@
           }
           metaPose.textContent = '—';
           metaInf.textContent = '—';
+          charts.shoulder.clear();
         }
 
         const charts = {
           r: makeChannelChart('rCanvas', 'rPlaceholder', 'rLegend', 'R', '#e63946'),
           g: makeChannelChart('gCanvas', 'gPlaceholder', 'gLegend', 'G', '#2a8b2a'),
           b: makeChannelChart('bCanvas', 'bPlaceholder', 'bLegend', 'B', '#1f6feb'),
+          shoulder: makeChannelChart(
+            'shoulderCanvas', 'shoulderPlaceholder', 'shoulderLegend',
+            'Shoulder Y', '#bc122a',
+            {
+              yClampMin: 0,
+              yClampMax: 1,
+              minSpan: 0.005,
+              valueFormat: (v) => v.toFixed(3),
+              tickFormat: (v, step) => v.toFixed(step < 0.01 ? 3 : step < 0.1 ? 2 : 1),
+              rangeFormat: (v) => v.toFixed(3),
+            }
+          ),
         };
-        function chartsForEach(fn) { fn(charts.r); fn(charts.g); fn(charts.b); }
+        function chartsForEach(fn) { fn(charts.r); fn(charts.g); fn(charts.b); fn(charts.shoulder); }
         const rgbRateEl = document.getElementById('rgbRate');
         const windowSlider = document.getElementById('windowSlider');
         const windowVal = document.getElementById('windowVal');
@@ -914,7 +950,15 @@
       }
 
       /* ----- single-channel chart: scrolling time-series, auto Y range ----- */
-      function makeChannelChart(canvasId, placeholderId, legendId, name, color) {
+      function makeChannelChart(canvasId, placeholderId, legendId, name, color, opts) {
+        opts = opts || {};
+        const yClampMin = opts.yClampMin ?? 0;
+        const yClampMax = opts.yClampMax ?? 255;
+        const minSpan   = opts.minSpan   ?? 4;
+        const valueFormat = opts.valueFormat ?? ((v) => v.toFixed(0));
+        const tickFormat  = opts.tickFormat  ?? ((v, step) => v.toFixed(step < 1 ? 1 : 0));
+        const rangeFormat = opts.rangeFormat ?? valueFormat;
+
         const canvas = document.getElementById(canvasId);
         const placeholder = document.getElementById(placeholderId);
         const legend = document.getElementById(legendId);
@@ -954,7 +998,7 @@
           let drop = 0;
           while (drop < buf.length && buf[drop].t < cutoff) drop++;
           if (drop > 0) buf.splice(0, drop);
-          val.textContent = v.toFixed(0);
+          val.textContent = valueFormat(v);
           scheduleDraw();
         }
         function scheduleDraw() {
@@ -997,10 +1041,9 @@
             if (v < lo) lo = v;
             if (v > hi) hi = v;
           }
-          if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 255; }
+          if (!isFinite(lo) || !isFinite(hi)) { lo = yClampMin; hi = yClampMax; }
           // Pad the range a bit, ensure a minimum span so flat lines aren't a hairline.
           let span = hi - lo;
-          const minSpan = 4;
           if (span < minSpan) {
             const c = (lo + hi) / 2;
             lo = c - minSpan / 2; hi = c + minSpan / 2; span = minSpan;
@@ -1008,10 +1051,9 @@
           const padFrac = 0.12;
           lo -= span * padFrac;
           hi += span * padFrac;
-          // Clamp into 0..255 since these are pixel-channel means.
-          lo = Math.max(0, lo);
-          hi = Math.min(255, hi);
-          if (hi - lo < minSpan) hi = Math.min(255, lo + minSpan);
+          lo = Math.max(yClampMin, lo);
+          hi = Math.min(yClampMax, hi);
+          if (hi - lo < minSpan) hi = Math.min(yClampMax, lo + minSpan);
 
           // Smooth the visible range so it doesn't twitch every frame.
           const alpha = 0.25;
@@ -1034,7 +1076,7 @@
           for (let v = startTick; v <= yMax; v += step) {
             const y = yOf(v);
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-            ctx.fillText(v.toFixed(step < 1 ? 1 : 0), 4 * dpr, y - 2 * dpr);
+            ctx.fillText(tickFormat(v, step), 4 * dpr, y - 2 * dpr);
           }
 
           // Vertical seconds grid.
@@ -1062,7 +1104,7 @@
           // Range label, top-right.
           ctx.fillStyle = 'rgba(255,255,255,0.55)';
           ctx.textAlign = 'right';
-          ctx.fillText(yMin.toFixed(0) + '–' + yMax.toFixed(0), w - 6 * dpr, 12 * dpr);
+          ctx.fillText(rangeFormat(yMin) + '–' + rangeFormat(yMax), w - 6 * dpr, 12 * dpr);
           ctx.textAlign = 'left';
         }
 
