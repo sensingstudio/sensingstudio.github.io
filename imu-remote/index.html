@@ -707,6 +707,14 @@
               pairStatus.classList.remove('ok');
             });
           });
+          // Why: iOS Safari and some restrictive networks fail to negotiate
+          // data-channel-only WebRTC; pairing the data conn with a silent
+          // media call (as in tone-remote) makes ICE consistently complete.
+          peer.on('call', (call) => {
+            try { call.answer(); } catch (_) {}
+            call.on('stream', () => {});  // discard
+            call.on('error', () => {});
+          });
         }
 
         joinCodeIn.addEventListener('input', () => {
@@ -1662,6 +1670,26 @@
             attachOrientation();
             const magOk = attachMagnetometer();
 
+            // Build a silent audio MediaStream. We never play it; it exists
+            // purely so the WebRTC peer connection has a media track. iOS
+            // Safari + restrictive networks often fail to negotiate
+            // data-channel-only connections ("Negotiation of connection
+            // failed"); piggybacking on a media call mirrors the
+            // tone-remote pattern that's known to work on these networks.
+            let silentStream = null;
+            try {
+              const ac = new (window.AudioContext || window.webkitAudioContext)();
+              if (ac.state === 'suspended') ac.resume().catch(() => {});
+              const osc = ac.createOscillator();
+              osc.frequency.value = 0;
+              const dst = ac.createMediaStreamDestination();
+              osc.connect(dst);
+              osc.start();
+              silentStream = dst.stream;
+            } catch (e) {
+              console.warn('silent stream creation failed:', e);
+            }
+
             t0 = performance.now();
             phoneReadouts.hidden = false;
             phoneMeta.textContent = magOk ? 'Magnetometer: native' : 'Magnetometer: compass only';
@@ -1691,6 +1719,17 @@
                 phoneStatus.classList.add('error');
                 showReconnect();
               });
+
+              // Companion silent media call — see comment above silentStream.
+              if (silentStream) {
+                try {
+                  const call = peer.call(hostId, silentStream);
+                  if (call) {
+                    call.on('error', () => {});
+                    call.on('stream', () => {});
+                  }
+                } catch (e) { /* ignore */ }
+              }
             });
             peer.on('error', (err) => {
               phoneStatus.textContent = 'Connection error: ' + err.message;
