@@ -437,66 +437,106 @@
       // UART
       // ---------------------------------------------------------------
       // 8N1: 1 start bit (0), 8 data bits LSB-first, 1 stop bit (1). Idle = 1.
+      // Re-synchronisation is the core idea: there is no clock wire, so RX cannot
+      // keep TX and RX aligned over long stretches. Instead, RX *resets its bit
+      // counter* on every falling start-edge — so drift accumulates only within
+      // a single byte (10 bit-periods) and is wiped clean at every new byte.
       function buildUart(byteVal, scenario) {
-        const bits = [];
-        for (let i = 0; i < 8; i++) bits.push((byteVal >> i) & 1); // LSB first
-
-        const tx = [];        // master push-pull drive
-        const ann = [];       // phase annotations
-        const samples = [];   // receiver sample ticks
-        const idleLeft = 4;   // 4 slots of idle high before frame
-        const idleRight = 6;
-        push(tx, 1, idleLeft);
-
-        const startSlot = tx.length;
-
-        // START bit (0) for 1 bit period
-        push(tx, 0, BIT_SLOTS);
-        annot(ann, startSlot, startSlot + BIT_SLOTS, 'START', { color: 'var(--red)' });
-        // Receiver finds the falling edge, then samples at the centre of each
-        // following bit. Sample point at startSlot + 1.5*BIT_SLOTS would be the
-        // centre of bit 0; we mark every bit centre.
-        let cursor = startSlot + BIT_SLOTS;
-        bits.forEach((b, i) => {
-          push(tx, b, BIT_SLOTS);
-          annot(ann, cursor, cursor + BIT_SLOTS, 'b' + i);
-          samples.push({ slot: cursor + BIT_SLOTS / 2, label: String(b), color: 'var(--blue)' });
-          cursor += BIT_SLOTS;
-        });
-        // STOP bit (1)
-        push(tx, 1, BIT_SLOTS);
-        annot(ann, cursor, cursor + BIT_SLOTS, 'STOP', { color: 'var(--green)' });
-        cursor += BIT_SLOTS;
-        push(tx, 1, idleRight);
-
-        // Wrong-baud receiver: assume RX clock is X% off. Walk through the
-        // expected sample positions but at a drifted bit-period.
-        let wrongSamples = [];
-        let calloutText = null;
+        // Decide which bytes to send and how badly RX clock drifts.
+        // driftRatio < 1: RX is fast (samples drift LEFT of the bit centre).
+        // driftRatio > 1: RX is slow.
+        let byteList, driftRatio, calloutText = null, corruptStopBitOfByte = -1;
         if (scenario === 'baud-mismatch') {
-          // RX thinks bit-period is 0.85 × actual. So it samples too quickly.
-          const rxBitSlots = BIT_SLOTS * 0.85;
-          let t = startSlot + BIT_SLOTS + rxBitSlots / 2; // first data-bit centre per RX
-          for (let i = 0; i < 8; i++) {
-            const slot = Math.round(t);
-            const sampledIdx = Math.floor((slot - startSlot) / BIT_SLOTS) - 1; // which actual bit slot we're inside
-            const correct = (sampledIdx >= 0 && sampledIdx < 8) ? bits[sampledIdx] : 1;
-            wrongSamples.push({ slot, label: String(correct), color: 'var(--orange)' });
-            t += rxBitSlots;
-          }
-          calloutText = '<b>Baud mismatch.</b> Receiver clock is 15% fast, so its sample points (orange) drift left of the bit centres. By bit 5–6 it samples inside the wrong bit and reads garbage. Both sides must agree on baud rate within ~2% to keep the last bit aligned.';
-        }
-        if (scenario === 'parity') {
+          byteList = [byteVal, (byteVal ^ 0x55) & 0xFF];
+          driftRatio = 0.85;
+          calloutText = '<b>Baud mismatch (15% fast).</b> Watch the orange sample ticks slide left of the bit centres as the byte progresses — that is drift accumulating within one byte. At the gap between bytes RX waits for the next falling edge, and when it arrives RX resets its bit counter (purple <b>↺ resync</b> marker). The drift starts from zero again on byte 2 — but 15% per bit-period is too fast: by the stop bit RX has slipped a full bit cell and reads the wrong value either way.';
+        } else if (scenario === 'resync') {
+          byteList = [byteVal, (byteVal ^ 0xFF) & 0xFF];
+          driftRatio = 0.95;
+          calloutText = '<b>How re-sync works.</b> RX has no clock wire — it just watches for falling edges. When it sees one, it (a) declares "this is a start bit" and (b) <b>resets its bit counter to zero</b>. Then it waits 1.5 bit-periods to land at the centre of bit 0, and samples once per bit-period from there. After the stop bit RX goes back to watching for falling edges. With a 5% drift here, both bytes decode correctly because drift only ever accumulates over <i>one</i> byte (≈10 bit-periods), and gets wiped clean at every new start edge.';
+        } else if (scenario === 'parity') {
+          byteList = [byteVal];
+          driftRatio = 1.0;
           calloutText = '<b>8N1 has no parity.</b> Switch to 8E1 (even parity) and the transmitter would insert one extra bit before STOP, set so the count of <code>1</code>s in data+parity is even. Receiver computes the same and rejects the byte if it disagrees. Catches single-bit errors but not double.';
-        }
-        if (scenario === 'framing') {
-          // Corrupt the stop bit
-          tx[cursor - BIT_SLOTS + 1] = 0; // dip the stop bit
+        } else if (scenario === 'framing') {
+          byteList = [byteVal];
+          driftRatio = 1.0;
+          corruptStopBitOfByte = 0;
           calloutText = '<b>Framing error.</b> The stop bit is supposed to be high — when receiver samples it as low, the UART discards the byte and raises a framing-error flag. This is what happens if the transmitter starts a new byte without leaving stop time, or if line noise corrupts the boundary.';
+        } else {
+          byteList = [byteVal];
+          driftRatio = 1.0;
         }
 
+        const tx = [];        // TX line, push-pull master drive (idle = 1)
+        const ann = [];
+        const correctSamples = [];   // blue ticks at true bit centres
+        const driftedSamples = [];   // orange ticks where RX actually samples
+
+        push(tx, 1, 4); // initial idle
+
+        byteList.forEach((bv, byteIdx) => {
+          // Idle gap between bytes. The falling edge of the *next* byte's START
+          // is the re-sync moment — flag it visibly with an annotation pill.
+          if (byteIdx > 0) {
+            const gap = 10;
+            push(tx, 1, gap);
+            // Mark "↺ resync" right before the start edge so it's visually
+            // attached to the moment RX detects the falling edge.
+            const resyncStart = tx.length - 4;
+            annot(ann, resyncStart, tx.length, '↺ RX resyncs', { color: 'var(--purple)' });
+          }
+
+          const bits = [];
+          for (let i = 0; i < 8; i++) bits.push((bv >> i) & 1); // LSB first
+          const startSlot = tx.length;
+
+          // START bit (0)
+          push(tx, 0, BIT_SLOTS);
+          annot(ann, startSlot, startSlot + BIT_SLOTS, 'START', { color: 'var(--red)' });
+
+          // 8 data bits
+          let cursor = startSlot + BIT_SLOTS;
+          bits.forEach((b, i) => {
+            push(tx, b, BIT_SLOTS);
+            annot(ann, cursor, cursor + BIT_SLOTS, 'b' + i);
+            cursor += BIT_SLOTS;
+          });
+
+          // STOP bit (1) — optionally corrupted to demo framing error
+          push(tx, 1, BIT_SLOTS);
+          if (byteIdx === corruptStopBitOfByte) {
+            // Force a low sample inside the stop-bit window
+            for (let i = 1; i < 4; i++) tx[cursor + i] = 0;
+          }
+          annot(ann, cursor, cursor + BIT_SLOTS, 'STOP', { color: 'var(--green)' });
+          cursor += BIT_SLOTS;
+
+          // Sample placement (per byte; RX counter resets at each START):
+          // RX waits 1.5 bit-periods after detecting the falling edge to land at
+          // the centre of bit 0. With drift, RX's notion of "bit-period" is
+          // BIT_SLOTS * driftRatio.
+          const rxBitSlots = BIT_SLOTS * driftRatio;
+          for (let i = 0; i < 8; i++) {
+            const correctCentre = startSlot + BIT_SLOTS + (i + 0.5) * BIT_SLOTS;
+            const drifted       = startSlot + BIT_SLOTS + (i + 0.5) * rxBitSlots;
+            // What value does the wire actually carry at the drifted slot?
+            const driftedSlot = Math.round(drifted);
+            const cellIdx = Math.floor((driftedSlot - (startSlot + BIT_SLOTS)) / BIT_SLOTS);
+            const valAtSlot = (cellIdx >= 0 && cellIdx < 8) ? bits[cellIdx] : 1;
+            correctSamples.push({ slot: correctCentre, label: String(bits[i]), color: 'var(--blue)' });
+            if (driftRatio !== 1.0) {
+              driftedSamples.push({ slot: drifted, label: String(valAtSlot), color: 'var(--orange)' });
+            }
+          }
+        });
+
+        push(tx, 1, 6); // trailing idle
         const slots = tx.length;
 
+        // Primary samples: the actual RX samples (orange when drifted, blue otherwise).
+        // Extra samples: the reference bit-centres (faded), only when drift is on.
+        const drifted = driftRatio !== 1.0;
         return {
           protocol: 'uart',
           slots,
@@ -504,8 +544,8 @@
             { name: 'TX', master: tx, slave: new Array(slots).fill('z'), bus: tx, openDrain: false }
           ],
           annotations: ann,
-          samples: scenario === 'baud-mismatch' ? wrongSamples : samples,
-          extraSamples: scenario === 'baud-mismatch' ? samples : [],
+          samples: drifted ? driftedSamples : correctSamples,
+          extraSamples: drifted ? correctSamples : [],
           calloutText,
         };
       }
@@ -1121,7 +1161,8 @@
       const SCENARIOS = {
         uart: [
           { id: 'happy',          label: 'Happy path (8N1)' },
-          { id: 'baud-mismatch',  label: 'Baud mismatch (RX 15% fast)' },
+          { id: 'resync',         label: 'Re-sync at next byte (5% drift)' },
+          { id: 'baud-mismatch',  label: 'Baud mismatch (15% drift, two bytes)' },
           { id: 'framing',        label: 'Framing error' },
           { id: 'parity',         label: 'About parity (8E1)' },
         ],
@@ -1201,12 +1242,15 @@
       function explainFor(proto) {
         if (proto === 'uart') return `
           <h3>Reading the diagram</h3>
-          <p><b>UART is asynchronous.</b> There is no clock wire — the line idles high, falls for one bit-period as a <b>start bit</b>, then carries 8 data bits LSB-first, then returns high for at least one bit-period as a <b>stop bit</b>. The receiver finds the falling start edge, waits half a bit-period to land at the centre, then samples once per bit-period. Both sides have to agree on the bit-period (the baud rate); there is no synchronisation in-band.</p>
+          <p><b>UART is asynchronous.</b> There is no clock wire — the line idles high, falls for one bit-period as a <b>start bit</b>, then carries 8 data bits LSB-first, then returns high for at least one bit-period as a <b>stop bit</b>. Both sides agree on the bit-period (the baud rate) ahead of time and just trust their own clocks during a byte.</p>
+          <p><b>How re-synchronisation actually works.</b> RX has only one job between bytes: watch the line for a falling edge. When it finds one, two things happen at once — RX declares "this is a start bit", and RX <b>resets its bit counter to zero</b>. From that instant it waits 1.5 bit-periods (to land at the centre of bit 0), then samples every 1 bit-period until it has 8 bits. Then it goes back to watching for falling edges. There is no PLL, no in-band clock recovery — just a falling-edge detector that resets the sample counter on every byte.</p>
+          <p>The pay-off: drift between TX and RX clocks accumulates only over <i>one byte</i> (≈10 bit-periods), and is wiped clean at every new start edge. That is why ~2% mismatch is fine but ~10% is not.</p>
           <ol>
-            <li><b>Try a few bytes</b> like <code>0x55</code> (alternating <code>01010101</code>) — you can read the bits straight off the trace, LSB on the left.</li>
-            <li><b>Baud mismatch.</b> The simulator’s wrong-baud receiver is 15% fast: by bit 5 its sample point has drifted into the previous bit. The protocol has no recovery — both sides re-synchronise only at the next start edge. Real systems target &lt;2% mismatch end-to-end.</li>
-            <li><b>Framing error.</b> The transmitter must release the line for the stop bit. If receiver samples a low at the stop position, the byte is discarded. Often the symptom of a corrupted preceding bit boundary or an overrun.</li>
-            <li><b>What this skips.</b> No flow control (RTS/CTS), no parity, no hardware framing. Add 9-bit data, parity bits, or 1.5/2 stop bits and the start/stop framing is the same — only the inner length changes.</li>
+            <li><b>Re-sync at next byte (5% drift).</b> Watch the orange ticks (RX&rsquo;s actual sample points) drift slightly left of the blue ticks (true bit centres) within byte 1. At the gap RX waits for the next falling edge — when it arrives, the purple <b>↺ resync</b> pill marks the moment RX resets its counter. Drift starts from zero again on byte 2. Both bytes decode correctly because 5% × 10 bits = half a bit of slip — still in the right cell.</li>
+            <li><b>Baud mismatch (15% drift).</b> Same mechanism, more drift. Re-sync still happens at byte 2, but 15% × 10 ≈ 1.5 bits of slip per byte, so even one byte is too long to stay aligned. RX reads garbage either way. (In real hardware the framing-error flag usually fires too, since the stop bit lands inside a data cell.)</li>
+            <li><b>Try <code>0x55</code></b> (alternating <code>01010101</code>) — you can read the bits straight off the trace, LSB on the left.</li>
+            <li><b>Framing error.</b> The transmitter must release the line high for the stop bit. If RX samples low there, the byte is discarded. Often the symptom of overrun or a corrupted boundary.</li>
+            <li><b>What this skips.</b> RTS/CTS flow control, parity, 1.5/2 stop bits, 9-bit data. Adding any of them keeps the same start/stop framing — only the inner length changes.</li>
           </ol>`;
         if (proto === 'i2c') return `
           <h3>Reading the diagram</h3>
