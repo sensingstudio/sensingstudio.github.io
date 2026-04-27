@@ -379,11 +379,99 @@
 
         <section class="panel needs-phone host-only">
           <h2>Tilt: complementary filter <span class="units">(°)</span></h2>
-          <p class="note" style="margin-top: 0; margin-bottom: 18px;">
+          <p class="note" style="margin-top: 0; margin-bottom: 14px;">
             The accelerometer reads the gravity vector, so it gives clean tilt at rest but is corrupted by linear motion.
             The gyroscope reads angular rate, smooth and responsive but its integral drifts.
             A <strong>complementary filter</strong> trusts the gyro at short timescales and the accel at long ones:
             <span style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; background: #f3f3f5; padding: 2px 6px; border-radius: 4px;">θ = α · (θ<sub>prev</sub> + ω · Δt) + (1 − α) · θ<sub>accel</sub></span>.
+          </p>
+          <div style="display: flex; justify-content: center; margin: 4px 0 18px;">
+            <svg viewBox="0 0 720 310" style="width: 100%; max-width: 720px; height: auto;" role="img" aria-label="Complementary filter block diagram">
+              <defs>
+                <marker id="cf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+                </marker>
+                <marker id="cf-arrow-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#5b6068"/>
+                </marker>
+                <marker id="cf-arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f4eb6"/>
+                </marker>
+              </defs>
+
+              <!-- TOP BRANCH: gyro -->
+              <text x="22" y="60" font-family="Roboto, sans-serif" font-size="13" font-weight="700" fill="#2a8b2a">GYRO ω</text>
+              <text x="22" y="76" font-family="Roboto, sans-serif" font-size="10" fill="#5b6068">angular rate °/s</text>
+              <path d="M 92 56 L 142 56" stroke="#111" stroke-width="1.4" fill="none" marker-end="url(#cf-arrow)"/>
+
+              <rect x="142" y="34" width="138" height="46" rx="5" fill="#fff" stroke="#111" stroke-width="1.2"/>
+              <text x="211" y="56" font-family="Roboto, sans-serif" font-size="13" font-weight="700" fill="#111" text-anchor="middle">θ<tspan baseline-shift="sub" font-size="9">prev</tspan> + ω · Δt</text>
+              <text x="211" y="72" font-family="Roboto, sans-serif" font-size="10" fill="#5b6068" text-anchor="middle">integrate</text>
+
+              <path d="M 280 56 L 312 56" stroke="#111" stroke-width="1.4" fill="none" marker-end="url(#cf-arrow)"/>
+
+              <!-- mini chart: smooth but drifting -->
+              <g transform="translate(312, 30)">
+                <rect width="108" height="52" rx="3" fill="#fafafa" stroke="#ccc" stroke-width="0.8"/>
+                <line x1="6" y1="26" x2="102" y2="26" stroke="#9aa1a8" stroke-width="0.8" stroke-dasharray="3 2"/>
+                <path d="M 6 26 Q 28 24 50 24 T 102 42" stroke="#2a8b2a" stroke-width="1.8" fill="none"/>
+                <text x="54" y="14" font-family="Roboto, sans-serif" font-size="9" fill="#5b6068" text-anchor="middle">— true θ</text>
+              </g>
+              <text x="366" y="98" font-family="Roboto, sans-serif" font-size="10" fill="#2a8b2a" text-anchor="middle" font-weight="700">smooth · drifts over time</text>
+
+              <path d="M 420 56 L 462 56" stroke="#111" stroke-width="1.4" fill="none" marker-end="url(#cf-arrow)"/>
+
+              <circle cx="486" cy="56" r="22" fill="#fff" stroke="#111" stroke-width="1.2"/>
+              <text x="486" y="55" font-family="Roboto, sans-serif" font-size="14" font-weight="700" fill="#111" text-anchor="middle">× α</text>
+              <text x="486" y="69" font-family="Roboto, sans-serif" font-size="9" fill="#5b6068" text-anchor="middle">≈ 0.98</text>
+
+              <path d="M 508 56 Q 552 56 568 132" stroke="#111" stroke-width="1.4" fill="none" marker-end="url(#cf-arrow)"/>
+
+              <!-- BOTTOM BRANCH: accel -->
+              <text x="22" y="216" font-family="Roboto, sans-serif" font-size="13" font-weight="700" fill="#bc122a">ACCEL ax,ay,az</text>
+              <text x="22" y="232" font-family="Roboto, sans-serif" font-size="10" fill="#5b6068">gravity vector m/s²</text>
+              <path d="M 130 212 L 142 212" stroke="#111" stroke-width="1.4" fill="none" marker-end="url(#cf-arrow)"/>
+
+              <rect x="142" y="190" width="138" height="46" rx="5" fill="#fff" stroke="#111" stroke-width="1.2"/>
+              <text x="211" y="212" font-family="Roboto, sans-serif" font-size="13" font-weight="700" fill="#111" text-anchor="middle">atan2(a)</text>
+              <text x="211" y="228" font-family="Roboto, sans-serif" font-size="10" fill="#5b6068" text-anchor="middle">→ θ<tspan baseline-shift="sub" font-size="8">accel</tspan></text>
+
+              <path d="M 280 212 L 312 212" stroke="#111" stroke-width="1.4" fill="none" marker-end="url(#cf-arrow)"/>
+
+              <!-- mini chart: noisy but centered -->
+              <g transform="translate(312, 186)">
+                <rect width="108" height="52" rx="3" fill="#fafafa" stroke="#ccc" stroke-width="0.8"/>
+                <line x1="6" y1="26" x2="102" y2="26" stroke="#9aa1a8" stroke-width="0.8" stroke-dasharray="3 2"/>
+                <path d="M 6 26 L 12 18 L 18 33 L 24 19 L 30 28 L 36 16 L 42 31 L 48 21 L 54 27 L 60 14 L 66 32 L 72 24 L 78 18 L 84 30 L 90 24 L 96 19 L 102 27" stroke="#bc122a" stroke-width="1.4" fill="none"/>
+                <text x="54" y="14" font-family="Roboto, sans-serif" font-size="9" fill="#5b6068" text-anchor="middle">— true θ</text>
+              </g>
+              <text x="366" y="254" font-family="Roboto, sans-serif" font-size="10" fill="#bc122a" text-anchor="middle" font-weight="700">noisy · anchored to truth</text>
+
+              <path d="M 420 212 L 460 212" stroke="#111" stroke-width="1.4" fill="none" marker-end="url(#cf-arrow)"/>
+
+              <circle cx="486" cy="212" r="24" fill="#fff" stroke="#111" stroke-width="1.2"/>
+              <text x="486" y="211" font-family="Roboto, sans-serif" font-size="13" font-weight="700" fill="#111" text-anchor="middle">×(1−α)</text>
+              <text x="486" y="225" font-family="Roboto, sans-serif" font-size="9" fill="#5b6068" text-anchor="middle">≈ 0.02</text>
+
+              <path d="M 510 212 Q 552 212 568 142" stroke="#111" stroke-width="1.4" fill="none" marker-end="url(#cf-arrow)"/>
+
+              <!-- SUMMER -->
+              <circle cx="592" cy="135" r="22" fill="#fff" stroke="#111" stroke-width="1.6"/>
+              <text x="592" y="143" font-family="Roboto, sans-serif" font-size="24" font-weight="700" fill="#111" text-anchor="middle">+</text>
+
+              <!-- Output to θ -->
+              <path d="M 614 135 L 668 135" stroke="#1f4eb6" stroke-width="2" fill="none" marker-end="url(#cf-arrow-blue)"/>
+              <text x="678" y="132" font-family="Roboto, sans-serif" font-size="16" font-weight="900" fill="#1f4eb6">θ</text>
+              <text x="678" y="148" font-family="Roboto, sans-serif" font-size="10" fill="#5b6068">smooth +</text>
+              <text x="678" y="160" font-family="Roboto, sans-serif" font-size="10" fill="#5b6068">anchored</text>
+
+              <!-- FEEDBACK loop: θ becomes θ_prev next step.
+                   Routed around the outside of the diagram so it never crosses a block. -->
+              <path d="M 670 148 L 670 268 L 10 268 L 10 14 L 211 14 L 211 32" stroke="#5b6068" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#cf-arrow-grey)"/>
+              <text x="340" y="285" font-family="Roboto, sans-serif" font-size="10" fill="#5b6068" text-anchor="middle" font-style="italic">feedback: θ becomes θ<tspan baseline-shift="sub" font-size="8">prev</tspan> on the next sample</text>
+            </svg>
+          </div>
+          <p class="note" style="margin: 0 0 14px;">
             Slide α toward 1 to favour the gyro (smooth, drifty); toward 0 to favour the accel (jittery, no drift).
           </p>
           <div class="row" style="margin-bottom: 4px;">
