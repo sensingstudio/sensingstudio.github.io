@@ -1,0 +1,14 @@
+FMCW and radar
+FFT, Tukey
+Filtering IIR and FIR, taps, delays
+Path loss
+Sampling , Aliasing, Nyquist theorem
+Codes, Convolutional, Error correction, detection
+Applied machine learning
+Dilated convolutions
+Simulating different IoT protocols: BLE, WiFi, Lora, Zigbee, Sigfox, NB-IoT
+UWB
+Localization
+https://iot-book.github.io/en/
+How to make a PCB
+LiDAR
