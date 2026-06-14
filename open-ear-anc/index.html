@@ -160,6 +160,13 @@
         .sidebar { position:static; }
         .toprow { grid-template-columns:1fr; }
       }
+      .lat-tbl { width:100%; border-collapse:collapse; font-size:12px; margin-top:2px; }
+      .lat-tbl th, .lat-tbl td { text-align:right; padding:4px 4px; border-bottom:1px solid var(--grey-line); font-variant-numeric:tabular-nums; }
+      .lat-tbl th:first-child, .lat-tbl td:first-child { text-align:left; }
+      .lat-tbl th { font-size:10px; letter-spacing:0.4px; text-transform:uppercase; color:var(--grey-text); font-weight:700; }
+      .lat-tbl td { color:var(--black); }
+      .lat-tbl .edge { color:var(--grey-text); }
+      .lat-tbl .good { color:var(--green); font-weight:700; }
     </style>
   </head>
   <body>
@@ -205,8 +212,16 @@
               <input type="range" id="latencyMs" min="0" max="1.5" step="0.01" value="0.1" style="flex:1 1 90px;" />
               <span class="note" style="margin:0; min-width:50px;" id="latencyVal">100 µs</span>
             </div>
-            <div class="crow">
-              <span class="note" style="margin:0; font-size:11px; line-height:1.5;">Cancellation needs <code>Δt &lt; 1/(6·f)</code>: to reach <strong>500&nbsp;Hz</strong> stay under <strong>330&nbsp;µs</strong>, <strong>1&nbsp;kHz</strong> under <strong>170&nbsp;µs</strong>, <strong>2&nbsp;kHz</strong> under <strong>85&nbsp;µs</strong>. More latency fails the highest frequencies first.</span>
+            <div class="crow" style="display:block;">
+              <table class="lat-tbl">
+                <thead><tr><th>Tone</th><th>0 dB edge</th><th>~10 dB</th></tr></thead>
+                <tbody>
+                  <tr><td>500 Hz</td><td class="edge">330 µs</td><td class="good">100 µs</td></tr>
+                  <tr><td>1 kHz</td><td class="edge">170 µs</td><td class="good">50 µs</td></tr>
+                  <tr><td>2 kHz</td><td class="edge">85 µs</td><td class="good">25 µs</td></tr>
+                </tbody>
+              </table>
+              <span class="note" style="margin:6px 0 0; display:block; font-size:11px; line-height:1.45;">Max latency to cancel each tone. <span style="color:var(--grey-text);font-weight:700;">0 dB edge</span> = <code>1/(6·Δt)</code>, where it stops helping; stay under the <span style="color:var(--green);font-weight:700;">~10 dB</span> column for real cancellation.</span>
             </div>
             <div class="crow">
               <label>Mobility</label>
