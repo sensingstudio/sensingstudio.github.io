@@ -209,6 +209,13 @@
               </div>
             </div>
             <div class="crow">
+              <label>Canceller</label>
+              <div class="tools" role="group" aria-label="Canceller engine">
+                <button class="tool-btn active" data-algo="model">Model</button>
+                <button class="tool-btn" data-algo="adaptive">Adaptive FIR</button>
+              </div>
+            </div>
+            <div class="crow">
               <label for="latencyMs">Latency</label>
               <input type="range" id="latencyMs" min="0" max="1.5" step="0.01" value="0.1" style="flex:1 1 90px;" />
               <span class="note" style="margin:0; min-width:50px;" id="latencyVal">100 µs</span>
@@ -480,7 +487,7 @@
       }
 
       // ===================== state =====================
-      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 2, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe' };
+      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 2, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'model' };
       let W = fitWeights(state.nMics);
       let perFreq = [];          // {ear,res} per model freq for current noise source
       let meanRedDb = 0, geomRedDb = 0, liveRedDb = null;
@@ -806,6 +813,15 @@
           renderStatic();
         });
       });
+      document.querySelectorAll('[data-algo]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('[data-algo]').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          state.algo=btn.dataset.algo;
+          setAlgo();
+          renderStatic();
+        });
+      });
       $('orbitBtn').addEventListener('click', ()=>{
         state.orbit=!state.orbit;
         $('orbitBtn').classList.toggle('on', state.orbit);
@@ -828,6 +844,7 @@
       // speech passes through untouched. Strength tracks the on-screen reduction.
       state.ancOn = true;
       let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancSenseLP=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
+      let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
       let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, speechSrc=null;
       let audioPlaying=false;
@@ -868,10 +885,16 @@
         charFilter.connect(noiseBufGain); noiseBufGain.connect(noiseSum);
         speechGain=actx.createGain(); speechGain.gain.value=parseFloat($('speechVol').value);
         const rawMix=actx.createGain(), procMix=actx.createGain();
-        // delay-and-subtract canceller on the noise: ancOut = noiseSum − g·delay(noiseSum, Δt)
-        noiseSum.connect(ancOut);
-        // anti-noise: delay → sensing lowpass (mic-count bandwidth) → −g
-        noiseSum.connect(ancDelay); ancDelay.connect(ancSenseLP); ancSenseLP.connect(ancInvGain); ancInvGain.connect(ancOut);
+        // ===== two selectable canceller engines, mixed into ancOut by modelSel/adaptiveSel =====
+        combBus=actx.createGain(); modelSel=actx.createGain(); adaptiveSel=actx.createGain();
+        // (A) closed-form model: combBus = noiseSum − g·LPF(delay(noiseSum, Δt))
+        noiseSum.connect(combBus);
+        noiseSum.connect(ancDelay); ancDelay.connect(ancSenseLP); ancSenseLP.connect(ancInvGain); ancInvGain.connect(combBus);
+        combBus.connect(modelSel); modelSel.connect(ancOut);
+        // (B) adaptive FIR (NLMS) on the noise — a ScriptProcessor running a real adaptive filter
+        adaptiveProc = buildAdaptiveProc();
+        noiseSum.connect(adaptiveProc); adaptiveProc.connect(adaptiveSel); adaptiveSel.connect(ancOut);
+        setAlgo();
         // noise-only analysis taps (mono) for the live in-band reduction number
         noiseSum.connect(noiseRawAnalyser);
         ancOut.connect(noiseProcAnalyser);
@@ -915,6 +938,41 @@
         ancDelay.delayTime.setTargetAtTime(Math.max(0, state.latencyMs*1e-3), t, 0.01);   // ANC latency
         ancSenseLP.frequency.setTargetAtTime(micCutoff(), t, 0.02);                       // sensing bandwidth (mics)
         ancInvGain.gain.setTargetAtTime(-ancGain(), t, 0.02);                             // cancellation depth
+      }
+      function setAlgo(){
+        if(!modelSel) return;
+        const t=actx.currentTime;
+        modelSel.gain.setTargetAtTime(state.algo==='model'?1:0, t, 0.02);
+        adaptiveSel.gain.setTargetAtTime(state.algo==='adaptive'?1:0, t, 0.02);
+      }
+      // adaptive feedforward canceller: normalized-LMS FIR that learns to predict the
+      // noise and subtract it. Latency = delayed reference (limits broadband), taps grow
+      // with mic count. Output is the live residual (drives the spectrum/scope/readout).
+      function buildAdaptiveProc(){
+        const node=actx.createScriptProcessor(1024,1,1);
+        const L=320, M=16384, w=new Float32Array(L), xbuf=new Float32Array(M);
+        let pos=0, ms=1e-3;
+        node.onaudioprocess=(ev)=>{
+          const inp=ev.inputBuffer.getChannelData(0), out=ev.outputBuffer.getChannelData(0), N=inp.length;
+          if(state.algo!=='adaptive'){ out.fill(0); return; }              // engine idle when not selected
+          const SR=actx.sampleRate;
+          const dl=Math.max(0, Math.round(state.latencyMs*1e-3*SR));
+          const taps=Math.max(1, Math.min(L, {1:64,2:128,4:240}[state.nMics] || 128));
+          const mu=0.4, en=state.ancOn?1:0;
+          for(let n=0;n<N;n++){
+            const x=inp[n]; xbuf[pos]=x;
+            let y=0; for(let k=0;k<taps;k++){ y+=w[k]*xbuf[(pos-dl-k+2*M)%M]; }
+            const e = en ? (x - y) : x;                                     // residual at the ear
+            out[n]=Math.max(-2, Math.min(2, e));                            // safety clamp
+            if(en){
+              const xd=xbuf[(pos-dl+2*M)%M]; ms=0.999*ms+0.001*xd*xd;
+              const step=mu*e/(ms*taps+1e-6);
+              for(let k=0;k<taps;k++){ const idx=(pos-dl-k+2*M)%M; w[k]+=step*xbuf[idx]; }
+            }
+            pos=(pos+1)%M;
+          }
+        };
+        return node;
       }
       function startSources(){
         noiseSrc=actx.createBufferSource(); noiseSrc.buffer=noiseBuf; noiseSrc.loop=true;
