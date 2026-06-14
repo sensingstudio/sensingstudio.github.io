@@ -176,7 +176,7 @@
     <script src="../nav.js" defer></script>
     <main class="dash-main">
       <h1>Virtual In-Ear Sensing</h1>
-      <p class="lead">ANC for open-ear glasses with <strong>no in-ear mic</strong>: an array of frame microphones estimates the sound at your ear from the fixed head geometry, and the speaker plays anti-noise to cancel it. Set parameters on the left; watch the scene, spectrum, and live stats on the right. <strong>Headphones recommended.</strong></p>
+      <p class="lead">ANC for open-ear glasses with <strong>no in-ear mic</strong>: an array of frame microphones estimates the sound at your ear from the fixed head geometry, and the speaker plays anti-noise to cancel it. This simulates <strong>one side &mdash; the left ear</strong> (the real system runs a mirror-image copy for the right); mic count is per side. Set parameters on the left; watch the scene, spectrum, and live stats on the right. <strong>Headphones recommended.</strong></p>
 
       <div class="dash">
         <aside class="sidebar">
@@ -266,11 +266,11 @@
                 <span><i class="dot" style="background:var(--green);"></i> Signal</span>
                 <span><i class="dot" style="background:var(--gold);"></i> Active mic</span>
                 <span><i class="dot" style="background:var(--blue);"></i> Speaker</span>
-                <span><i class="dot" style="background:#fff;border:1px solid #999;"></i> Ear</span>
+                <span><i class="dot" style="background:#fff;border:1px solid #999;"></i> Target ear (left)</span>
               </div>
             </div>
             <div class="card2">
-              <h3>Noise reduction at the ear</h3>
+              <h3>Noise reduction at the left ear</h3>
               <div class="statgrid">
                 <div class="readout">
                   <div class="k">In-band reduction</div>
@@ -298,7 +298,7 @@
 
           <div class="card2 nopad">
             <div class="vhead">
-              <span>Live spectrum — noise at the ear</span>
+              <span>Live spectrum — noise at the left ear</span>
               <button class="pausebtn" id="fftPause" title="freeze / snapshot">⏸</button>
               <span class="leg">
                 <span><i class="swatch" style="background:var(--red);"></i> before ANC</span>
@@ -313,7 +313,7 @@
 
           <div class="card2 nopad">
             <div class="vhead">
-              <span>Sound at the ear</span>
+              <span>Sound at the left ear</span>
               <button class="pausebtn" id="earPause" title="freeze / snapshot">⏸</button>
               <label for="scopeWindow" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Window</label>
               <input type="range" id="scopeWindow" min="1" max="15" step="0.5" value="6" style="width:110px; accent-color:var(--red);" />
