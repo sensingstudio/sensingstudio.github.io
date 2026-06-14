@@ -323,14 +323,18 @@
                   <div class="u">processing delay</div>
                 </div>
               </div>
-              <div class="canvas-wrap" style="margin-top:10px;">
-                <canvas id="polar" width="520" height="380"></canvas>
-                <span class="tag">reduction vs. noise direction &middot; ● = current noise</span>
-              </div>
-              <div class="legend" style="padding:8px 4px 2px; gap:16px;">
-                <span><i class="swatch" style="background:#2ECC71;"></i> Left ear (simulated)</span>
-                <span><i class="swatch" style="background:#DD8452;"></i> Right ear (mirror)</span>
-              </div>
+            </div>
+          </div>
+
+          <div class="card2">
+            <h3>Reduction vs. noise direction <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--grey-text);">&mdash; left ear, updates as the noise moves</span></h3>
+            <div class="canvas-wrap" style="max-width:460px; margin:6px auto 0; background:#0c0c0e;">
+              <canvas id="polar" width="460" height="430"></canvas>
+              <span class="tag">● = current noise</span>
+            </div>
+            <div class="legend" style="justify-content:center; padding:8px 4px 2px; gap:16px;">
+              <span><i class="swatch" style="background:#2ECC71;"></i> dB reduction at the left ear</span>
+              <span><i class="dot" style="background:var(--red);"></i> current noise direction</span>
             </div>
           </div>
 
@@ -698,12 +702,12 @@
         sctx.strokeStyle='rgba(42,139,42,0.35)'; sctx.setLineDash([4,5]); sctx.lineWidth=1;
         sctx.beginPath(); sctx.moveTo(gx,gy); sctx.lineTo(cx,cy); sctx.stroke(); sctx.setLineDash([]);
         drawSourceIcon(gx,gy,'music','#2ECC71');
-        sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 12px Roboto, sans-serif'; sctx.textAlign='center';
-        sctx.fillText('signal', gx, gy-17);
+        sctx.fillStyle='rgba(255,255,255,0.92)'; sctx.font='700 16px Roboto, sans-serif'; sctx.textAlign='center';
+        sctx.fillText('signal', gx, gy-19);
         // noise source — red loudspeaker
         drawSourceIcon(sx,sy,'speaker','#bc122a');
-        sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 12px Roboto, sans-serif'; sctx.textAlign='center';
-        sctx.fillText('noise', sx, sy-17);
+        sctx.fillStyle='rgba(255,255,255,0.92)'; sctx.font='700 16px Roboto, sans-serif'; sctx.textAlign='center';
+        sctx.fillText('noise', sx, sy-19);
 
         // attract cue: pulsing rings + "drag me" on both sources until the user grabs one
         if(state.attract){
@@ -714,9 +718,9 @@
             sctx.beginPath(); sctx.arc(x,y, 11+ph*24, 0, 2*Math.PI); sctx.stroke();
           });
           sctx.globalAlpha=1;
-          sctx.fillStyle='rgba(255,255,255,0.92)'; sctx.font='700 11px Roboto, sans-serif'; sctx.textAlign='center';
-          sctx.fillText('drag me', sx, sy+24);
-          sctx.fillText('drag me', gx, gy+24);
+          sctx.fillStyle='rgba(255,255,255,0.95)'; sctx.font='700 15px Roboto, sans-serif'; sctx.textAlign='center';
+          sctx.fillText('drag me', sx, sy+28);
+          sctx.fillText('drag me', gx, gy+28);
         }
 
         // reduction label near ear
@@ -730,6 +734,61 @@
           sctx.fillStyle='rgba(255,255,255,0.6)'; sctx.font='700 18px Roboto, sans-serif';
           sctx.fillText('ANC off', exL-14, eyL-4);
         }
+      }
+
+      // ===================== directivity (polar) plot =====================
+      // Reduction vs. noise direction at the left ear (right ear = mirror). The curve is the
+      // model's achievable reduction at each angle for the current distance / mics / latency;
+      // a marker tracks the live noise angle as it orbits. Curve depends on distance/mics/
+      // latency/calibration (recomputed on change) — NOT on the current angle, so orbiting
+      // only sweeps the marker.
+      const NA_POL=72;
+      let polarL=new Float32Array(NA_POL), polarMax=14, polarDirty=true;
+      function dirRedDb(P){                        // band reduction (dB) for a noise source at position P
+        const dt=state.latencyMs*1e-3, cal=state.calibrated;
+        let eS=0,rS=0;
+        for(let fi=0;fi<FREQS.length;fi++){ const f=FREQS[fi]; if(!inBand(f)) continue;
+          const {idx,w}=W[fi]; let est=[0,0];
+          for(let i=0;i<idx.length;i++) est=cadd(est, cmul(w[i], H(MICS[idx[i]],P,f,USER.a)));
+          const ear=H(USER.ear,P,f,USER.a);
+          const u=cmul([floorMag(f)*cabs(ear),0], FLOOR_NOISE[fi]);
+          const lat=cexpj(-2*Math.PI*f*dt);         // anti-noise reaches the ear late by the latency
+          const res=cadd(csub(ear, cmul(cmul(est, Serr(f,cal)), lat)), u);
+          const pink=1/f;
+          eS+=pink*(ear[0]*ear[0]+ear[1]*ear[1]);
+          rS+=pink*(res[0]*res[0]+res[1]*res[1]); }
+        return Math.max(0, 10*Math.log10(eS/Math.max(rS,1e-20)));
+      }
+      function computePolar(){
+        let mx=2;
+        for(let i=0;i<NA_POL;i++){ const v=dirRedDb(srcPos(i/NA_POL*360, state.dist)); polarL[i]=v; if(v>mx)mx=v; }
+        polarMax=Math.max(6, Math.ceil(mx/2)*2);
+      }
+      function polarValAt(arr,thetaDeg){ const a=((thetaDeg%360)+360)%360, x=a/360*NA_POL, i=Math.floor(x)%NA_POL, fr=x-Math.floor(x), j=(i+1)%NA_POL; return arr[i]+(arr[j]-arr[i])*fr; }
+      function drawPolar(){
+        const W2=polar.width, H2=polar.height, cx=W2/2, cy=H2*0.54, R=Math.min(W2,H2)*0.40;
+        polctx.clearRect(0,0,W2,H2);
+        const toXY=(thetaDeg,v)=>{ const r=Math.max(0,Math.min(polarMax,v))/polarMax*R, t=thetaDeg*Math.PI/180; return [cx+r*Math.sin(t), cy-r*Math.cos(t)]; };
+        // rings + dB labels (up the top spoke)
+        polctx.lineWidth=1; polctx.font='11px Roboto, sans-serif'; polctx.textBaseline='middle';
+        const RINGS=Math.max(3, Math.min(7, Math.round(polarMax/2)));
+        for(let k=1;k<=RINGS;k++){ const rr=R*k/RINGS, db=polarMax*k/RINGS;
+          polctx.strokeStyle='rgba(255,255,255,0.12)'; polctx.beginPath(); polctx.arc(cx,cy,rr,0,2*Math.PI); polctx.stroke();
+          polctx.fillStyle='rgba(255,255,255,0.4)'; polctx.textAlign='left'; polctx.fillText(db.toFixed(0), cx+4, cy-rr); }
+        polctx.fillStyle='rgba(255,255,255,0.5)'; polctx.fillText('dB reduction', cx+4, cy-R-12);
+        // spokes + angle labels
+        polctx.strokeStyle='rgba(255,255,255,0.10)'; polctx.fillStyle='rgba(255,255,255,0.55)'; polctx.textAlign='center';
+        for(let a=0;a<360;a+=45){ const t=a*Math.PI/180;
+          polctx.beginPath(); polctx.moveTo(cx,cy); polctx.lineTo(cx+R*Math.sin(t), cy-R*Math.cos(t)); polctx.stroke();
+          polctx.fillText(a+'°', cx+(R+15)*Math.sin(t), cy-(R+15)*Math.cos(t)); }
+        // left-ear reduction curve (closed loop)
+        polctx.strokeStyle='#2ECC71'; polctx.lineWidth=2.6; polctx.beginPath();
+        for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarL[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
+        polctx.stroke();
+        // live noise-direction marker
+        const [lx2,ly2]=toXY(state.theta, polarValAt(polarL, state.theta));
+        polctx.fillStyle='#bc122a'; polctx.strokeStyle='#fff'; polctx.lineWidth=1.6;
+        polctx.beginPath(); polctx.arc(lx2,ly2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
       }
 
       // ----- live FFT of the noise (incoming vs residual after ANC) -----
@@ -879,7 +938,7 @@
         spatialize(state.theta,    state.dist,    noisePanner, noiseFilter, noiseDist, t);
         spatialize(state.sigTheta, state.sigDist, sigPanner,   sigFilter,   sigDist,   t);
       }
-      function renderStatic(){ compute(); drawScene(); updateReadouts(); updateAncAudio(); updateSpatial(); }
+      function renderStatic(){ compute(); drawScene(); if(polarDirty){ computePolar(); polarDirty=false; } drawPolar(); updateReadouts(); updateAncAudio(); updateSpatial(); }
 
       // ===================== interaction =====================
       const sceneWrap=$('sceneWrap');
@@ -895,7 +954,7 @@
         const R=Math.hypot(dx,dy);
         let d=0.3 + (Math.max(RING_IN,Math.min(RING_IN+RING_SPAN,R))-RING_IN)/RING_SPAN*(3-0.3);
         d=Math.max(0.3,Math.min(3,d));
-        if(dragTarget==='sig'){ state.sigTheta=th; state.sigDist=d; } else { state.theta=th; state.dist=d; }
+        if(dragTarget==='sig'){ state.sigTheta=th; state.sigDist=d; } else { state.theta=th; state.dist=d; polarDirty=true; }
         renderStatic();
         micRefresh=8;   // source moved -> refresh the mic snapshot
       }
@@ -917,6 +976,7 @@
           btn.classList.add('active');
           state.nMics=parseInt(btn.dataset.mics,10);
           W=fitWeights(state.nMics);
+          polarDirty=true;
           renderStatic();
           micRefresh=8;   // active-mic set changed -> refresh snapshot
         });
