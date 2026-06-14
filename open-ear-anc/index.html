@@ -185,10 +185,7 @@
             </div>
             <div class="crow">
               <label>Music</label>
-              <button class="act" id="uploadBtn">Upload</button>
-              <button class="act" id="ttsBtn">Speak</button>
-              <input type="file" id="speechFile" accept="audio/*" hidden />
-              <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:1 1 70px;" />
+              <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:1 1 120px;" />
             </div>
           </div>
 
@@ -202,10 +199,6 @@
                 <button class="tool-btn active" data-mics="4">4</button>
                 <button class="tool-btn" data-mics="8">8</button>
               </div>
-            </div>
-            <div class="crow">
-              <label>Calib.</label>
-              <button class="act" id="calBtn">Off &middot; population avg</button>
             </div>
             <div class="crow">
               <label for="latencyMs">Latency</label>
@@ -275,9 +268,9 @@
                   <div class="u">drag in / out</div>
                 </div>
                 <div class="readout">
-                  <div class="k">Calibration</div>
-                  <div class="v" id="roCal">Off</div>
-                  <div class="u" id="roCalU">paper: 9.6 → 11.2 dB</div>
+                  <div class="k">ANC latency</div>
+                  <div class="v" id="roLat">—</div>
+                  <div class="u">processing delay</div>
                 </div>
               </div>
             </div>
@@ -300,7 +293,8 @@
           <div class="card2 nopad">
             <div class="vhead">
               <span>Sound at the ear</span>
-              <button class="act" id="scopeDetailBtn" style="padding:5px 10px; font-size:11px;">Detail: Medium</button>
+              <label for="scopeDetail" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Detail</label>
+              <input type="range" id="scopeDetail" min="0" max="100" step="1" value="50" style="width:130px; accent-color:var(--red);" />
               <span class="leg">
                 <span><i class="swatch" style="background:var(--red);"></i> before ANC</span>
                 <span><i class="swatch" style="background:var(--gold);height:4px;"></i> at the ear</span>
@@ -661,9 +655,7 @@
         $('roRed').className = 'v' + (state.ancOn ? ' good' : '');
         const a=((state.theta%360)+360)%360; $('roAng').textContent = (a>180?a-360:a).toFixed(0)+'°';
         $('roDist').textContent = state.dist.toFixed(2)+' m';
-        $('roCal').textContent = state.calibrated? 'On' : 'Off';
-        $('roCal').className = 'v' + (state.calibrated?' good':'');
-        $('roCalU').textContent = state.calibrated? 'user-specific secondary path' : 'population average';
+        $('roLat').textContent = Math.round(state.latencyMs*1000)+' µs';
       }
       // measure the actual in-band reduction from the noise-only analysers (pre vs post ANC)
       function measureLiveReduction(){
