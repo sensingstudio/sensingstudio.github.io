@@ -136,154 +136,183 @@
       ul.facts li { margin-bottom: 8px; line-height: 1.55; color: var(--grey-text); font-size: 13px; }
       ul.facts li strong { color: var(--black); }
       .paperbadge { display:inline-block; padding: 2px 8px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; background: rgba(31,111,235,0.12); color: var(--blue); border-radius: 999px; }
+      /* ---- dashboard layout ---- */
+      main.dash-main { max-width: 1340px; }
+      .dash { display:grid; grid-template-columns: 322px minmax(0,1fr); gap:18px; align-items:start; margin-bottom:20px; }
+      .sidebar { position:sticky; top:14px; display:flex; flex-direction:column; gap:14px; }
+      .views { display:flex; flex-direction:column; gap:16px; min-width:0; }
+      .toprow { display:grid; grid-template-columns: minmax(0,1.15fr) minmax(0,0.85fr); gap:16px; align-items:start; }
+      .card2 { background:#fff; border:1px solid var(--grey-line); border-radius:10px; padding:16px; }
+      .card2.nopad { padding:10px; }
+      .card2 > h3 { margin:0 0 12px; font-size:11px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase; color:var(--grey-text); }
+      .crow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+      .crow:last-child { margin-bottom:0; }
+      .crow > label { font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600; min-width:52px; }
+      .statgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      .statgrid .readout { padding:11px 13px; }
+      .statgrid .readout .v { font-size:21px; }
+      .vhead { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 6px 10px; }
+      .vhead > span:first-child { font-size:11px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase; color:var(--grey-text); }
+      .leg { display:flex; gap:14px; font-size:11px; color:var(--grey-text); margin-left:auto; }
+      .leg > span { display:inline-flex; align-items:center; gap:6px; }
+      @media (max-width: 1000px) {
+        .dash { grid-template-columns:1fr; }
+        .sidebar { position:static; }
+        .toprow { grid-template-columns:1fr; }
+      }
     </style>
   </head>
   <body>
     <header data-nav data-crumb="Virtual In-Ear Sensing"></header>
     <script src="../nav.js" defer></script>
-    <main>
+    <main class="dash-main">
       <h1>Virtual In-Ear Sensing</h1>
-      <p class="lead">Open-ear wearables &mdash; smart glasses, AR headsets &mdash; can&rsquo;t put a microphone in your ear canal, so they can&rsquo;t measure the residual noise that normal ANC relies on. This simulates the approach from <em>Active noise cancellation on open-ear wearable devices</em>: an array of microphones around the glasses frame <strong>estimates the sound at your ear</strong> from the fixed frame&harr;head geometry, and the speaker plays anti-noise to cancel it &mdash; no error mic required. Drag the noise source and watch the cancellation across the 100&ndash;1000&nbsp;Hz band where real-world noise lives.</p>
+      <p class="lead">ANC for open-ear glasses with <strong>no in-ear mic</strong>: an array of frame microphones estimates the sound at your ear from the fixed head geometry, and the speaker plays anti-noise to cancel it. Set parameters on the left; watch the scene, spectrum, and live stats on the right. <strong>Headphones recommended.</strong></p>
 
-      <section class="panel">
-        <h2>Top-down scene &mdash; drag the noise source</h2>
-        <div class="canvas-wrap" id="sceneWrap">
-          <canvas id="scene" width="760" height="540"></canvas>
-          <span class="tag">drag the source &middot; angle + distance</span>
-        </div>
-        <div class="legend">
-          <span><i class="dot" style="background:var(--red);"></i> Noise source</span>
-          <span><i class="dot" style="background:var(--green);"></i> Signal source</span>
-          <span><i class="dot" style="background:var(--gold);"></i> Active frame mic</span>
-          <span><i class="dot" style="background:rgba(255,255,255,0.25);"></i> Idle mic</span>
-          <span><i class="dot" style="background:var(--blue);"></i> Open-ear speaker</span>
-          <span><i class="dot" style="background:#fff;border:1px solid #999;"></i> Target ear</span>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Controls</h2>
-        <div class="row">
-          <label style="min-width:80px;">Frame mics</label>
-          <div class="tools" role="group" aria-label="Number of frame microphones">
-            <button class="tool-btn" data-mics="1">1</button>
-            <button class="tool-btn" data-mics="2">2</button>
-            <button class="tool-btn active" data-mics="4">4</button>
-            <button class="tool-btn" data-mics="8">8</button>
-          </div>
-          <span class="note" style="margin:0;">more mics &rarr; better estimate of the ear signal from the frame</span>
-        </div>
-        <div class="row">
-          <label style="min-width:80px;">Calibration</label>
-          <button class="act" id="calBtn">Off &middot; population avg</button>
-          <span class="note" style="margin:0;">a brief user-specific secondary-path calibration recovers the speaker&rarr;ear response of <em>your</em> ear</span>
-        </div>
-        <div class="row">
-          <label style="min-width:80px;" for="latencyMs">ANC latency</label>
-          <input type="range" id="latencyMs" min="0" max="1.5" step="0.01" value="0.1" style="flex:1 1 150px;" />
-          <span class="note" style="margin:0; min-width:64px;" id="latencyVal">100 µs</span>
-          <span class="note" style="margin:0;">processing delay &mdash; more latency kills high-frequency cancellation first</span>
-        </div>
-        <div class="row">
-          <label style="min-width:80px;">Mobility</label>
-          <button class="act" id="orbitBtn">Orbit source</button>
-          <span class="note" style="margin:0;">drag the <span style="color:var(--red);font-weight:700;">noise</span> and <span style="color:var(--blue);font-weight:700;">signal</span> dots to move them independently; orbit sweeps the noise around the head</span>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Noise reduction at the ear</h2>
-        <div class="readouts">
-          <div class="readout">
-            <div class="k">In-band reduction</div>
-            <div class="v good" id="roRed">— dB</div>
-            <div class="u">100&ndash;1000 Hz, at your ear</div>
-          </div>
-          <div class="readout">
-            <div class="k">Source angle</div>
-            <div class="v" id="roAng">—</div>
-            <div class="u">0° = straight ahead</div>
-          </div>
-          <div class="readout">
-            <div class="k">Source distance</div>
-            <div class="v" id="roDist">—</div>
-            <div class="u">drag in/out to change</div>
-          </div>
-          <div class="readout">
-            <div class="k">Calibration</div>
-            <div class="v" id="roCal">Off</div>
-            <div class="u" id="roCalU">paper: 9.6 dB → 11.2 dB</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Hear it for yourself</h2>
-        <p class="note" style="margin-top:0; margin-bottom:16px;"><strong>Put on headphones.</strong> The desired audio is Simon &amp; Garfunkel&rsquo;s <em>The Sounds of Silence</em> &mdash; fittingly, you switch on <em>noise cancellation</em> to hear it. Play it over background noise, then toggle ANC: like the glasses, it suppresses the 100&ndash;1000&nbsp;Hz noise while leaving the music untouched, so it comes through. The strength follows the mic count, calibration, and source position you set above.</p>
-        <div class="row" style="align-items:flex-start;">
-          <img id="albumArt" src="sounds-of-silence-cover.png" alt="Sounds of Silence album cover"
-               style="width:180px; height:180px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
-               onerror="this.style.display='none'" />
-          <div style="flex:1 1 280px; min-width:240px;">
-            <div class="row">
+      <div class="dash">
+        <aside class="sidebar">
+          <div class="card2">
+            <h3>Playback</h3>
+            <div class="crow">
               <button class="act on" id="playBtn">► Play</button>
               <button class="act on" id="ancAudioBtn">ANC: ON</button>
             </div>
-            <div class="row">
-              <span class="note" style="margin:0;" id="audioStatus">loading clip…</span>
+            <div class="crow" style="gap:12px;">
+              <img id="albumArt" src="sounds-of-silence-cover.png" alt="Sounds of Silence album cover"
+                   style="width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
+                   onerror="this.style.display='none'" />
+              <span class="note" style="margin:0; flex:1; min-width:90px;" id="audioStatus">loading clip…</span>
             </div>
-            <div class="row">
-              <label style="min-width:80px;">Desired audio</label>
-              <button class="act" id="uploadBtn">Upload your own</button>
+            <div class="crow">
+              <label>Music</label>
+              <button class="act" id="uploadBtn">Upload</button>
+              <button class="act" id="ttsBtn">Speak</button>
               <input type="file" id="speechFile" accept="audio/*" hidden />
-              <button class="act" id="ttsBtn">Speak a sample</button>
-              <label for="speechVol" style="margin-left:6px;">Level</label>
-              <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:0 1 110px;" />
+              <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:1 1 70px;" />
             </div>
-            <div class="row">
-              <label style="min-width:80px;">Noise</label>
-              <select id="noiseType">
+          </div>
+
+          <div class="card2">
+            <h3>Virtual sensing &amp; ANC</h3>
+            <div class="crow">
+              <label>Mics</label>
+              <div class="tools" role="group" aria-label="Number of frame microphones">
+                <button class="tool-btn" data-mics="1">1</button>
+                <button class="tool-btn" data-mics="2">2</button>
+                <button class="tool-btn active" data-mics="4">4</button>
+                <button class="tool-btn" data-mics="8">8</button>
+              </div>
+            </div>
+            <div class="crow">
+              <label>Calib.</label>
+              <button class="act" id="calBtn">Off &middot; population avg</button>
+            </div>
+            <div class="crow">
+              <label for="latencyMs">Latency</label>
+              <input type="range" id="latencyMs" min="0" max="1.5" step="0.01" value="0.1" style="flex:1 1 90px;" />
+              <span class="note" style="margin:0; min-width:50px;" id="latencyVal">100 µs</span>
+            </div>
+            <div class="crow">
+              <label>Mobility</label>
+              <button class="act" id="orbitBtn">Orbit noise</button>
+            </div>
+          </div>
+
+          <div class="card2">
+            <h3>Noise source</h3>
+            <div class="crow">
+              <label>Type</label>
+              <select id="noiseType" style="flex:1 1 130px;">
                 <option value="cafe">Café / crowd rumble</option>
                 <option value="street">Street / broadband</option>
                 <option value="engine">Engine / cabin hum</option>
                 <option value="tone">Pure tone</option>
               </select>
-              <label for="noiseVol" style="margin-left:6px;">Level</label>
-              <input type="range" id="noiseVol" min="0" max="1.5" step="0.01" value="0.85" style="flex:0 1 110px;" />
             </div>
-            <div class="row" id="toneRow" style="display:none;">
-              <label style="min-width:80px;" for="toneFreq">Tone freq</label>
-              <input type="range" id="toneFreq" min="50" max="2000" step="5" value="220" style="flex:1 1 160px;" />
-              <span class="note" style="margin:0; min-width:64px;" id="toneFreqVal">220 Hz</span>
+            <div class="crow">
+              <label>Level</label>
+              <input type="range" id="noiseVol" min="0" max="1.5" step="0.01" value="0.85" style="flex:1 1 90px;" />
+            </div>
+            <div class="crow" id="toneRow" style="display:none;">
+              <label for="toneFreq">Tone</label>
+              <input type="range" id="toneFreq" min="50" max="2000" step="5" value="220" style="flex:1 1 90px;" />
+              <span class="note" style="margin:0; min-width:50px;" id="toneFreqVal">220 Hz</span>
+            </div>
+          </div>
+        </aside>
+
+        <div class="views">
+          <div class="toprow">
+            <div class="card2 nopad">
+              <div class="canvas-wrap" id="sceneWrap">
+                <canvas id="scene" width="760" height="520"></canvas>
+                <span class="tag">drag noise (red) &amp; signal (green)</span>
+              </div>
+              <div class="legend" style="padding:8px 4px 2px; gap:12px;">
+                <span><i class="dot" style="background:var(--red);"></i> Noise</span>
+                <span><i class="dot" style="background:var(--green);"></i> Signal</span>
+                <span><i class="dot" style="background:var(--gold);"></i> Active mic</span>
+                <span><i class="dot" style="background:var(--blue);"></i> Speaker</span>
+                <span><i class="dot" style="background:#fff;border:1px solid #999;"></i> Ear</span>
+              </div>
+            </div>
+            <div class="card2">
+              <h3>Noise reduction at the ear</h3>
+              <div class="statgrid">
+                <div class="readout">
+                  <div class="k">In-band reduction</div>
+                  <div class="v good" id="roRed">— dB</div>
+                  <div class="u">100&ndash;1000 Hz, live</div>
+                </div>
+                <div class="readout">
+                  <div class="k">Noise angle</div>
+                  <div class="v" id="roAng">—</div>
+                  <div class="u">0° = ahead</div>
+                </div>
+                <div class="readout">
+                  <div class="k">Noise distance</div>
+                  <div class="v" id="roDist">—</div>
+                  <div class="u">drag in / out</div>
+                </div>
+                <div class="readout">
+                  <div class="k">Calibration</div>
+                  <div class="v" id="roCal">Off</div>
+                  <div class="u" id="roCalU">paper: 9.6 → 11.2 dB</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card2 nopad">
+            <div class="vhead">
+              <span>Live spectrum — noise at the ear</span>
+              <span class="leg">
+                <span><i class="swatch" style="background:var(--red);"></i> before ANC</span>
+                <span><i class="swatch" style="background:var(--gold);height:4px;"></i> at the ear</span>
+              </span>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="spectrum" width="1200" height="300"></canvas>
+              <span class="tag">live FFT &middot; 100–1000 Hz band shaded</span>
+            </div>
+          </div>
+
+          <div class="card2 nopad">
+            <div class="vhead">
+              <span>Sound at the ear</span>
+              <button class="act" id="scopeDetailBtn" style="padding:5px 10px; font-size:11px;">Detail: Medium</button>
+              <span class="leg">
+                <span><i class="swatch" style="background:var(--red);"></i> before ANC</span>
+                <span><i class="swatch" style="background:var(--gold);height:4px;"></i> at the ear</span>
+              </span>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="earscope" width="1200" height="150"></canvas>
+              <span class="tag">level over time</span>
             </div>
           </div>
         </div>
-      </section>
-
-      <section class="panel">
-        <h2>Live spectrum &mdash; noise at the ear</h2>
-        <div class="canvas-wrap">
-          <canvas id="spectrum" width="1200" height="380"></canvas>
-          <span class="tag">live FFT</span>
-        </div>
-        <div class="legend">
-          <span><i class="swatch" style="background:var(--red);"></i> Incoming — before ANC</span>
-          <span><i class="swatch" style="background:var(--gold);height:4px;"></i> At the ear — after ANC</span>
-        </div>
-        <p class="note" style="margin-top:12px;">A real-time FFT of the background noise, tapped <strong>before</strong> (red) and <strong>after</strong> (gold) the canceller. Press <em>Play</em>, then toggle <strong>ANC</strong>: the gold curve drops below the red across the <strong>100&ndash;1000&nbsp;Hz</strong> band (shaded) and snaps back when you turn it off. Cancellation is strongest at low frequencies and fades above ~1&nbsp;kHz &mdash; where the ear&rsquo;s acoustics are too fine-grained to infer from the frame, and where environmental noise mostly isn&rsquo;t.</p>
-      </section>
-
-      <section class="panel">
-        <h2>Sound at the ear</h2>
-        <div class="canvas-wrap">
-          <canvas id="earscope" width="1200" height="220"></canvas>
-          <span class="tag">broadband noise vs residual</span>
-        </div>
-        <div class="legend">
-          <span><i class="swatch" style="background:var(--red);"></i> Incoming — before ANC</span>
-          <span><i class="swatch" style="background:var(--gold);height:4px;"></i> At the ear — after ANC</span>
-        </div>
-      </section>
+      </div>
 
       <section class="panel">
         <h2>What you're looking at</h2>
@@ -596,7 +625,10 @@
       // scrolling level envelope (RMS over time) — calm and readable, and it reflects
       // music + noise + ANC + levels. Gold (at the ear) sits inside red (incoming).
       let timeRaw=null, timeProc=null, envIn=null, envEar=null;
-      function rmsOf(arr){ let s=0; const n=arr.length; for(let i=0;i<n;i++) s+=arr[i]*arr[i]; return Math.sqrt(s/n); }
+      // time-detail: shorter RMS window + faster scroll = finer/more responsive
+      const SCOPE_LEVELS=[{name:'Fine',win:1024,sh:6},{name:'Medium',win:4096,sh:3},{name:'Coarse',win:16384,sh:2}];
+      let scopeDetail=1;
+      function rmsOf(arr, win){ const n=Math.min(win||arr.length, arr.length), s0=arr.length-n; let s=0; for(let i=s0;i<arr.length;i++) s+=arr[i]*arr[i]; return Math.sqrt(s/n); }
       function drawEarscope(){
         const W2=earscope.width, H2=earscope.height, mid=H2/2; ectx.clearRect(0,0,W2,H2);
         ectx.strokeStyle='rgba(255,255,255,0.10)'; ectx.lineWidth=1;
@@ -609,7 +641,8 @@
         if(!envIn || envIn.length!==W2){ envIn=new Float32Array(W2); envEar=new Float32Array(W2); }
         rawAnalyser.getFloatTimeDomainData(timeRaw);
         procAnalyser.getFloatTimeDomainData(timeProc);
-        const aIn=rmsOf(timeRaw), aEar=rmsOf(timeProc), SH=3;
+        const lv=SCOPE_LEVELS[scopeDetail];
+        const aIn=rmsOf(timeRaw,lv.win), aEar=rmsOf(timeProc,lv.win), SH=lv.sh;
         envIn.copyWithin(0,SH); envEar.copyWithin(0,SH);
         for(let k=W2-SH;k<W2;k++){ envIn[k]=aIn; envEar[k]=aEar; }
         const gain=H2*1.7, cap=H2*0.46;
@@ -851,6 +884,10 @@
       $('noiseVol').addEventListener('input', ()=>{ if(noiseSum) noiseSum.gain.value=parseFloat($('noiseVol').value); });
       $('speechVol').addEventListener('input', ()=>{
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
+      });
+      $('scopeDetailBtn').addEventListener('click', ()=>{
+        scopeDetail=(scopeDetail+1)%SCOPE_LEVELS.length;
+        $('scopeDetailBtn').textContent='Detail: '+SCOPE_LEVELS[scopeDetail].name;
       });
       $('noiseType').addEventListener('change', ()=>{
         $('toneRow').style.display = $('noiseType').value==='tone' ? '' : 'none';
