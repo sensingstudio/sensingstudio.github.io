@@ -327,11 +327,14 @@
           <div class="card2 nopad">
             <div class="vhead">
               <span>What the active mics see</span>
-              <span class="leg" style="margin-left:auto;">each color = one active frame mic</span>
+              <label for="micZoom" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Window</label>
+              <input type="range" id="micZoom" min="2" max="40" step="1" value="8" style="width:110px; accent-color:var(--red);" />
+              <span class="note" style="margin:0; min-width:42px;" id="micZoomVal">8 ms</span>
+              <span class="leg" style="margin-left:auto;">each color = one active mic</span>
             </div>
             <div class="canvas-wrap">
               <canvas id="micscope" width="1200" height="180"></canvas>
-              <span class="tag">time domain · ~8 ms · synthesized from source geometry</span>
+              <span class="tag">time domain · synthesized from source geometry</span>
             </div>
           </div>
         </div>
@@ -480,11 +483,14 @@
       // near 1 in good conditions -> deep cancellation at low latency; latency limits it by frequency.
       function ancGain(){
         if(!state.ancOn) return 0;
-        const base = {1:0.93, 2:0.97, 4:0.99}[state.nMics] ?? 0.97;   // per-side mic count
+        const base = {1:0.95, 2:0.975, 4:0.99}[state.nMics] ?? 0.97;   // per-side mic count
         const cal = state.calibrated ? 0.006 : 0;
         const pen = 0.02*Math.max(0,Math.min(1,(12-geomRedDb)/6));  // harder source geometry -> slightly shallower
         return Math.max(0, Math.min(0.998, base+cal-pen));
       }
+      // sensing bandwidth: more mics resolve finer spatial detail -> cancel higher frequencies.
+      function micCutoff(){ return {1:450, 2:900, 4:1800}[state.nMics] ?? 900; }
+      const sensingQ = f => 1/Math.sqrt(1+Math.pow(f/micCutoff(),4));   // 2-pole lowpass magnitude
       function compute(){
         const P = srcPos(state.theta, state.dist);
         perFreq = FREQS.map((f,fi)=>earAndResidual(W, fi, P, state.calibrated));
@@ -496,7 +502,8 @@
         const dt = state.latencyMs*1e-3;
         let eL=0,rL=0;
         FREQS.forEach(f=>{ if(!inBand(f)) return; const w=1/f;
-          const combRes=Math.sqrt(1+g*g-2*g*Math.cos(2*Math.PI*f*dt));   // residual fraction (=2·sin(πfΔt) at g=1)
+          const ge=g*sensingQ(f);                                        // depth × sensing bandwidth
+          const combRes=Math.sqrt(1+ge*ge-2*ge*Math.cos(2*Math.PI*f*dt));// residual fraction (=2·sin(πfΔt) at ge=1)
           eL+=w; rL+=w*combRes*combRes; });
         meanRedDb = state.ancOn ? -10*Math.log10(Math.max(rL/eL,1e-12)) : 0;
       }
@@ -683,7 +690,7 @@
       }
 
       // ----- what each active mic sees: the noise delayed + scaled per its geometry -----
-      let micTime=null, micScopePk=0;
+      let micTime=null, micScopePk=0, micWinSec=0.008;
       function micColor(k,n){ const h=(205 + k*(300/Math.max(1,n)))%360; return 'hsl('+h.toFixed(0)+',78%,62%)'; }
       function micTaps(SR){
         const P=srcPos(state.theta,state.dist);
@@ -702,7 +709,7 @@
         }
         noiseRawAnalyser.getFloatTimeDomainData(micTime);
         const len=micTime.length, SR=actx.sampleRate, taps=micTaps(SR);
-        const winSmp=Math.round(0.008*SR);
+        const winSmp=Math.min(len-2, Math.round(micWinSec*SR));
         const maxDelay=Math.ceil(Math.max(0,...taps.map(t=>t.delaySmp)));
         // trigger on a rising zero-crossing so a tone holds still
         let start=Math.floor(len*0.3);
@@ -813,7 +820,7 @@
       // ANC attenuates only the background noise (shaped like the reduction curve);
       // speech passes through untouched. Strength tracks the on-screen reduction.
       state.ancOn = true;
-      let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
+      let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancSenseLP=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
       let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, speechSrc=null;
       let audioPlaying=false;
@@ -832,6 +839,7 @@
         charFilter=actx.createBiquadFilter(); charFilter.type='lowpass'; charFilter.frequency.value=900;
         // delay-and-subtract canceller: ancOut = noiseSum − g·delay(noiseSum, Δt)  → 2·sin(πfΔt) response
         ancDelay=actx.createDelay(0.05);
+        ancSenseLP=actx.createBiquadFilter(); ancSenseLP.type='lowpass'; ancSenseLP.frequency.value=micCutoff(); ancSenseLP.Q.value=0.707;
         ancInvGain=actx.createGain(); ancInvGain.gain.value=0;   // −g when ANC on
         ancOut=actx.createGain(); ancOut.gain.value=1;
         noisePanner=actx.createStereoPanner(); sigPanner=actx.createStereoPanner();
@@ -855,7 +863,8 @@
         const rawMix=actx.createGain(), procMix=actx.createGain();
         // delay-and-subtract canceller on the noise: ancOut = noiseSum − g·delay(noiseSum, Δt)
         noiseSum.connect(ancOut);
-        noiseSum.connect(ancDelay); ancDelay.connect(ancInvGain); ancInvGain.connect(ancOut);
+        // anti-noise: delay → sensing lowpass (mic-count bandwidth) → −g
+        noiseSum.connect(ancDelay); ancDelay.connect(ancSenseLP); ancSenseLP.connect(ancInvGain); ancInvGain.connect(ancOut);
         // noise-only analysis taps (mono) for the live in-band reduction number
         noiseSum.connect(noiseRawAnalyser);
         ancOut.connect(noiseProcAnalyser);
@@ -897,6 +906,7 @@
         if(!ancOut) return;
         const t=actx.currentTime;
         ancDelay.delayTime.setTargetAtTime(Math.max(0, state.latencyMs*1e-3), t, 0.01);   // ANC latency
+        ancSenseLP.frequency.setTargetAtTime(micCutoff(), t, 0.02);                       // sensing bandwidth (mics)
         ancInvGain.gain.setTargetAtTime(-ancGain(), t, 0.02);                             // cancellation depth
       }
       function startSources(){
@@ -946,6 +956,7 @@
       });
       $('scopeDetail').addEventListener('input', ()=>setScopeDetail(parseFloat($('scopeDetail').value)));
       $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); });
+      $('micZoom').addEventListener('input', ()=>{ micWinSec=parseFloat($('micZoom').value)/1000; $('micZoomVal').textContent=$('micZoom').value+' ms'; });
       $('noiseType').addEventListener('change', ()=>{
         $('toneRow').style.display = $('noiseType').value==='tone' ? '' : 'none';
         applyNoiseType();
