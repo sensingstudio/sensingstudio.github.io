@@ -129,11 +129,19 @@
     ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: A.orig_sr });
     const split = ctx.createChannelSplitter(4);
     const antiSum = ctx.createGain();
-    const convs = [];
-    for (let c = 0; c < 4; c++) {
-      const cv = ctx.createConvolver(); cv.normalize = false;
-      cv.buffer = ctx.createBuffer(1, 1, A.orig_sr);
-      split.connect(cv, c, 0); cv.connect(antiSum); convs.push(cv);
+    // Two parallel convolver banks. Hard-swapping a live ConvolverNode.buffer resets its
+    // state and clicks; instead we load the new IRs into the idle bank and crossfade to it,
+    // so each ~0.5 s filter update is glitch-free.
+    const banks = [[], []];
+    const bankGain = [ctx.createGain(), ctx.createGain()];
+    bankGain[0].gain.value = 0; bankGain[1].gain.value = 0;   // first setFilters fades one in
+    for (let bk = 0; bk < 2; bk++) {
+      for (let c = 0; c < 4; c++) {
+        const cv = ctx.createConvolver(); cv.normalize = false;
+        cv.buffer = ctx.createBuffer(1, 1, A.orig_sr);
+        split.connect(cv, c, 0); cv.connect(bankGain[bk]); banks[bk].push(cv);
+      }
+      bankGain[bk].connect(antiSum);
     }
     const meanG = ctx.createGain(); meanG.gain.value = 1 / A.num_mics; antiSum.connect(meanG);
     const secConv = ctx.createConvolver(); secConv.normalize = false;
@@ -153,7 +161,7 @@
     const anAfter = ctx.createAnalyser(); anAfter.fftSize = 8192; anAfter.smoothingTimeConstant = 0.8;
     beforeBus.connect(anBefore); residualBus.connect(anAfter);
 
-    nodes = { split, convs, eB, eR, gBefore, gAfter, anBefore, anAfter,
+    nodes = { split, banks, bankGain, active: -1, eB, eR, gBefore, gAfter, anBefore, anAfter,
               fB: new Float32Array(anBefore.frequencyBinCount), fA: new Float32Array(anAfter.frequencyBinCount) };
     makeSources();
     applyAB();
@@ -164,7 +172,15 @@
     nodes.gBefore.gain.setTargetAtTime(ancOn ? 0 : 1, t, 0.02);
     nodes.gAfter.gain.setTargetAtTime(ancOn ? 1 : 0, t, 0.02);
   }
-  function setFilters(taps) { for (let c = 0; c < 4; c++) nodes.convs[c].buffer = tapsBuffer(taps, c); }
+  function setFilters(taps) {
+    if (!nodes) return;
+    const next = nodes.active === 0 ? 1 : 0;            // load IRs into the idle bank
+    for (let c = 0; c < 4; c++) nodes.banks[next][c].buffer = tapsBuffer(taps, c);
+    const t = ctx.currentTime, TC = 0.03;              // ~30 ms equal-ish crossfade
+    nodes.bankGain[next].gain.setTargetAtTime(1, t, TC);
+    if (nodes.active >= 0) nodes.bankGain[nodes.active].gain.setTargetAtTime(0, t, TC);
+    nodes.active = next;
+  }
   function playhead() { return Math.floor(((ctx.currentTime - startTime) * A.orig_sr)) % rec.len; }
 
   // sim: re-synthesize the mics for the new scene geometry without tearing down the graph
