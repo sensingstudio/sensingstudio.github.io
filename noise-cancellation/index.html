@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Active Noise Cancellation · Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --blue: #1f6feb;
+        --gold: #E8B923;
+        --green: #2a8b2a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 70ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+      }
+      input[type="range"] {
+        flex: 1 1 160px;
+        min-width: 140px;
+        accent-color: var(--red);
+      }
+      .tools {
+        display: inline-flex;
+        gap: 0;
+        border: 1px solid var(--grey-line);
+        border-radius: 7px;
+        overflow: hidden;
+        flex-wrap: wrap;
+      }
+      .tool-btn {
+        background: #fff;
+        color: var(--black);
+        border: none;
+        border-right: 1px solid var(--grey-line);
+        border-radius: 0;
+        padding: 9px 14px;
+        font-size: 12px;
+        font-family: inherit;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .tool-btn:last-child { border-right: none; }
+      .tool-btn.active { background: var(--black); color: #fff; }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--black);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        touch-action: none;
+        user-select: none;
+      }
+      .canvas-wrap canvas {
+        width: 100%;
+        display: block;
+      }
+      .tag {
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        font-size: 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.6);
+        font-weight: 700;
+        pointer-events: none;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--grey-text);
+        letter-spacing: 0.4px;
+      }
+      .legend span { display: inline-flex; align-items: center; gap: 7px; }
+      .swatch { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+      .swatch.dash { height: 0; border-top: 2px dashed; background: none; }
+      .note {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin-top: 4px;
+        line-height: 1.6;
+      }
+      .note code {
+        background: rgba(0,0,0,0.05);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+      .note strong { color: var(--black); }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        background: rgba(188, 18, 42, 0.12);
+        color: var(--red);
+        border-radius: 999px;
+      }
+      .val {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        font-size: 14px;
+        min-width: 56px;
+      }
+      .hidden { display: none !important; }
+      .readouts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      @media (max-width: 760px) {
+        .readouts { grid-template-columns: repeat(2, 1fr); }
+      }
+      .readout {
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        padding: 14px 16px;
+        background: #fff;
+      }
+      .readout .k {
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .readout .v {
+        font-variant-numeric: tabular-nums;
+        font-weight: 900;
+        font-size: 24px;
+        letter-spacing: -0.5px;
+        line-height: 1.05;
+      }
+      .readout .v.good { color: var(--green); }
+      .readout .v.bad { color: var(--red); }
+      .readout .u { font-size: 12px; color: var(--grey-text); margin-top: 4px; }
+      ul.facts { margin: 8px 0 0; padding-left: 20px; }
+      ul.facts li { margin-bottom: 8px; line-height: 1.55; color: var(--grey-text); font-size: 13px; }
+      ul.facts li strong { color: var(--black); }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="Active Noise Cancellation"></header>
+    <script src="../nav.js" defer></script>
+    <main>
+      <h1>Active Noise Cancellation</h1>
+      <p class="lead">An ANC headset fights noise with <em>anti-noise</em>: an inverted copy of the incoming sound, played so its peaks land on the noise&rsquo;s troughs. The catch is timing &mdash; the anti-noise has to arrive at your eardrum at the same instant. Every microsecond the mic&rarr;chip&rarr;speaker loop takes becomes a phase error that grows with frequency, and past a point the &ldquo;anti-noise&rdquo; stops cancelling and starts <strong>adding</strong>. Drag the latency slider and watch the cancellation collapse.</p>
+
+      <section class="panel">
+        <h2>Noise &amp; controller</h2>
+        <div class="row">
+          <label for="srcSel" style="min-width:64px;">Noise</label>
+          <select id="srcSel">
+            <option value="tone">Pure tone</option>
+            <option value="two">Two tones</option>
+            <option value="rumble">Engine rumble (broadband)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="f1Slider" style="min-width:64px;" id="f1Lab">Frequency</label>
+          <input type="range" id="f1Slider" min="50" max="2000" step="5" value="200" />
+          <span class="val" id="f1Val">200 Hz</span>
+          <label for="f2Slider" style="margin-left:8px;" id="f2Lab">Tone 2</label>
+          <input type="range" id="f2Slider" min="50" max="2000" step="5" value="700" />
+          <span class="val" id="f2Val">700 Hz</span>
+        </div>
+        <div class="row">
+          <label for="latSlider" style="min-width:64px;">Loop latency</label>
+          <input type="range" id="latSlider" min="0" max="3000" step="10" value="500" />
+          <span class="val" id="latVal" style="min-width:120px;">500 µs · 24 smp</span>
+        </div>
+        <div class="row">
+          <label style="min-width:64px;">Block size</label>
+          <div class="tools" role="group" aria-label="Set latency from a DSP block at 48 kHz">
+            <button class="tool-btn" data-smp="1">1 smp</button>
+            <button class="tool-btn" data-smp="16">16</button>
+            <button class="tool-btn" data-smp="32">32</button>
+            <button class="tool-btn" data-smp="64">64</button>
+            <button class="tool-btn" data-smp="128">128</button>
+          </div>
+          <span class="note" style="margin:0;">latency of one DSP block @ 48 kHz &mdash; watch the band collapse as blocks grow</span>
+        </div>
+        <div class="row">
+          <label for="gainSlider" style="min-width:64px;">Anti-noise gain</label>
+          <input type="range" id="gainSlider" min="0.5" max="1.5" step="0.01" value="1.00" />
+          <span class="val" id="gainVal" style="min-width:120px;">×1.00 · floor −∞</span>
+        </div>
+        <p class="note" style="margin-top:8px;"><strong>Loop latency</strong> &mdash; the time the system takes to respond: reference mic &rarr; ADC &rarr; processing &rarr; DAC &rarr; speaker. <strong>Anti-noise gain</strong> &mdash; how loud the inverted copy is played; it should sit at <code>×1.00</code> to exactly match the noise (any mismatch leaves a floor of <code>|1−g|</code>). Cancellation only works below <code>f ≈ 1/(6·Δt)</code>, so killing noise up to ~1&nbsp;kHz needs under ~170&nbsp;µs &mdash; which is why ANC leans on analog or per-sample processing rather than large DSP blocks.</p>
+      </section>
+
+      <section class="panel">
+        <h2>The acoustic path</h2>
+        <div class="canvas-wrap" style="padding:4px;">
+          <svg id="diagram" viewBox="0 0 1000 420" style="display:block;width:100%;height:auto;" font-family="Roboto, sans-serif">
+            <!-- duct walls -->
+            <g stroke="rgba(255,255,255,0.22)" stroke-width="3" stroke-linecap="round">
+              <line x1="70" y1="120" x2="845" y2="120"/>
+              <line x1="70" y1="240" x2="845" y2="240"/>
+            </g>
+
+            <!-- incoming noise -->
+            <text x="40" y="108" fill="#bc122a" font-size="13" font-weight="700" letter-spacing="1" text-anchor="middle">NOISE</text>
+            <g fill="none" stroke="#bc122a" stroke-width="1.6" opacity="0.85">
+              <path d="M 26 138 Q 38 180 26 238"/>
+              <path d="M 44 138 Q 56 180 44 238"/>
+              <path d="M 62 138 Q 74 180 62 238"/>
+            </g>
+            <g stroke="#bc122a" stroke-width="1.6" opacity="0.9">
+              <line x1="20" y1="180" x2="64" y2="180"/>
+              <polygon points="64,175 74,180 64,185" fill="#bc122a" stroke="none"/>
+            </g>
+
+            <!-- head-start dimension (feedforward) -->
+            <g id="dgHead" stroke="#E8B923" fill="#E8B923">
+              <line x1="205" y1="168" x2="470" y2="168" stroke-width="1.4"/>
+              <polygon points="205,168 214,163 214,173" stroke="none"/>
+              <polygon points="470,168 461,163 461,173" stroke="none"/>
+              <text x="337" y="160" font-size="12" font-weight="700" text-anchor="middle" stroke="none">head-start = d/c ≈ 0.23 ms</text>
+            </g>
+
+            <!-- reference mic + its feedforward wire -->
+            <g id="dgRef">
+              <text x="205" y="110" fill="#E8B923" font-size="12" font-weight="700" letter-spacing="0.5" text-anchor="middle">REFERENCE MIC</text>
+              <line x1="205" y1="120" x2="205" y2="138" stroke="rgba(255,255,255,0.4)" stroke-width="1.4"/>
+              <rect x="197" y="138" width="16" height="24" rx="7" fill="#0c0c0e" stroke="#E8B923" stroke-width="1.8"/>
+              <line x1="205" y1="162" x2="205" y2="300" stroke="#E8B923" stroke-width="1.6"/>
+              <polygon points="200,292 210,292 205,301" fill="#E8B923"/>
+            </g>
+
+            <!-- anti-noise speaker -->
+            <g>
+              <text x="455" y="270" fill="#E8B923" font-size="12" font-weight="700" letter-spacing="0.5" text-anchor="end">ANTI-NOISE SPEAKER</text>
+              <polygon points="460,240 480,240 492,220 448,220" fill="#0c0c0e" stroke="#E8B923" stroke-width="1.8"/>
+              <g fill="none" stroke="#E8B923" stroke-width="1.5" opacity="0.85">
+                <path d="M 452 218 Q 470 198 488 218"/>
+                <path d="M 446 210 Q 470 182 494 210"/>
+              </g>
+              <line x1="470" y1="300" x2="470" y2="244" stroke="#E8B923" stroke-width="1.6"/>
+              <polygon points="465,250 475,250 470,241" fill="#E8B923"/>
+            </g>
+
+            <!-- error mic + its feedback wire -->
+            <g id="dgErr">
+              <text x="700" y="110" fill="rgba(255,255,255,0.7)" font-size="12" font-weight="700" letter-spacing="0.5" text-anchor="middle">ERROR MIC</text>
+              <line x1="700" y1="120" x2="700" y2="138" stroke="rgba(255,255,255,0.4)" stroke-width="1.4"/>
+              <rect x="692" y="138" width="16" height="24" rx="7" fill="#0c0c0e" stroke="rgba(255,255,255,0.6)" stroke-width="1.8"/>
+              <line id="dgErrWire" x1="700" y1="162" x2="700" y2="300" stroke="rgba(255,255,255,0.45)" stroke-width="1.6" stroke-dasharray="5 5"/>
+              <polygon id="dgErrArrow" points="695,292 705,292 700,301" fill="rgba(255,255,255,0.45)"/>
+            </g>
+
+            <!-- controller -->
+            <rect x="180" y="300" width="560" height="48" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.35)" stroke-width="1.4"/>
+            <text x="460" y="329" fill="#fff" font-size="13" font-weight="700" letter-spacing="1" text-anchor="middle">CONTROLLER · adaptive filter</text>
+
+            <!-- listener head + ear canal -->
+            <line x1="845" y1="180" x2="884" y2="180" stroke="rgba(255,255,255,0.25)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="918" cy="180" r="42" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.3)" stroke-width="1.6"/>
+            <circle cx="884" cy="180" r="4" fill="#E8B923"/>
+            <text x="918" y="184" fill="rgba(255,255,255,0.7)" font-size="12" font-weight="700" letter-spacing="0.5" text-anchor="middle">EAR</text>
+          </svg>
+          <span class="tag">signal flow</span>
+        </div>
+        <p class="note" style="margin-top:12px;">The noise travels left&rarr;right toward your ear. The <strong>reference mic</strong> catches it on the way in, giving the controller a head-start &mdash; the sound&rsquo;s travel time between the mics (<code>d/c ≈ 0.23 ms</code>) &mdash; to compute the anti-noise the speaker plays. The <strong>error mic</strong> at the ear reports the leftover residual so the filter can adapt. The latency slider above is the electronic loop delay; what actually matters is whatever timing error is left <em>after</em> that head-start.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Waveforms at the eardrum</h2>
+        <div class="canvas-wrap">
+          <canvas id="scope" width="1200" height="380"></canvas>
+          <span class="tag">time domain</span>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--red);"></i> Noise</span>
+          <span><i class="swatch" style="background:var(--blue);"></i> Anti-noise (inverted + delayed)</span>
+          <span><i class="swatch" style="background:var(--gold);height:4px;"></i> Residual (what you hear)</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Cancellation spectrum</h2>
+        <div class="canvas-wrap">
+          <canvas id="spectrum" width="1200" height="420"></canvas>
+          <span class="tag">attenuation vs frequency</span>
+        </div>
+        <p class="note" style="margin-top:12px;">The curve is the controller&rsquo;s transfer function: how much it cuts (below 0&nbsp;dB, <span style="color:var(--green);font-weight:700;">green</span>) or boosts (above 0&nbsp;dB, <span style="color:var(--red);font-weight:700;">red</span>) each frequency, for the current latency and gain. Dots mark the tones you&rsquo;ve set.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Result</h2>
+        <div class="readouts">
+          <div class="readout">
+            <div class="k">At the tone</div>
+            <div class="v" id="roDom">— dB</div>
+            <div class="u" id="roDomU">primary frequency</div>
+          </div>
+          <div class="readout">
+            <div class="k">Overall</div>
+            <div class="v" id="roAll">— dB</div>
+            <div class="u">power-weighted</div>
+          </div>
+          <div class="readout">
+            <div class="k">Cancellation band</div>
+            <div class="v" id="roBand">—</div>
+            <div class="u">helps below ≈ 1/(6·Δt)</div>
+          </div>
+          <div class="readout">
+            <div class="k">Effective latency</div>
+            <div class="v" id="roLat">—</div>
+            <div class="u" id="roLatU">after head-start</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>What you're looking at</h2>
+        <ul class="facts">
+          <li>Anti-noise is just the noise flipped upside down. Where a peak meets a trough the air pressure cancels &mdash; but only if the two arrive <strong>at the same instant</strong>. A fixed loop delay <code>Δt</code> spoils that alignment.</li>
+          <li>The delay becomes a phase error that <strong>grows with frequency</strong>: <code>φ = 360° · f · Δt</code>. Just <strong>1&nbsp;ms</strong> of latency is already a full 180° at 500&nbsp;Hz &mdash; there the anti-noise lands exactly in phase and <strong>adds +6&nbsp;dB</strong> instead of cancelling.</li>
+          <li>With matched gain the residual is <code>2·sin(π f Δt)</code> of the original. You only get real attenuation below <code>f ≈ 1/(6Δt)</code> &mdash; that&rsquo;s your <strong>cancellation band</strong>. Slide the latency up and watch the green band shrink toward zero.</li>
+          <li>Timing isn&rsquo;t enough &mdash; <strong>amplitude has to match too</strong>. An anti-noise gain that&rsquo;s off by a factor <code>g</code> leaves a floor of <code>|1−g|</code> no matter how perfect the timing (±10% &rarr; only −20&nbsp;dB).</li>
+          <li>This is why ANC owns <strong>low-frequency rumble</strong> &mdash; jet cabins, engines, HVAC &mdash; and ignores hiss, and why the latency budget is brutal: a single 64-sample block at 48&nbsp;kHz is already 1.3&nbsp;ms.</li>
+          <li><strong>Feedforward</strong> placement buys time: a reference mic a few centimetres upstream gives the controller an acoustic <strong>head-start</strong>, so part of the loop delay is &ldquo;free&rdquo; and the band widens. <strong>Feedback</strong> ANC has no look-ahead, so its delay bites in full. Toggle the two and watch the band move.</li>
+        </ul>
+      </section>
+
+      <footer style="margin-top:48px; padding-top:24px; border-top:1px solid var(--grey-line); font-size:13px; letter-spacing:0.5px; color:var(--grey-text); display:flex; align-items:center; justify-content:center; gap:8px;">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; color:var(--black); text-decoration:none; font-weight:700;">
+          <img src="../semanticsignals-logo.png" alt="" style="height:20px; width:auto;" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      "use strict";
+      const SR = 48000;          // reference sample rate (for the "samples" readout)
+      const C  = 343;            // speed of sound, m/s
+      const HEADSTART = 0.08 / C; // feedforward reference mic ~8 cm upstream ≈ 0.233 ms
+
+      const $ = id => document.getElementById(id);
+
+      // ---------- state ----------
+      const state = {
+        src: 'tone',
+        f1: 200, f2: 700,
+        latencyUs: 500,
+        gain: 1.0
+      };
+
+      // ---------- seeded RNG (stable partials for the rumble) ----------
+      function makeRng(seed) {
+        let s = seed >>> 0;
+        return () => { s = (1103515245 * s + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+      }
+      const rumbleSeed = (() => {
+        const r = makeRng(987654321);
+        // 6 harmonics + 3 low broadband partials; amplitude/phase fixed once
+        return Array.from({ length: 9 }, () => ({ a: r(), p: r() }));
+      })();
+
+      // ---------- noise model: list of partials {f, amp, phase} ----------
+      function partials() {
+        if (state.src === 'tone') {
+          return [{ f: state.f1, amp: 1, ph: 0 }];
+        }
+        if (state.src === 'two') {
+          return [
+            { f: state.f1, amp: 1.0, ph: 0 },
+            { f: state.f2, amp: 0.7, ph: 0 }
+          ];
+        }
+        // engine rumble: harmonics of f1 with 1/k rolloff + a few sub-bass partials
+        const out = [];
+        for (let k = 1; k <= 6; k++) {
+          const s = rumbleSeed[k - 1];
+          out.push({ f: state.f1 * k, amp: (1 / k) * (0.55 + 0.45 * s.a), ph: s.p * 2 * Math.PI });
+        }
+        const subs = [0.45, 0.62, 0.8];
+        for (let i = 0; i < 3; i++) {
+          const s = rumbleSeed[6 + i];
+          out.push({ f: state.f1 * subs[i], amp: 0.5 * (0.4 + 0.6 * s.a), ph: s.p * 2 * Math.PI });
+        }
+        return out;
+      }
+
+      function effectiveDelay() {
+        // a reference mic upstream affords an acoustic head-start; the net timing
+        // error at the ear is the electronic loop delay minus that head-start.
+        return Math.max(0, state.latencyUs * 1e-6 - HEADSTART);
+      }
+
+      // residual amplitude ratio for a single frequency:
+      //   |1 - g·e^{-jφ}| = sqrt(1 + g² - 2g·cosφ),  φ = 2π f Δt
+      function residualRatio(f, dt, g) {
+        const phi = 2 * Math.PI * f * dt;
+        return Math.sqrt(1 + g * g - 2 * g * Math.cos(phi));
+      }
+
+      // ---------- time-domain signals ----------
+      function noiseAt(t, ps) {
+        let v = 0;
+        for (const p of ps) v += p.amp * Math.cos(2 * Math.PI * p.f * t + p.ph);
+        return v;
+      }
+      function antiAt(t, ps, dt, g) {
+        // anti-noise = -g × delayed copy of the noise
+        let v = 0;
+        for (const p of ps) v += p.amp * Math.cos(2 * Math.PI * p.f * (t - dt) + p.ph);
+        return -g * v;
+      }
+
+      // ---------- scope ----------
+      const scope = $('scope'), sctx = scope.getContext('2d');
+      function drawScope(timeOriginSec) {
+        const W = scope.width, H = scope.height;
+        sctx.clearRect(0, 0, W, H);
+        const ps = partials();
+        const dt = effectiveDelay(), g = state.gain;
+
+        // fixed 25 ms window (like a scope's time/div): higher frequency now shows
+        // more cycles, and the constant delay Δt stays a fixed horizontal offset
+        const win = 0.025;
+        const t0 = timeOriginSec * win * 0.18; // scroll ~0.18 of a window per second
+
+        // vertical scale: worst-case peak is Σamp for noise, up to 2×g·Σamp for residual
+        let sumAmp = 0; for (const p of ps) sumAmp += p.amp;
+        const peak = sumAmp * (1 + g) * 1.05 + 1e-9;
+        const midY = H / 2, scaleY = (H / 2 - 16) / peak;
+
+        // zero line + grid
+        sctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        sctx.lineWidth = 1;
+        sctx.beginPath(); sctx.moveTo(0, midY); sctx.lineTo(W, midY); sctx.stroke();
+
+        const trace = (fn, color, width) => {
+          sctx.strokeStyle = color; sctx.lineWidth = width;
+          sctx.lineJoin = 'round';
+          sctx.beginPath();
+          for (let px = 0; px <= W; px++) {
+            const t = t0 + (px / W) * win;
+            const y = midY - fn(t) * scaleY;
+            if (px === 0) sctx.moveTo(px, y); else sctx.lineTo(px, y);
+          }
+          sctx.stroke();
+        };
+
+        trace(t => noiseAt(t, ps), 'rgba(188,18,42,0.85)', 2);
+        trace(t => antiAt(t, ps, dt, g), 'rgba(31,111,235,0.85)', 2);
+        trace(t => noiseAt(t, ps) + antiAt(t, ps, dt, g), '#E8B923', 3.2);
+      }
+
+      // ---------- spectrum ----------
+      const spectrum = $('spectrum'), pctx = spectrum.getContext('2d');
+      const FMIN = 20, FMAX = 20000;
+      const DB_TOP = 10, DB_BOT = -40;
+      function xOfFreq(f, W) {
+        const l = Math.log10(f), a = Math.log10(FMIN), b = Math.log10(FMAX);
+        return ((l - a) / (b - a)) * W;
+      }
+      function yOfDb(db, H) {
+        const t = (DB_TOP - db) / (DB_TOP - DB_BOT);
+        return Math.max(0, Math.min(1, t)) * H;
+      }
+      function drawSpectrum() {
+        const W = spectrum.width, H = spectrum.height;
+        pctx.clearRect(0, 0, W, H);
+        const dt = effectiveDelay(), g = state.gain;
+        const y0 = yOfDb(0, H);
+
+        // fill above/below the 0 dB line, column by column
+        for (let px = 0; px < W; px++) {
+          const a = Math.log10(FMIN), b = Math.log10(FMAX);
+          const f = Math.pow(10, a + (px / W) * (b - a));
+          let db = 20 * Math.log10(residualRatio(f, dt, g));
+          db = Math.max(DB_BOT, Math.min(DB_TOP, db));
+          const y = yOfDb(db, H);
+          if (db < 0) {
+            pctx.fillStyle = 'rgba(42,139,42,0.18)';
+            pctx.fillRect(px, y0, 1, y - y0);
+          } else if (db > 0) {
+            pctx.fillStyle = 'rgba(188,18,42,0.16)';
+            pctx.fillRect(px, y, 1, y0 - y);
+          }
+        }
+
+        // gridlines: frequency decades + a few labels
+        pctx.fillStyle = 'rgba(255,255,255,0.45)';
+        pctx.font = '11px Roboto, sans-serif';
+        pctx.textAlign = 'center';
+        const fticks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+        pctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        pctx.lineWidth = 1;
+        for (const ft of fticks) {
+          const x = xOfFreq(ft, W);
+          pctx.beginPath(); pctx.moveTo(x, 0); pctx.lineTo(x, H); pctx.stroke();
+          const lab = ft >= 1000 ? (ft / 1000) + 'k' : '' + ft;
+          pctx.fillText(lab, x, H - 6);
+        }
+        // dB gridlines + labels
+        pctx.textAlign = 'left';
+        for (let db = DB_TOP; db >= DB_BOT; db -= 10) {
+          const y = yOfDb(db, H);
+          pctx.strokeStyle = db === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.07)';
+          pctx.lineWidth = db === 0 ? 1.4 : 1;
+          pctx.beginPath(); pctx.moveTo(0, y); pctx.lineTo(W, y); pctx.stroke();
+          pctx.fillStyle = 'rgba(255,255,255,0.45)';
+          pctx.fillText((db > 0 ? '+' : '') + db + ' dB', 6, y - 4);
+        }
+
+        // the transfer-function curve
+        pctx.strokeStyle = '#E8B923';
+        pctx.lineWidth = 2.4;
+        pctx.lineJoin = 'round';
+        pctx.beginPath();
+        for (let px = 0; px <= W; px++) {
+          const a = Math.log10(FMIN), b = Math.log10(FMAX);
+          const f = Math.pow(10, a + (px / W) * (b - a));
+          let db = 20 * Math.log10(residualRatio(f, dt, g));
+          db = Math.max(DB_BOT, Math.min(DB_TOP, db));
+          const y = yOfDb(db, H);
+          if (px === 0) pctx.moveTo(px, y); else pctx.lineTo(px, y);
+        }
+        pctx.stroke();
+
+        // crossover marker: first frequency where the curve hits 0 dB (cosφ = g/2)
+        const f0 = crossoverFreq(dt, g);
+        if (f0 && f0 < FMAX) {
+          const x = xOfFreq(Math.max(FMIN, f0), W);
+          pctx.strokeStyle = 'rgba(255,255,255,0.55)';
+          pctx.setLineDash([5, 4]); pctx.lineWidth = 1.3;
+          pctx.beginPath(); pctx.moveTo(x, 0); pctx.lineTo(x, H); pctx.stroke();
+          pctx.setLineDash([]);
+          pctx.fillStyle = 'rgba(255,255,255,0.7)';
+          pctx.textAlign = x > W - 80 ? 'right' : 'left';
+          pctx.fillText('0 dB edge', x + (x > W - 80 ? -6 : 6), 16);
+        }
+
+        // tone markers
+        const ps = partials();
+        for (const p of ps) {
+          if (p.f < FMIN || p.f > FMAX) continue;
+          const x = xOfFreq(p.f, W);
+          let db = 20 * Math.log10(residualRatio(p.f, dt, g));
+          db = Math.max(DB_BOT, Math.min(DB_TOP, db));
+          const y = yOfDb(db, H);
+          pctx.fillStyle = db <= 0 ? '#2a8b2a' : '#bc122a';
+          pctx.beginPath(); pctx.arc(x, y, 5, 0, 2 * Math.PI); pctx.fill();
+          pctx.strokeStyle = 'rgba(255,255,255,0.85)'; pctx.lineWidth = 1.5;
+          pctx.stroke();
+        }
+      }
+
+      // first frequency where attenuation crosses 0 dB: 1 + g² - 2g cosφ = 1 → cosφ = g/2
+      function crossoverFreq(dt, g) {
+        if (dt <= 0) return null;
+        const c = g / 2;
+        if (c >= 1) return null;        // curve never reaches 0 dB (very low gain): all cancellation
+        const phi = Math.acos(c);       // first solution in (0, π)
+        return phi / (2 * Math.PI * dt);
+      }
+
+      // ---------- readouts ----------
+      function fmtDb(db) {
+        if (db < -59.5) return '< −60 dB';
+        return (db >= 0 ? '+' : '−') + Math.abs(db).toFixed(1) + ' dB';
+      }
+      function updateReadouts() {
+        const dt = effectiveDelay(), g = state.gain;
+        const ps = partials();
+
+        // at the dominant tone (f1)
+        const rDom = residualRatio(state.f1, dt, g);
+        const dbDom = 20 * Math.log10(Math.max(rDom, 1e-7));
+        const elDom = $('roDom');
+        elDom.textContent = fmtDb(dbDom);
+        elDom.className = 'v ' + (dbDom < -0.05 ? 'good' : dbDom > 0.05 ? 'bad' : '');
+        $('roDomU').textContent = state.f1 + ' Hz';
+
+        // overall, power-weighted across partials
+        let np = 0, rp = 0;
+        for (const p of ps) {
+          const r = residualRatio(p.f, dt, g);
+          np += p.amp * p.amp;
+          rp += p.amp * p.amp * r * r;
+        }
+        const dbAll = 10 * Math.log10(Math.max(rp / np, 1e-12));
+        const elAll = $('roAll');
+        elAll.textContent = fmtDb(dbAll);
+        elAll.className = 'v ' + (dbAll < -0.05 ? 'good' : dbAll > 0.05 ? 'bad' : '');
+
+        // cancellation band edge
+        const f0 = crossoverFreq(dt, g);
+        const elBand = $('roBand');
+        if (f0 === null) {
+          elBand.textContent = 'full range';
+          elBand.className = 'v good';
+        } else {
+          elBand.textContent = (f0 >= 1000 ? (f0 / 1000).toFixed(1) + ' kHz' : Math.round(f0) + ' Hz');
+          elBand.className = 'v';
+        }
+
+        // effective latency
+        $('roLat').textContent = (dt * 1e3).toFixed(2) + ' ms';
+        $('roLatU').textContent = (dt * SR).toFixed(0) + ' samples @ 48 kHz';
+      }
+
+      // ---------- UI sync ----------
+      function syncRows() {
+        const two = state.src === 'two';
+        $('f2Slider').classList.toggle('hidden', !two);
+        $('f2Val').classList.toggle('hidden', !two);
+        $('f2Lab').classList.toggle('hidden', !two);
+        $('f1Lab').textContent = state.src === 'rumble' ? 'Fundamental' : (two ? 'Tone 1' : 'Frequency');
+      }
+
+      // ---------- wiring ----------
+      function refreshStatic() { syncRows(); drawSpectrum(); updateReadouts(); }
+
+      $('srcSel').addEventListener('change', e => { state.src = e.target.value; refreshStatic(); });
+
+      function bindSlider(id, valId, key, fmt) {
+        const el = $(id);
+        el.addEventListener('input', () => {
+          state[key] = parseFloat(el.value);
+          $(valId).textContent = fmt(state[key]);
+          refreshStatic();
+        });
+      }
+      bindSlider('f1Slider', 'f1Val', 'f1', v => `${v} Hz`);
+      bindSlider('f2Slider', 'f2Val', 'f2', v => `${v} Hz`);
+      function setLatency(us) {
+        state.latencyUs = us;
+        $('latSlider').value = us;
+        const smp = (us * 1e-6 * SR).toFixed(0);
+        $('latVal').textContent = `${Math.round(us)} µs · ${smp} smp`;
+        refreshStatic();
+      }
+      $('latSlider').addEventListener('input', () => setLatency(parseFloat($('latSlider').value)));
+      document.querySelectorAll('[data-smp]').forEach(btn => {
+        btn.addEventListener('click', () => setLatency(parseFloat(btn.dataset.smp) / SR * 1e6));
+      });
+      $('gainSlider').addEventListener('input', () => {
+        state.gain = parseFloat($('gainSlider').value);
+        const floor = Math.abs(1 - state.gain);
+        const floorDb = floor < 1e-4 ? '−∞' : (20 * Math.log10(floor)).toFixed(0) + ' dB';
+        $('gainVal').textContent = `×${state.gain.toFixed(2)} · floor ${floorDb}`;
+        refreshStatic();
+      });
+
+      // ---------- animation loop (scope only) ----------
+      function frame(ts) {
+        drawScope(ts * 1e-3);
+        requestAnimationFrame(frame);
+      }
+
+      // ---------- init ----------
+      // prime the value labels
+      $('latVal').textContent = `${state.latencyUs} µs · ${(state.latencyUs * 1e-6 * SR).toFixed(0)} smp`;
+      $('gainVal').textContent = `×${state.gain.toFixed(2)} · floor −∞`;
+      refreshStatic();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

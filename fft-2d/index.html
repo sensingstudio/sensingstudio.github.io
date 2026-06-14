@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>2D Fourier Transform · Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 70ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+      }
+      input[type="range"] {
+        flex: 1 1 160px;
+        min-width: 140px;
+        accent-color: var(--red);
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        padding: 9px 16px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary {
+        background: #fff;
+        color: var(--black);
+      }
+      .tools {
+        display: inline-flex;
+        gap: 0;
+        border: 1px solid var(--grey-line);
+        border-radius: 7px;
+        overflow: hidden;
+        flex-wrap: wrap;
+      }
+      .tool-btn {
+        background: #fff;
+        color: var(--black);
+        border: none;
+        border-right: 1px solid var(--grey-line);
+        border-radius: 0;
+        padding: 9px 14px;
+        font-size: 12px;
+      }
+      .tool-btn:last-child { border-right: none; }
+      .tool-btn.active {
+        background: var(--black);
+        color: #fff;
+      }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--black);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 110px;
+      }
+      .stages {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      @media (max-width: 760px) {
+        .stages { grid-template-columns: 1fr; }
+      }
+      .stage { display: flex; flex-direction: column; gap: 8px; }
+      .stage-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .stage-title {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--black);
+      }
+      .stage-sub {
+        font-size: 11px;
+        color: var(--grey-text);
+        letter-spacing: 0.4px;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 1 / 1;
+        touch-action: none;
+        user-select: none;
+      }
+      .canvas-wrap.paint { cursor: crosshair; }
+      .canvas-wrap canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      #inputCanvas { image-rendering: pixelated; }
+      .tag {
+        position: absolute;
+        left: 8px;
+        bottom: 8px;
+        font-size: 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.6);
+        font-weight: 700;
+        pointer-events: none;
+        background: rgba(0,0,0,0.35);
+        padding: 2px 6px;
+        border-radius: 3px;
+      }
+      .note {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin-top: 4px;
+        line-height: 1.6;
+      }
+      .note code {
+        background: rgba(0,0,0,0.05);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+      .note strong { color: var(--black); }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        background: rgba(188, 18, 42, 0.12);
+        color: var(--red);
+        border-radius: 999px;
+      }
+      .val {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        font-size: 14px;
+        min-width: 56px;
+      }
+      .hidden { display: none !important; }
+      ul.facts { margin: 8px 0 0; padding-left: 20px; }
+      ul.facts li { margin-bottom: 8px; line-height: 1.55; color: var(--grey-text); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="2D Fourier Transform"></header>
+    <script src="../nav.js" defer></script>
+    <main>
+      <h1>2D Fourier Transform</h1>
+      <p class="lead">Every image is a sum of 2D sinusoidal gratings. The 2D FFT finds the amplitude and phase of each one. Pick a pattern (or paint your own), watch its spectrum form, then mask the spectrum and inverse-transform to see filtering in action — blur, sharpen, and stripe removal are all just multiplications in the frequency domain.</p>
+
+      <section class="panel">
+        <h2>Source</h2>
+        <div class="row">
+          <label for="srcSel" style="min-width:64px;">Pattern</label>
+          <select id="srcSel">
+            <option value="grating">Sinusoidal grating</option>
+            <option value="twograt">Two gratings (sum)</option>
+            <option value="stripes">Square-wave stripes (harmonics)</option>
+            <option value="checker">Checkerboard</option>
+            <option value="circle">Circular aperture</option>
+            <option value="square">Square aperture</option>
+            <option value="edge">Single edge / step</option>
+            <option value="gauss">Gaussian blob</option>
+            <option value="noise">Random noise</option>
+            <option value="draw">Blank — paint your own</option>
+          </select>
+          <button id="uploadBtn" class="secondary">Upload image</button>
+          <input type="file" id="fileInput" accept="image/*" class="hidden" />
+        </div>
+        <div class="row" id="gratingRow">
+          <label for="freqSlider" style="min-width:64px;">Frequency</label>
+          <input type="range" id="freqSlider" min="1" max="48" step="1" value="8" />
+          <span class="val" id="freqVal">8 cyc</span>
+          <label for="angleSlider" style="margin-left:8px;">Angle</label>
+          <input type="range" id="angleSlider" min="0" max="180" step="1" value="0" />
+          <span class="val" id="angleVal">0°</span>
+        </div>
+        <div class="row" id="twogratRow">
+          <label for="freq2Slider" style="min-width:64px;">Freq 2</label>
+          <input type="range" id="freq2Slider" min="1" max="48" step="1" value="20" />
+          <span class="val" id="freq2Val">20 cyc</span>
+          <label for="angle2Slider" style="margin-left:8px;">Angle 2</label>
+          <input type="range" id="angle2Slider" min="0" max="180" step="1" value="90" />
+          <span class="val" id="angle2Val">90°</span>
+        </div>
+        <p class="note" id="paintHint" style="display:none;">Click and drag on the <strong>Input</strong> panel below to paint. Watch the spectrum update live.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Frequency-domain filter</h2>
+        <div class="row">
+          <div class="tools" role="radiogroup" aria-label="Filter">
+            <button class="tool-btn active" data-filter="none">None</button>
+            <button class="tool-btn" data-filter="low">Low-pass</button>
+            <button class="tool-btn" data-filter="high">High-pass</button>
+            <button class="tool-btn" data-filter="band">Band-pass</button>
+          </div>
+          <label for="cutSlider" style="margin-left:8px;">Cutoff radius</label>
+          <input type="range" id="cutSlider" min="1" max="128" step="1" value="32" />
+          <span class="val" id="cutVal">32</span>
+        </div>
+        <div class="row" id="bwRow" style="display:none;">
+          <label for="bwSlider" style="min-width:64px;">Band width</label>
+          <input type="range" id="bwSlider" min="2" max="64" step="1" value="16" />
+          <span class="val" id="bwVal">16</span>
+          <label for="softChk" style="margin-left:8px;">
+            <input type="checkbox" id="softChk" checked style="vertical-align:middle;" /> Soft (Gaussian) edge
+          </label>
+        </div>
+        <div class="row" id="softRow">
+          <label for="softChk2" style="min-width:64px;">
+            <input type="checkbox" id="softChk2" checked style="vertical-align:middle;" /> Soft edge
+          </label>
+          <span class="note" style="margin:0;">A soft cutoff avoids the ringing artifacts a sharp (brick-wall) filter creates.</span>
+        </div>
+        <div class="row">
+          <label for="gainSlider" style="min-width:64px;">Spectrum gain</label>
+          <input type="range" id="gainSlider" min="0.2" max="6" step="0.1" value="2" />
+          <span class="val" id="gainVal">2.0</span>
+          <label for="cmapSel" style="margin-left:8px;">Colormap</label>
+          <select id="cmapSel">
+            <option value="magma">Magma</option>
+            <option value="gray">Grayscale</option>
+            <option value="viridis">Viridis</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Pipeline</h2>
+        <div class="stages">
+          <div class="stage">
+            <div class="stage-head">
+              <span class="stage-title">Input</span>
+              <span class="stage-sub">spatial domain</span>
+            </div>
+            <div class="canvas-wrap" id="inputWrap">
+              <canvas id="inputCanvas" width="256" height="256"></canvas>
+              <span class="tag">f(x, y)</span>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="stage-head">
+              <span class="stage-title">Spectrum</span>
+              <span class="stage-sub">log magnitude · DC centered</span>
+            </div>
+            <div class="canvas-wrap" id="specWrap">
+              <canvas id="specCanvas" width="256" height="256"></canvas>
+              <canvas id="maskCanvas" width="256" height="256"></canvas>
+              <span class="tag">|F(u, v)|</span>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="stage-head">
+              <span class="stage-title">Reconstruction</span>
+              <span class="stage-sub">inverse FFT of masked spectrum</span>
+            </div>
+            <div class="canvas-wrap" id="reconWrap">
+              <canvas id="reconCanvas" width="256" height="256"></canvas>
+              <span class="tag">f'(x, y)</span>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:16px;">
+          <span class="badge">256 × 256 · radix-2 FFT</span>
+          <div style="flex:1;"></div>
+          <span class="note" style="margin:0;" id="timing">forward + inverse FFT in — ms</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>What you're looking at</h2>
+        <ul class="facts">
+          <li>The <strong>spectrum</strong> shows how much of each 2D sine wave is present. Distance from the center = spatial frequency (cycles across the image); direction from the center = the grating's orientation. The bright center pixel is <strong>DC</strong> — the image's average brightness.</li>
+          <li>A single <strong>sinusoidal grating</strong> produces exactly two bright dots, symmetric about the center. Slide its frequency up and the dots move outward; rotate it and the dots rotate with it.</li>
+          <li><strong>Sharp features</strong> — edges, corners, the square-wave stripes — spread energy into high frequencies. The square wave shows a row of harmonics; a step edge smears a streak perpendicular to it.</li>
+          <li><strong>Low-pass</strong> keeps the center (blur). <strong>High-pass</strong> removes it (edge detection — only the outlines survive). <strong>Band-pass</strong> keeps a ring of frequencies. Filtering is just multiplying the spectrum by a mask, then transforming back.</li>
+          <li>Try a sharp low-pass and watch <strong>ringing</strong> (Gibbs) appear around edges in the reconstruction; switch on the soft edge to suppress it.</li>
+        </ul>
+      </section>
+
+      <footer style="margin-top:48px; padding-top:24px; border-top:1px solid var(--grey-line); font-size:13px; letter-spacing:0.5px; color:var(--grey-text); display:flex; align-items:center; justify-content:center; gap:8px;">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; color:var(--black); text-decoration:none; font-weight:700;">
+          <img src="../semanticsignals-logo.png" alt="" style="height:20px; width:auto;" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      "use strict";
+      const N = 256;            // grid size (power of 2)
+      const N2 = N * N;
+
+      // ---------- 1D in-place iterative radix-2 FFT ----------
+      function fft1d(re, im, inverse) {
+        const n = re.length;
+        for (let i = 1, j = 0; i < n; i++) {
+          let bit = n >> 1;
+          for (; j & bit; bit >>= 1) j ^= bit;
+          j ^= bit;
+          if (i < j) {
+            const tr = re[i]; re[i] = re[j]; re[j] = tr;
+            const ti = im[i]; im[i] = im[j]; im[j] = ti;
+          }
+        }
+        for (let len = 2; len <= n; len <<= 1) {
+          const ang = (inverse ? 2 : -2) * Math.PI / len;
+          const wr = Math.cos(ang), wi = Math.sin(ang);
+          const half = len >> 1;
+          for (let i = 0; i < n; i += len) {
+            let cr = 1, ci = 0;
+            for (let k = 0; k < half; k++) {
+              const a = i + k, b = a + half;
+              const vr = re[b] * cr - im[b] * ci;
+              const vi = re[b] * ci + im[b] * cr;
+              re[b] = re[a] - vr; im[b] = im[a] - vi;
+              re[a] += vr;        im[a] += vi;
+              const ncr = cr * wr - ci * wi;
+              ci = cr * wi + ci * wr; cr = ncr;
+            }
+          }
+        }
+        if (inverse) {
+          for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+        }
+      }
+
+      // ---------- 2D FFT (rows then columns), in place over re/im (length N*N) ----------
+      const lineR = new Float64Array(N), lineI = new Float64Array(N);
+      function fft2d(re, im, inverse) {
+        for (let y = 0; y < N; y++) {
+          const off = y * N;
+          for (let x = 0; x < N; x++) { lineR[x] = re[off + x]; lineI[x] = im[off + x]; }
+          fft1d(lineR, lineI, inverse);
+          for (let x = 0; x < N; x++) { re[off + x] = lineR[x]; im[off + x] = lineI[x]; }
+        }
+        for (let x = 0; x < N; x++) {
+          for (let y = 0; y < N; y++) { lineR[y] = re[y * N + x]; lineI[y] = im[y * N + x]; }
+          fft1d(lineR, lineI, inverse);
+          for (let y = 0; y < N; y++) { re[y * N + x] = lineR[y]; im[y * N + x] = lineI[y]; }
+        }
+      }
+
+      // ---------- buffers ----------
+      const img    = new Float64Array(N2);   // input image, 0..1
+      const specR  = new Float64Array(N2);   // forward FFT real
+      const specI  = new Float64Array(N2);   // forward FFT imag
+      const recR   = new Float64Array(N2);   // inverse working real
+      const recI   = new Float64Array(N2);   // inverse working imag
+
+      // ---------- colormaps ----------
+      function clamp255(v){ return v < 0 ? 0 : v > 255 ? 255 : v|0; }
+      const CMAPS = {
+        gray: t => [t*255, t*255, t*255],
+        // crude but recognizable magma / viridis approximations via piecewise polynomials
+        magma: t => {
+          const r = 255*Math.min(1, Math.max(0, -0.05 + 2.4*t - 0.9*t*t));
+          const g = 255*Math.min(1, Math.max(0, -0.15 + 0.2*t + 1.1*t*t*t));
+          const b = 255*Math.min(1, Math.max(0, 0.25*Math.sin(Math.PI*Math.min(1,t*1.2)) + 0.35*t*t));
+          return [r, g, b];
+        },
+        viridis: t => {
+          const r = 255*Math.min(1, Math.max(0, 0.27 - 0.9*t + 1.6*t*t*t));
+          const g = 255*Math.min(1, Math.max(0, 0.0 + 1.0*t));
+          const b = 255*Math.min(1, Math.max(0, 0.33 + 0.7*t - 1.1*t*t));
+          return [r, g, b];
+        }
+      };
+
+      // ---------- DOM ----------
+      const $ = id => document.getElementById(id);
+      const inputCanvas = $('inputCanvas'), inputCtx = inputCanvas.getContext('2d');
+      const specCanvas  = $('specCanvas'),  specCtx  = specCanvas.getContext('2d');
+      const maskCanvas  = $('maskCanvas'),  maskCtx  = maskCanvas.getContext('2d');
+      const reconCanvas = $('reconCanvas'), reconCtx = reconCanvas.getContext('2d');
+      const inputImageData = inputCtx.createImageData(N, N);
+      const specImageData  = specCtx.createImageData(N, N);
+      const reconImageData = reconCtx.createImageData(N, N);
+
+      // ---------- state ----------
+      const state = {
+        src: 'grating',
+        freq: 8, angle: 0,
+        freq2: 20, angle2: 90,
+        filter: 'none',
+        cut: 32, bw: 16, soft: true,
+        gain: 2, cmap: 'magma'
+      };
+
+      // ---------- source generation ----------
+      function gratingVal(x, y, freq, angleDeg) {
+        const th = angleDeg * Math.PI / 180;
+        const fx = freq * Math.cos(th), fy = freq * Math.sin(th);
+        return Math.cos(2 * Math.PI * (fx * x + fy * y) / N);
+      }
+      // deterministic pseudo-random for the noise pattern (no Date/Math.random reliance issues)
+      let seed = 123456789;
+      function rnd() { seed = (1103515245 * seed + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+
+      function generate() {
+        const s = state.src;
+        if (s === 'draw') return; // leave img as-is (painted)
+        seed = 123456789;
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            const i = y * N + x;
+            let v = 0;
+            const cx = x - N / 2, cy = y - N / 2;
+            const r = Math.sqrt(cx * cx + cy * cy);
+            switch (s) {
+              case 'grating':
+                v = 0.5 + 0.5 * gratingVal(x, y, state.freq, state.angle);
+                break;
+              case 'twograt':
+                v = 0.5 + 0.25 * gratingVal(x, y, state.freq, state.angle)
+                        + 0.25 * gratingVal(x, y, state.freq2, state.angle2);
+                break;
+              case 'stripes': {
+                v = gratingVal(x, y, state.freq, state.angle) >= 0 ? 1 : 0;
+                break;
+              }
+              case 'checker': {
+                const sq = Math.max(1, Math.round(state.freq / 2));
+                const cell = Math.floor(x / (N / (2 * sq))) + Math.floor(y / (N / (2 * sq)));
+                v = (cell & 1) ? 1 : 0;
+                break;
+              }
+              case 'circle':
+                v = r < N / 6 ? 1 : 0;
+                break;
+              case 'square':
+                v = (Math.abs(cx) < N / 6 && Math.abs(cy) < N / 6) ? 1 : 0;
+                break;
+              case 'edge':
+                v = x < N / 2 ? 0.15 : 0.85;
+                break;
+              case 'gauss': {
+                const sig = N / 12;
+                v = Math.exp(-(cx * cx + cy * cy) / (2 * sig * sig));
+                break;
+              }
+              case 'noise':
+                v = rnd();
+                break;
+            }
+            img[i] = v;
+          }
+        }
+      }
+
+      // ---------- pipeline ----------
+      let pendingTime = 0;
+      function compute() {
+        const t0 = performance.now();
+        // forward FFT
+        specR.set(img);
+        specI.fill(0);
+        fft2d(specR, specI, false);
+
+        // build mask + apply -> inverse FFT
+        recR.set(specR);
+        recI.set(specI);
+        applyFilter(recR, recI);
+        fft2d(recR, recI, true);
+
+        pendingTime = performance.now() - t0;
+        drawAll();
+      }
+
+      // mask value (0..1) at frequency index (u,v) using *centered* radius
+      function maskAt(u, v) {
+        // centered frequency coords: shift so DC is at N/2
+        let du = u <= N / 2 ? u : u - N;
+        let dv = v <= N / 2 ? v : v - N;
+        const r = Math.sqrt(du * du + dv * dv);
+        const c = state.cut;
+        if (state.filter === 'none') return 1;
+        if (state.soft) {
+          const w = Math.max(1, c * 0.35);
+          if (state.filter === 'low')  return Math.exp(-(r > c ? (r - c) * (r - c) : 0) / (2 * w * w));
+          if (state.filter === 'high') return 1 - Math.exp(-(r > c ? (r - c) * (r - c) : 0) / (2 * w * w));
+          if (state.filter === 'band') {
+            const d = Math.abs(r - c);
+            const bw = state.bw;
+            return Math.exp(-(d * d) / (2 * (bw * 0.6) * (bw * 0.6)));
+          }
+        } else {
+          if (state.filter === 'low')  return r <= c ? 1 : 0;
+          if (state.filter === 'high') return r >= c ? 1 : 0;
+          if (state.filter === 'band') return Math.abs(r - c) <= state.bw / 2 ? 1 : 0;
+        }
+        return 1;
+      }
+
+      function applyFilter(re, im) {
+        if (state.filter === 'none') return;
+        for (let v = 0; v < N; v++) {
+          for (let u = 0; u < N; u++) {
+            const m = maskAt(u, v);
+            const i = v * N + u;
+            re[i] *= m; im[i] *= m;
+          }
+        }
+      }
+
+      // ---------- drawing ----------
+      function drawInput() {
+        const d = inputImageData.data;
+        for (let i = 0; i < N2; i++) {
+          const g = clamp255(img[i] * 255);
+          d[i * 4] = g; d[i * 4 + 1] = g; d[i * 4 + 2] = g; d[i * 4 + 3] = 255;
+        }
+        inputCtx.putImageData(inputImageData, 0, 0);
+      }
+
+      function drawSpectrum() {
+        // log magnitude, fftshifted to center DC
+        const cmap = CMAPS[state.cmap];
+        const gain = state.gain;
+        // find max log-magnitude for normalization
+        let maxLog = 0;
+        const logMag = new Float64Array(N2);
+        for (let i = 0; i < N2; i++) {
+          const m = Math.hypot(specR[i], specI[i]);
+          const lm = Math.log(1 + m);
+          logMag[i] = lm;
+          if (lm > maxLog) maxLog = lm;
+        }
+        const inv = maxLog > 0 ? 1 / maxLog : 1;
+        const d = specImageData.data;
+        const half = N / 2;
+        for (let y = 0; y < N; y++) {
+          const sy = (y + half) % N; // shift
+          for (let x = 0; x < N; x++) {
+            const sx = (x + half) % N;
+            const src = sy * N + sx;
+            let t = logMag[src] * inv * gain;
+            if (t > 1) t = 1;
+            const [r, g, b] = cmap(t);
+            const di = (y * N + x) * 4;
+            d[di] = clamp255(r); d[di + 1] = clamp255(g); d[di + 2] = clamp255(b); d[di + 3] = 255;
+          }
+        }
+        specCtx.putImageData(specImageData, 0, 0);
+      }
+
+      function drawMask() {
+        maskCtx.clearRect(0, 0, N, N);
+        if (state.filter === 'none') return;
+        const id = maskCtx.createImageData(N, N);
+        const d = id.data;
+        const half = N / 2;
+        for (let y = 0; y < N; y++) {
+          const sy = (y + half) % N;
+          for (let x = 0; x < N; x++) {
+            const sx = (x + half) % N;
+            const m = maskAt(sx, sy);
+            const di = (y * N + x) * 4;
+            // dim the removed regions with a translucent dark overlay
+            const a = (1 - m) * 165;
+            d[di] = 12; d[di + 1] = 12; d[di + 2] = 14; d[di + 3] = a;
+          }
+        }
+        maskCtx.putImageData(id, 0, 0);
+      }
+
+      function drawRecon() {
+        const d = reconImageData.data;
+        for (let i = 0; i < N2; i++) {
+          const g = clamp255(recR[i] * 255);
+          d[i * 4] = g; d[i * 4 + 1] = g; d[i * 4 + 2] = g; d[i * 4 + 3] = 255;
+        }
+        reconCtx.putImageData(reconImageData, 0, 0);
+      }
+
+      function drawAll() {
+        drawInput();
+        drawSpectrum();
+        drawMask();
+        drawRecon();
+        $('timing').textContent = `forward + inverse FFT in ${pendingTime.toFixed(1)} ms`;
+      }
+
+      // ---------- debounced recompute ----------
+      let raf = 0;
+      function schedule() {
+        if (raf) return;
+        raf = requestAnimationFrame(() => { raf = 0; compute(); });
+      }
+      function regenAndCompute() { generate(); schedule(); }
+
+      // ---------- UI wiring ----------
+      function syncRows() {
+        const isGrating = ['grating', 'twograt', 'stripes', 'checker'].includes(state.src);
+        $('gratingRow').style.display = isGrating ? '' : 'none';
+        $('twogratRow').style.display = state.src === 'twograt' ? '' : 'none';
+        $('paintHint').style.display = state.src === 'draw' ? '' : 'none';
+        $('inputWrap').classList.toggle('paint', state.src === 'draw');
+        $('bwRow').style.display = state.filter === 'band' ? '' : 'none';
+        $('softRow').style.display = state.filter !== 'band' ? '' : 'none';
+      }
+
+      $('srcSel').addEventListener('change', e => {
+        state.src = e.target.value;
+        if (state.src === 'draw') img.fill(0);
+        syncRows();
+        regenAndCompute();
+      });
+
+      function bindSlider(id, valId, key, fmt, regen) {
+        const el = $(id);
+        el.addEventListener('input', () => {
+          state[key] = parseFloat(el.value);
+          $(valId).textContent = fmt(state[key]);
+          if (regen) regenAndCompute(); else schedule();
+        });
+      }
+      bindSlider('freqSlider',  'freqVal',  'freq',   v => `${v} cyc`, true);
+      bindSlider('angleSlider', 'angleVal', 'angle',  v => `${v}°`,    true);
+      bindSlider('freq2Slider', 'freq2Val', 'freq2',  v => `${v} cyc`, true);
+      bindSlider('angle2Slider','angle2Val','angle2', v => `${v}°`,    true);
+      bindSlider('cutSlider',   'cutVal',   'cut',    v => `${v}`,     false);
+      bindSlider('bwSlider',    'bwVal',    'bw',     v => `${v}`,     false);
+      bindSlider('gainSlider',  'gainVal',  'gain',   v => v.toFixed(1), false);
+
+      document.querySelectorAll('[data-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.filter = btn.dataset.filter;
+          syncRows();
+          schedule();
+        });
+      });
+
+      $('softChk').addEventListener('change', e => { state.soft = e.target.checked; $('softChk2').checked = e.target.checked; schedule(); });
+      $('softChk2').addEventListener('change', e => { state.soft = e.target.checked; $('softChk').checked = e.target.checked; schedule(); });
+      $('cmapSel').addEventListener('change', e => { state.cmap = e.target.value; schedule(); });
+
+      // ---------- painting ----------
+      let painting = false;
+      function paintAt(ev) {
+        const rect = inputCanvas.getBoundingClientRect();
+        const px = (ev.clientX - rect.left) / rect.width * N;
+        const py = (ev.clientY - rect.top) / rect.height * N;
+        const rad = 9;
+        for (let dy = -rad; dy <= rad; dy++) {
+          for (let dx = -rad; dx <= rad; dx++) {
+            const x = Math.round(px + dx), y = Math.round(py + dy);
+            if (x < 0 || y < 0 || x >= N || y >= N) continue;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > rad) continue;
+            const i = y * N + x;
+            const add = (1 - dist / rad) * 0.6;
+            img[i] = Math.min(1, img[i] + add);
+          }
+        }
+        schedule();
+      }
+      inputWrap.addEventListener('pointerdown', ev => {
+        if (state.src !== 'draw') return;
+        painting = true;
+        inputCanvas.setPointerCapture?.(ev.pointerId);
+        paintAt(ev);
+      });
+      inputWrap.addEventListener('pointermove', ev => { if (painting) paintAt(ev); });
+      window.addEventListener('pointerup', () => { painting = false; });
+
+      // ---------- image upload ----------
+      $('uploadBtn').addEventListener('click', () => $('fileInput').click());
+      $('fileInput').addEventListener('change', e => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const im = new Image();
+        im.onload = () => {
+          const tmp = document.createElement('canvas');
+          tmp.width = N; tmp.height = N;
+          const tctx = tmp.getContext('2d');
+          // cover-fit
+          const scale = Math.max(N / im.width, N / im.height);
+          const w = im.width * scale, h = im.height * scale;
+          tctx.drawImage(im, (N - w) / 2, (N - h) / 2, w, h);
+          const data = tctx.getImageData(0, 0, N, N).data;
+          for (let i = 0; i < N2; i++) {
+            img[i] = (0.299 * data[i*4] + 0.587 * data[i*4+1] + 0.114 * data[i*4+2]) / 255;
+          }
+          URL.revokeObjectURL(url);
+          state.src = 'draw';
+          $('srcSel').value = 'draw';
+          syncRows();
+          schedule();
+        };
+        im.src = url;
+      });
+
+      // ---------- init ----------
+      syncRows();
+      regenAndCompute();
+    </script>
+  </body>
+</html>

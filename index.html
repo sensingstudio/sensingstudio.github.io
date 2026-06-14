@@ -1112,6 +1112,34 @@
             <span class="arrow">Open</span>
           </div>
         </a>
+        <a class="card-link" href="noise-cancellation/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- noise wave (red) -->
+              <path d="M 8 35 C 20 12, 32 12, 44 35 S 68 58, 80 35 S 104 12, 116 35 S 140 58, 152 35 S 176 12, 188 35"
+                    fill="none" stroke="#bc122a" stroke-width="1.4" opacity="0.9"/>
+              <!-- anti-noise wave (blue): inverted copy -->
+              <path d="M 8 65 C 20 88, 32 88, 44 65 S 68 42, 80 65 S 104 88, 116 65 S 140 42, 152 65 S 176 88, 188 65"
+                    fill="none" stroke="#1f6feb" stroke-width="1.4" opacity="0.9"/>
+              <!-- residual: flat line where they cancel -->
+              <line x1="8" y1="50" x2="188" y2="50" stroke="#E8B923" stroke-width="2" opacity="0.95"/>
+              <!-- plus / equals hints -->
+              <circle cx="98" cy="50" r="1.6" fill="rgba(255,255,255,0.5)"/>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip sim">Simulation</span>
+            <h3>Active Noise Cancellation</h3>
+            <p>Fight noise with anti-noise &mdash; then drag the loop latency up and watch phase error grow with frequency until the canceller starts <em>boosting</em> the sound instead of killing it.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
         </div>
       </section>
       <section class="tool-section" aria-labelledby="sec-signals">
@@ -1408,6 +1436,52 @@
             <span class="setup-chip two">Two devices</span>
             <h3>Digital Modulation</h3>
             <p>Type a message; encode it as ASK, FSK, BPSK, QPSK, 16-QAM, or OFDM; transmit it as audible sound. Receive on a second device, watch the constellation form, and decode the bits back.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="fft-2d/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- left: a diagonal sinusoidal grating (spatial domain) -->
+              <g stroke="#bc122a" stroke-width="3" opacity="0.8">
+                <line x1="6"  y1="34" x2="34" y2="6"/>
+                <line x1="6"  y1="50" x2="50" y2="6"/>
+                <line x1="6"  y1="66" x2="66" y2="6"/>
+                <line x1="6"  y1="82" x2="82" y2="6"/>
+                <line x1="6"  y1="98" x2="98" y2="6"/>
+                <line x1="22" y1="98" x2="98" y2="22"/>
+                <line x1="38" y1="98" x2="98" y2="38"/>
+                <line x1="54" y1="98" x2="98" y2="54"/>
+                <line x1="70" y1="98" x2="98" y2="70"/>
+              </g>
+              <!-- arrow: FFT -->
+              <g stroke="rgba(232,185,35,0.9)" stroke-width="1.6" fill="none" stroke-linecap="round">
+                <line x1="104" y1="50" x2="120" y2="50"/>
+                <path d="M 116 45 L 121 50 L 116 55"/>
+              </g>
+              <!-- right: spectrum — two bright dots symmetric about a bright DC center -->
+              <g>
+                <rect x="128" y="14" width="66" height="72" fill="rgba(255,255,255,0.04)"/>
+                <line x1="161" y1="14" x2="161" y2="86" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+                <line x1="128" y1="50" x2="194" y2="50" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+                <circle cx="161" cy="50" r="4.5" fill="#fff" opacity="0.9"/>
+                <circle cx="146" cy="65" r="3.4" fill="#bc122a"/>
+                <circle cx="176" cy="35" r="3.4" fill="#bc122a"/>
+                <circle cx="146" cy="65" r="6.5" fill="none" stroke="#bc122a" stroke-width="0.8" opacity="0.5"/>
+                <circle cx="176" cy="35" r="6.5" fill="none" stroke="#bc122a" stroke-width="0.8" opacity="0.5"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip sim">Simulation</span>
+            <h3>2D Fourier Transform</h3>
+            <p>See any image as a sum of 2D gratings. Pick a pattern or upload a photo, watch its spectrum form, then low-pass, high-pass, or band-pass it and inverse-transform to blur, sharpen, and filter.</p>
             <span class="arrow">Open</span>
           </div>
         </a>
