@@ -235,12 +235,12 @@
             <h3>Noise source</h3>
             <div class="crow">
               <label>Type</label>
-              <select id="noiseType" style="flex:1 1 130px;">
-                <option value="cafe">Café / crowd rumble</option>
-                <option value="street">Street / broadband</option>
-                <option value="engine">Engine / cabin hum</option>
-                <option value="tone">Pure tone</option>
-              </select>
+              <div class="tools" role="group" aria-label="Noise type">
+                <button class="tool-btn active" data-noise="cafe">Café</button>
+                <button class="tool-btn" data-noise="street">Street</button>
+                <button class="tool-btn" data-noise="engine">Engine</button>
+                <button class="tool-btn" data-noise="tone">Tone</button>
+              </div>
             </div>
             <div class="crow">
               <label>Level</label>
@@ -480,7 +480,7 @@
       }
 
       // ===================== state =====================
-      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 2, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1 };
+      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 2, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe' };
       let W = fitWeights(state.nMics);
       let perFreq = [];          // {ear,res} per model freq for current noise source
       let meanRedDb = 0, geomRedDb = 0, liveRedDb = null;
@@ -888,7 +888,7 @@
       }
       function applyNoiseType(){
         if(!charFilter) return;
-        const t=$('noiseType').value;
+        const t=state.noiseType;
         if(engineOsc){ try{engineOsc.stop();}catch(e){} engineOsc=null; engineGain=null; }
         if(toneOsc){ try{toneOsc.stop();}catch(e){} toneOsc=null; toneGain=null; }
         const isTone = (t==='tone');
@@ -967,9 +967,14 @@
       wirePause('fftPause','fft'); wirePause('earPause','ear'); wirePause('micPause','mic');
       $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); });
       $('micZoom').addEventListener('input', ()=>{ micWinSec=parseFloat($('micZoom').value)/1000; $('micZoomVal').textContent=$('micZoom').value+' ms'; });
-      $('noiseType').addEventListener('change', ()=>{
-        $('toneRow').style.display = $('noiseType').value==='tone' ? '' : 'none';
-        applyNoiseType();
+      document.querySelectorAll('[data-noise]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('[data-noise]').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          state.noiseType=btn.dataset.noise;
+          $('toneRow').style.display = state.noiseType==='tone' ? '' : 'none';
+          applyNoiseType();
+        });
       });
       $('toneFreq').addEventListener('input', ()=>{
         $('toneFreqVal').textContent = $('toneFreq').value+' Hz';
