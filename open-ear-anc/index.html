@@ -323,6 +323,14 @@
                   <div class="u">processing delay</div>
                 </div>
               </div>
+              <div class="canvas-wrap" style="margin-top:10px;">
+                <canvas id="polar" width="520" height="380"></canvas>
+                <span class="tag">reduction vs. noise direction &middot; ● = current noise</span>
+              </div>
+              <div class="legend" style="padding:8px 4px 2px; gap:16px;">
+                <span><i class="swatch" style="background:#2ECC71;"></i> Left ear (simulated)</span>
+                <span><i class="swatch" style="background:#DD8452;"></i> Right ear (mirror)</span>
+              </div>
             </div>
           </div>
 
@@ -581,6 +589,7 @@
       const spectrum = $('spectrum'), pctx = spectrum.getContext('2d');
       const earscope = $('earscope'), ectx = earscope.getContext('2d');
       const micscope = $('micscope'), mctx = micscope.getContext('2d');
+      const polar = $('polar'), polctx = polar.getContext('2d');
 
       // ----- scene drawing -----
       const SCL = 620;                  // px per meter for the head/array
@@ -595,6 +604,35 @@
       }
 
       let animTime=0;   // ms timestamp from the rAF loop, drives the attract pulse
+      // source markers: 'music' note (green signal) and 'speaker' (noise). Drawn on a dark
+      // disc with a colored ring so they read as draggable handles.
+      function drawSourceIcon(x,y,kind,color){
+        sctx.save();
+        sctx.beginPath(); sctx.arc(x,y,12,0,2*Math.PI);
+        sctx.fillStyle='rgba(12,12,14,0.88)'; sctx.fill();
+        sctx.lineWidth=1.6; sctx.strokeStyle=color; sctx.stroke();
+        sctx.translate(x,y);
+        sctx.fillStyle=color; sctx.strokeStyle=color; sctx.lineCap='round'; sctx.lineJoin='round';
+        if(kind==='music'){
+          // two note heads + stems + beam (a beamed eighth-note pair)
+          sctx.beginPath(); sctx.ellipse(-3.4,4.2,3.1,2.4,-0.35,0,2*Math.PI); sctx.fill();
+          sctx.beginPath(); sctx.ellipse(4.0,2.8,3.1,2.4,-0.35,0,2*Math.PI); sctx.fill();
+          sctx.lineWidth=1.4;
+          sctx.beginPath(); sctx.moveTo(-0.6,4.2); sctx.lineTo(-0.6,-6); sctx.stroke();
+          sctx.beginPath(); sctx.moveTo(6.8,2.8); sctx.lineTo(6.8,-7); sctx.stroke();
+          sctx.lineWidth=2.1;
+          sctx.beginPath(); sctx.moveTo(-0.6,-6); sctx.lineTo(6.8,-7); sctx.stroke();
+        } else {
+          // loudspeaker cone + sound waves
+          sctx.beginPath();
+          sctx.moveTo(-6,-2.4); sctx.lineTo(-2.4,-2.4); sctx.lineTo(1.8,-6);
+          sctx.lineTo(1.8,6); sctx.lineTo(-2.4,2.4); sctx.lineTo(-6,2.4); sctx.closePath(); sctx.fill();
+          sctx.lineWidth=1.3;
+          sctx.beginPath(); sctx.arc(2,0,4.3,-0.85,0.85); sctx.stroke();
+          sctx.beginPath(); sctx.arc(2,0,7,-0.85,0.85); sctx.stroke();
+        }
+        sctx.restore();
+      }
       function drawScene(){
         const W2=scene.width, H2=scene.height; sctx.clearRect(0,0,W2,H2);
         const [cx,cy]=headCenter();
@@ -656,18 +694,16 @@
           if(on){ sctx.strokeStyle='rgba(255,255,255,0.85)'; sctx.lineWidth=1.2; sctx.stroke(); }
         });
 
-        // signal source (desired audio) — green, with its own direction line
+        // signal source (desired audio) — green music note, with its own direction line
         sctx.strokeStyle='rgba(42,139,42,0.35)'; sctx.setLineDash([4,5]); sctx.lineWidth=1;
         sctx.beginPath(); sctx.moveTo(gx,gy); sctx.lineTo(cx,cy); sctx.stroke(); sctx.setLineDash([]);
-        sctx.fillStyle='#2a8b2a'; sctx.strokeStyle='#fff'; sctx.lineWidth=1.5;
-        sctx.beginPath(); sctx.arc(gx,gy,7,0,2*Math.PI); sctx.fill(); sctx.stroke();
+        drawSourceIcon(gx,gy,'music','#2ECC71');
         sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 12px Roboto, sans-serif'; sctx.textAlign='center';
-        sctx.fillText('signal', gx, gy-12);
-        // noise source — red
-        sctx.fillStyle='#bc122a'; sctx.strokeStyle='#fff'; sctx.lineWidth=1.5;
-        sctx.beginPath(); sctx.arc(sx,sy,8,0,2*Math.PI); sctx.fill(); sctx.stroke();
+        sctx.fillText('signal', gx, gy-17);
+        // noise source — red loudspeaker
+        drawSourceIcon(sx,sy,'speaker','#bc122a');
         sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 12px Roboto, sans-serif'; sctx.textAlign='center';
-        sctx.fillText('noise', sx, sy-13);
+        sctx.fillText('noise', sx, sy-17);
 
         // attract cue: pulsing rings + "drag me" on both sources until the user grabs one
         if(state.attract){
