@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# Open-ear ANC: keep the runtime web assets (anc_model.onnx, anc_assets.json,
+# anc_recording.f32, real-anc-*.wav/json) but NOT the heavy research capsule:
+# the 50 MB checkpoint, raw multi-channel recordings, and Python source.
+open-ear-anc/code/
+open-ear-anc/data/
+open-ear-anc/anc_model_meta.json

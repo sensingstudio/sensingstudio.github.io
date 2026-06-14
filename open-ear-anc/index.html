@@ -347,6 +347,36 @@
         </div>
       </div>
 
+      <section class="panel" id="realModel">
+        <h2>Hear the actual trained model <span class="paperbadge">real network output</span></h2>
+        <p class="lead" style="font-size:15px;">Everything above is an interactive <em>simulation</em>. This player is the real thing: the genuine output of the paper&rsquo;s trained <strong>U-Net&nbsp;+&nbsp;LSTM</strong> network, run on an actual multi-channel glasses recording. The network predicts its control filters from the frame mics; those filters are applied through the <strong>measured speaker&rarr;ear path</strong>, and you hear the sound at the ear <strong>before</strong> vs <strong>after</strong> cancellation &mdash; both ears, in sync. <strong>Headphones recommended.</strong></p>
+        <div class="card2 nopad">
+          <div class="vhead" style="flex-wrap:wrap; gap:12px;">
+            <button class="act on" id="rmPlay">► Play</button>
+            <button class="act on" id="rmAnc">ANC: ON</button>
+            <span class="note" id="rmStatus" style="margin:0;">press Play to load &amp; hear it</span>
+            <span class="leg" style="margin-left:auto;">
+              <span style="color:var(--red);"><i class="swatch" style="background:var(--red);"></i> noise before ANC</span>
+              <span style="color:#b78a00;"><i class="swatch" style="background:var(--gold);height:4px;"></i> what you hear (after ANC)</span>
+            </span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="rmspectrum" width="1200" height="260"></canvas>
+            <span class="tag">live spectrum of the real recording &middot; 100&ndash;1000&nbsp;Hz band shaded</span>
+          </div>
+          <div class="vhead" style="flex-wrap:wrap; gap:12px; border-top:1px solid var(--grey-line); margin-top:8px; padding-top:10px;">
+            <button class="act" id="rmLive">⚡ Run live in your browser</button>
+            <label style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Input</label>
+            <div class="tools" role="group" aria-label="Live input source">
+              <button class="tool-btn active" data-rmsrc="recording">Real recording</button>
+              <button class="tool-btn" data-rmsrc="sim">Simulation</button>
+            </div>
+            <span class="note" id="rmLiveStatus" style="margin:0; flex:1 1 180px;">runs the real 36&nbsp;MB network in your browser &mdash; predicts the filters every ~0.5&nbsp;s, live</span>
+          </div>
+        </div>
+        <p class="note" style="margin-top:10px;"><strong>Play</strong> is the genuine network output pre-rendered offline (both ears). <strong>Run live</strong> loads the actual U-Net/LSTM and runs it <em>in your browser</em> via WebAssembly, predicting the control filters every ~0.5&nbsp;s and applying them in real time. Two inputs: <strong>Real recording</strong> feeds the device&rsquo;s actual frame mics &mdash; in-distribution, <strong style="color:var(--green);">&minus;12.6&nbsp;dB</strong> in the 100&ndash;1000&nbsp;Hz band (paper: 9.6&nbsp;dB across the full test set). <strong>Simulation</strong> feeds synthetic mics built from the scene above &mdash; the network was <em>never trained on these</em>, so it&rsquo;s an honest out-of-distribution test: it usually <em>fails</em> to cancel them &mdash; sometimes even adding &mdash; which is exactly what you&rsquo;d expect when the input doesn&rsquo;t match the device it learned on. <strong>Drag the noise source</strong> to watch the filters re-predict live. Toggle <strong>ANC</strong> to hear the band drop out.</p>
+      </section>
+
       <section class="panel">
         <h2>What you're looking at</h2>
         <ul class="facts">
@@ -798,7 +828,7 @@
         pointerToState(ev);
       });
       sceneWrap.addEventListener('pointermove', ev=>{ if(dragging) pointerToState(ev); });
-      window.addEventListener('pointerup', ()=>{ dragging=false; sceneWrap.classList.remove('drag'); });
+      window.addEventListener('pointerup', ()=>{ dragging=false; sceneWrap.classList.remove('drag'); if(window.__ancOnSceneChange) window.__ancOnSceneChange(); });
 
       document.querySelectorAll('[data-mics]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
@@ -1045,9 +1075,127 @@
         if(toneOsc) toneOsc.frequency.setTargetAtTime(parseFloat($('toneFreq').value), actx.currentTime, 0.01);
         micRefresh=8;   // tone pitch changed -> refresh mic snapshot
       });
+      // ===== hook for the real-time engine's "Simulation" input source =====
+      // Synthesizes 4 glasses-mic channels + an ear channel from the CURRENT scene
+      // geometry (per-mic distance -> delay + 1/r gain) over pink noise. This is the
+      // out-of-distribution input the trained network was NOT trained on.
+      window.__ancSim = {
+        geomKey(){ return [state.theta.toFixed(1), state.dist.toFixed(2), state.nMics].join(','); },
+        genMics(seconds, sr){
+          const N=Math.floor(seconds*sr);
+          const noise=new Float32Array(N); let b0=0,b1=0,b2=0;
+          for(let i=0;i<N;i++){ const w=Math.random()*2-1;
+            b0=0.99*b0+0.05*w; b1=0.963*b1+0.08*w; b2=0.57*b2+0.5*w; noise[i]=(b0+b1+0.2*b2)*0.35; }
+          const P=srcPos(state.theta,state.dist);
+          const mics=[0,1,2,3];
+          const rs=mics.map(mi=>Math.hypot(MICS[mi][0]-P[0],MICS[mi][1]-P[1]));
+          const rear=Math.hypot(EAR0[0]-P[0],EAR0[1]-P[1]);
+          const rmin=Math.min(rear, ...rs);
+          const delayGain=(r)=>({d:Math.round((r-rmin)/C*sr), g:rmin/r});
+          const shift=(dg)=>{ const o=new Float32Array(N); for(let i=0;i<N;i++){ const s=i-dg.d; o[i]= s>=0? noise[s]*dg.g : 0; } return o; };
+          return { gl: rs.map(r=>shift(delayGain(r))), ear: shift(delayGain(rear)), len:N };
+        }
+      };
+
       // ===================== init =====================
       renderStatic();
       requestAnimationFrame(frame);
+
+      // ===================== real trained-model A/B player =====================
+      // Plays genuine network output: real ear noise (before) vs the residual after the
+      // model's anti-noise (after). Both clips play in sync; ANC toggle just crossfades
+      // which one is audible, while both spectra stay drawn so the gap is visible.
+      (function(){
+        const g=id=>document.getElementById(id);
+        let rctx=null, rmaster=null, gBefore=null, gAfter=null, anBefore=null, anAfter=null;
+        let bufBefore=null, bufAfter=null, srcBefore=null, srcAfter=null;
+        let fBefore=null, fAfter=null, raf=0;
+        let playing=false, ancOn=true, loaded=false, loading=false;
+        const cv=g('rmspectrum'), cx=cv.getContext('2d');
+
+        async function ensure(){
+          if(rctx) return;
+          rctx=new (window.AudioContext||window.webkitAudioContext)();
+          rmaster=rctx.createGain(); rmaster.gain.value=1; rmaster.connect(rctx.destination);
+          gBefore=rctx.createGain(); gAfter=rctx.createGain(); gBefore.connect(rmaster); gAfter.connect(rmaster);
+          anBefore=rctx.createAnalyser(); anBefore.fftSize=8192; anBefore.smoothingTimeConstant=0.8;
+          anAfter =rctx.createAnalyser(); anAfter.fftSize=8192;  anAfter.smoothingTimeConstant=0.8;
+          fBefore=new Float32Array(anBefore.frequencyBinCount);
+          fAfter =new Float32Array(anAfter.frequencyBinCount);
+          applyAB();
+        }
+        async function load(){
+          if(loaded||loading) return false;
+          loading=true; g('rmStatus').textContent='loading real model audio…';
+          try{
+            const dec=ab=> new Promise((res,rej)=>rctx.decodeAudioData(ab, res, rej));
+            const [a1,a2]=await Promise.all([
+              fetch('real-anc-before.wav').then(r=>{if(!r.ok)throw 0; return r.arrayBuffer();}),
+              fetch('real-anc-after.wav').then(r=>{if(!r.ok)throw 0; return r.arrayBuffer();})
+            ]);
+            bufBefore=await dec(a1); bufAfter=await dec(a2);
+            loaded=true; g('rmStatus').textContent='playing real recording — toggle ANC';
+            return true;
+          }catch(e){ g('rmStatus').textContent='could not load model audio'; loading=false; return false; }
+        }
+        function applyAB(){
+          if(!gBefore) return; const t=rctx.currentTime;
+          gBefore.gain.setTargetAtTime(ancOn?0:1, t, 0.02);
+          gAfter .gain.setTargetAtTime(ancOn?1:0, t, 0.02);
+        }
+        function start(){
+          srcBefore=rctx.createBufferSource(); srcBefore.buffer=bufBefore; srcBefore.loop=true;
+          srcAfter =rctx.createBufferSource(); srcAfter.buffer =bufAfter;  srcAfter.loop=true;
+          srcBefore.connect(gBefore); srcBefore.connect(anBefore);   // analyser tap is pre-gain
+          srcAfter.connect(gAfter);   srcAfter.connect(anAfter);
+          const t0=rctx.currentTime+0.06; srcBefore.start(t0); srcAfter.start(t0);   // sample-aligned A/B
+          playing=true; draw();
+        }
+        function stop(){
+          [srcBefore,srcAfter].forEach(s=>{try{s&&s.stop();}catch(e){}});
+          srcBefore=srcAfter=null; playing=false; cancelAnimationFrame(raf); clearCanvas();
+        }
+        window.__ancPreStop=()=>{ if(playing){ stop(); g('rmPlay').textContent='► Play'; } };
+        function clearCanvas(){ cx.clearRect(0,0,cv.width,cv.height); }
+        const NYQ=()=>rctx.sampleRate/2;
+        const fx=f=>{ const lo=Math.log10(50), hi=Math.log10(2000); return (Math.log10(f)-lo)/(hi-lo)*cv.width; };
+        const dyOf=db=>{ const top=-18, bot=-95; return (1-(Math.max(bot,Math.min(top,db))-bot)/(top-bot))*cv.height; };
+        function spectrumPath(arr, an){
+          const bins=arr.length, sr=rctx.sampleRate;
+          cx.beginPath(); let started=false;
+          for(let i=1;i<bins;i++){ const f=i*sr/(2*bins); if(f<50)continue; if(f>2000)break;
+            const x=fx(f), y=dyOf(arr[i]); started?cx.lineTo(x,y):(cx.moveTo(x,y),started=true); }
+        }
+        function draw(){
+          if(!playing) return;
+          anBefore.getFloatFrequencyData(fBefore); anAfter.getFloatFrequencyData(fAfter);
+          clearCanvas();
+          // 100-1000 Hz band shading
+          cx.fillStyle='rgba(255,255,255,0.05)'; cx.fillRect(fx(100),0,fx(1000)-fx(100),cv.height);
+          // before: red fill+line
+          spectrumPath(fBefore,anBefore); cx.lineTo(fx(2000),cv.height); cx.lineTo(fx(50),cv.height); cx.closePath();
+          cx.fillStyle='rgba(188,18,42,0.18)'; cx.fill();
+          spectrumPath(fBefore,anBefore); cx.strokeStyle='rgba(188,18,42,0.9)'; cx.lineWidth=1.5; cx.stroke();
+          // after: gold line (bold) — what you hear with ANC on
+          spectrumPath(fAfter,anAfter); cx.strokeStyle='#E8B923'; cx.lineWidth=2.4; cx.stroke();
+          raf=requestAnimationFrame(draw);
+        }
+
+        g('rmPlay').addEventListener('click', async ()=>{
+          if(window.__ancLiveStop) window.__ancLiveStop();
+          await ensure();
+          if(rctx.state==='suspended') await rctx.resume();
+          if(playing){ stop(); g('rmPlay').textContent='► Play'; g('rmStatus').textContent='stopped'; return; }
+          if(!loaded){ const ok=await load(); if(!ok) return; }
+          start(); g('rmPlay').textContent='■ Stop';
+        });
+        g('rmAnc').addEventListener('click', ()=>{
+          ancOn=!ancOn; applyAB();
+          g('rmAnc').textContent='ANC: '+(ancOn?'ON':'OFF');
+          g('rmAnc').classList.toggle('on', ancOn);
+        });
+      })();
     </script>
+    <script src="anc-realtime.js" defer></script>
   </body>
 </html>
