@@ -118,12 +118,12 @@
         position: absolute; left: 10px; top: 8px; font-size: 10px; letter-spacing: 1px;
         text-transform: uppercase; color: rgba(255,255,255,0.55); font-weight: 700; pointer-events: none;
       }
-      .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--grey-text); letter-spacing: 0.4px; }
+      .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--grey-text); letter-spacing: 0.4px; }
       .legend span { display: inline-flex; align-items: center; gap: 7px; }
       .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
       .swatch { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
-      .note { font-size: 13px; color: var(--grey-text); margin-top: 4px; line-height: 1.6; }
-      .note code { background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+      .note { font-size: 14px; color: var(--grey-text); margin-top: 4px; line-height: 1.6; }
+      .note code { background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 3px; font-size: 13px; }
       .note strong { color: var(--black); }
       .readouts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
       @media (max-width: 760px) { .readouts { grid-template-columns: repeat(2, 1fr); } }
@@ -131,9 +131,9 @@
       .readout .k { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--grey-text); font-weight: 600; margin-bottom: 6px; }
       .readout .v { font-variant-numeric: tabular-nums; font-weight: 900; font-size: 24px; letter-spacing: -0.5px; line-height: 1.05; }
       .readout .v.good { color: var(--green); }
-      .readout .u { font-size: 12px; color: var(--grey-text); margin-top: 4px; }
+      .readout .u { font-size: 13px; color: var(--grey-text); margin-top: 4px; }
       ul.facts { margin: 8px 0 0; padding-left: 20px; }
-      ul.facts li { margin-bottom: 8px; line-height: 1.55; color: var(--grey-text); font-size: 13px; }
+      ul.facts li { margin-bottom: 8px; line-height: 1.55; color: var(--grey-text); font-size: 14px; }
       ul.facts li strong { color: var(--black); }
       .paperbadge { display:inline-block; padding: 2px 8px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; background: rgba(31,111,235,0.12); color: var(--blue); border-radius: 999px; }
       /* ---- dashboard layout ---- */
@@ -153,17 +153,17 @@
       .statgrid .readout .v { font-size:21px; }
       .vhead { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 6px 10px; }
       .vhead > span:first-child { font-size:11px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase; color:var(--grey-text); }
-      .leg { display:flex; gap:14px; font-size:11px; color:var(--grey-text); margin-left:auto; }
+      .leg { display:flex; gap:14px; font-size:12px; color:var(--grey-text); margin-left:auto; }
       .leg > span { display:inline-flex; align-items:center; gap:6px; }
       @media (max-width: 1000px) {
         .dash { grid-template-columns:1fr; }
         .sidebar { position:static; }
         .toprow { grid-template-columns:1fr; }
       }
-      .lat-tbl { width:100%; border-collapse:collapse; font-size:12px; margin-top:2px; }
+      .lat-tbl { width:100%; border-collapse:collapse; font-size:13px; margin-top:2px; }
       .lat-tbl th, .lat-tbl td { text-align:right; padding:4px 4px; border-bottom:1px solid var(--grey-line); font-variant-numeric:tabular-nums; }
       .lat-tbl th:first-child, .lat-tbl td:first-child { text-align:left; }
-      .lat-tbl th { font-size:10px; letter-spacing:0.4px; text-transform:uppercase; color:var(--grey-text); font-weight:700; }
+      .lat-tbl th { font-size:11px; letter-spacing:0.4px; text-transform:uppercase; color:var(--grey-text); font-weight:700; }
       .lat-tbl td { color:var(--black); }
       .lat-tbl .edge { color:var(--grey-text); }
       .lat-tbl .good { color:var(--green); font-weight:700; }
@@ -196,7 +196,7 @@
               <label style="color:var(--green);">Music <span style="font-weight:400; text-transform:none; letter-spacing:0;">(signal to keep)</span></label>
               <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:1 1 120px;" />
             </div>
-            <p class="note" style="margin:6px 0 0; font-size:11px; line-height:1.45;">The <strong>music is the signal you want to hear</strong> &mdash; it always passes through untouched. ANC only removes the <strong style="color:var(--red);">background noise</strong> around it, so as you toggle ANC the music stays put while the noise drops.</p>
+            <p class="note" style="margin:6px 0 0; font-size:13px; line-height:1.5;">The <strong>music is the signal you want to hear</strong> &mdash; it always passes through untouched. ANC only removes the <strong style="color:var(--red);">background noise</strong> around it, so as you toggle ANC the music stays put while the noise drops.</p>
           </div>
 
           <div class="card2">
@@ -223,7 +223,7 @@
                   <tr><td>2 kHz</td><td class="edge">85 µs</td><td class="good">25 µs</td></tr>
                 </tbody>
               </table>
-              <span class="note" style="margin:6px 0 0; display:block; font-size:11px; line-height:1.45;">Max latency to cancel each tone. <span style="color:var(--grey-text);font-weight:700;">0 dB edge</span> = <code>1/(6·Δt)</code>, where it stops helping; stay under the <span style="color:var(--green);font-weight:700;">~10 dB</span> column for real cancellation.</span>
+              <span class="note" style="margin:6px 0 0; display:block; font-size:13px; line-height:1.5;">Max latency to cancel each tone. <span style="color:var(--grey-text);font-weight:700;">0 dB edge</span> = <code>1/(6·Δt)</code>, where it stops helping; stay under the <span style="color:var(--green);font-weight:700;">~10 dB</span> column for real cancellation.</span>
             </div>
             <div class="crow">
               <label>Mobility</label>
@@ -349,12 +349,16 @@
 
       <section class="panel" id="realModel">
         <h2>Hear the actual trained model <span class="paperbadge">real network output</span></h2>
-        <p class="lead" style="font-size:15px;">Everything above is an interactive <em>simulation</em>. This player is the real thing: the genuine output of the paper&rsquo;s trained <strong>U-Net&nbsp;+&nbsp;LSTM</strong> network, run on an actual multi-channel glasses recording. The network predicts its control filters from the frame mics; those filters are applied through the <strong>measured speaker&rarr;ear path</strong>, and you hear the sound at the ear <strong>before</strong> vs <strong>after</strong> cancellation &mdash; both ears, in sync. <strong>Headphones recommended.</strong></p>
+        <p class="lead" style="font-size:15px;">Everything above is an interactive <em>simulation</em>. This is the real thing: the paper&rsquo;s trained <strong>U-Net&nbsp;+&nbsp;LSTM</strong> network running <strong>live in your browser</strong> (via WebAssembly) on an actual multi-channel glasses recording. The network predicts its control filters from the frame mics; those filters are applied through the <strong>measured speaker&rarr;ear path</strong>, and you hear the sound at the ear <strong>before</strong> vs <strong>after</strong> cancellation. <strong>Headphones recommended.</strong></p>
         <div class="card2 nopad">
           <div class="vhead" style="flex-wrap:wrap; gap:12px;">
-            <button class="act on" id="rmPlay">► Play</button>
+            <button class="act on" id="rmLive">⚡ Run in real time</button>
             <button class="act on" id="rmAnc">ANC: ON</button>
-            <span class="note" id="rmStatus" style="margin:0;">press Play to load &amp; hear it</span>
+            <label style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Input</label>
+            <div class="tools" role="group" aria-label="Live input source">
+              <button class="tool-btn active" data-rmsrc="recording">Real recording</button>
+              <button class="tool-btn" data-rmsrc="sim">Simulation</button>
+            </div>
             <span class="leg" style="margin-left:auto;">
               <span style="color:var(--red);"><i class="swatch" style="background:var(--red);"></i> noise before ANC</span>
               <span style="color:#b78a00;"><i class="swatch" style="background:var(--gold);height:4px;"></i> what you hear (after ANC)</span>
@@ -365,16 +369,10 @@
             <span class="tag">live spectrum of the real recording &middot; 100&ndash;1000&nbsp;Hz band shaded</span>
           </div>
           <div class="vhead" style="flex-wrap:wrap; gap:12px; border-top:1px solid var(--grey-line); margin-top:8px; padding-top:10px;">
-            <button class="act" id="rmLive">⚡ Run live in your browser</button>
-            <label style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Input</label>
-            <div class="tools" role="group" aria-label="Live input source">
-              <button class="tool-btn active" data-rmsrc="recording">Real recording</button>
-              <button class="tool-btn" data-rmsrc="sim">Simulation</button>
-            </div>
-            <span class="note" id="rmLiveStatus" style="margin:0; flex:1 1 180px;">runs the real 36&nbsp;MB network in your browser &mdash; predicts the filters every ~0.5&nbsp;s, live</span>
+            <span class="note" id="rmLiveStatus" style="margin:0; flex:1 1 180px;">press Run in real time &mdash; loads the real 36&nbsp;MB network and predicts the filters every ~0.5&nbsp;s in your browser</span>
           </div>
         </div>
-        <p class="note" style="margin-top:10px;"><strong>Play</strong> is the genuine network output pre-rendered offline (both ears). <strong>Run live</strong> loads the actual U-Net/LSTM and runs it <em>in your browser</em> via WebAssembly, predicting the control filters every ~0.5&nbsp;s and applying them in real time. Two inputs: <strong>Real recording</strong> feeds the device&rsquo;s actual frame mics &mdash; in-distribution, <strong style="color:var(--green);">&minus;12.6&nbsp;dB</strong> in the 100&ndash;1000&nbsp;Hz band (paper: 9.6&nbsp;dB across the full test set). <strong>Simulation</strong> feeds synthetic mics built from the scene above &mdash; the network was <em>never trained on these</em>, so it&rsquo;s an honest out-of-distribution test: it usually <em>fails</em> to cancel them &mdash; sometimes even adding &mdash; which is exactly what you&rsquo;d expect when the input doesn&rsquo;t match the device it learned on. <strong>Drag the noise source</strong> to watch the filters re-predict live. Toggle <strong>ANC</strong> to hear the band drop out.</p>
+        <p class="note" style="margin-top:10px;"><strong>Run in real time</strong> loads the actual U-Net/LSTM and runs it <em>in your browser</em> via WebAssembly, predicting the control filters every ~0.5&nbsp;s and applying them live. Two inputs: <strong>Real recording</strong> feeds the device&rsquo;s actual frame mics &mdash; in-distribution, <strong style="color:var(--green);">&minus;12.6&nbsp;dB</strong> in the 100&ndash;1000&nbsp;Hz band (paper: 9.6&nbsp;dB across the full test set). <strong>Simulation</strong> feeds synthetic mics built from the scene above &mdash; the network was <em>never trained on these</em>, so it&rsquo;s an honest out-of-distribution test: it usually <em>fails</em> to cancel them &mdash; sometimes even adding &mdash; which is exactly what you&rsquo;d expect when the input doesn&rsquo;t match the device it learned on. <strong>Drag the noise source</strong> to watch the filters re-predict live. Toggle <strong>ANC</strong> to hear the band drop out.</p>
       </section>
 
       <section class="panel">
@@ -390,7 +388,7 @@
         </ul>
       </section>
 
-      <footer style="margin-top:48px; padding-top:24px; border-top:1px solid var(--grey-line); font-size:13px; letter-spacing:0.5px; color:var(--grey-text); display:flex; align-items:center; justify-content:center; gap:8px;">
+      <footer style="margin-top:48px; padding-top:24px; border-top:1px solid var(--grey-line); font-size:14px; letter-spacing:0.5px; color:var(--grey-text); display:flex; align-items:center; justify-content:center; gap:8px;">
         Created by
         <a href="https://semanticsignals.com" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; color:var(--black); text-decoration:none; font-weight:700;">
           <img src="../semanticsignals-logo.png" alt="" style="height:20px; width:auto;" />
@@ -632,12 +630,12 @@
         sctx.beginPath(); sctx.moveTo(gx,gy); sctx.lineTo(cx,cy); sctx.stroke(); sctx.setLineDash([]);
         sctx.fillStyle='#2a8b2a'; sctx.strokeStyle='#fff'; sctx.lineWidth=1.5;
         sctx.beginPath(); sctx.arc(gx,gy,7,0,2*Math.PI); sctx.fill(); sctx.stroke();
-        sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 11px Roboto, sans-serif'; sctx.textAlign='center';
+        sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 12px Roboto, sans-serif'; sctx.textAlign='center';
         sctx.fillText('signal', gx, gy-12);
         // noise source — red
         sctx.fillStyle='#bc122a'; sctx.strokeStyle='#fff'; sctx.lineWidth=1.5;
         sctx.beginPath(); sctx.arc(sx,sy,8,0,2*Math.PI); sctx.fill(); sctx.stroke();
-        sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 11px Roboto, sans-serif'; sctx.textAlign='center';
+        sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 12px Roboto, sans-serif'; sctx.textAlign='center';
         sctx.fillText('noise', sx, sy-13);
 
         // reduction label near ear
@@ -645,7 +643,7 @@
         if(state.ancOn){
           sctx.fillStyle='#E8B923'; sctx.font='700 22px Roboto, sans-serif';
           sctx.fillText('−'+effRedDb().toFixed(1)+' dB', exL-14, eyL-6);
-          sctx.fillStyle='rgba(255,255,255,0.55)'; sctx.font='600 11px Roboto, sans-serif';
+          sctx.fillStyle='rgba(255,255,255,0.55)'; sctx.font='600 12px Roboto, sans-serif';
           sctx.fillText('at left ear', exL-14, eyL+10);
         } else {
           sctx.fillStyle='rgba(255,255,255,0.6)'; sctx.font='700 18px Roboto, sans-serif';
@@ -662,7 +660,7 @@
         // operating band + grid
         const x1=lx(100,W2), x2=lx(1000,W2);
         pctx.fillStyle='rgba(42,139,42,0.10)'; pctx.fillRect(x1,0,x2-x1,H2);
-        pctx.fillStyle='rgba(255,255,255,0.4)'; pctx.font='11px Roboto, sans-serif'; pctx.textAlign='center';
+        pctx.fillStyle='rgba(255,255,255,0.4)'; pctx.font='12px Roboto, sans-serif'; pctx.textAlign='center';
         pctx.fillText('operating band 100–1000 Hz', (x1+x2)/2, 16);
         pctx.strokeStyle='rgba(255,255,255,0.08)'; pctx.lineWidth=1;
         [40,100,200,500,1000,2000,3000].forEach(ft=>{ const x=lx(ft,W2);
@@ -1150,10 +1148,28 @@
               fetch('real-anc-before.wav').then(r=>{if(!r.ok)throw 0; return r.arrayBuffer();}),
               fetch('real-anc-after.wav').then(r=>{if(!r.ok)throw 0; return r.arrayBuffer();})
             ]);
-            bufBefore=await dec(a1); bufAfter=await dec(a2);
+            bufBefore=seamless(await dec(a1)); bufAfter=seamless(await dec(a2));
             loaded=true; g('rmStatus').textContent='playing real recording — toggle ANC';
             return true;
           }catch(e){ g('rmStatus').textContent='could not load model audio'; loading=false; return false; }
+        }
+        // Crossfade the buffer's tail back into its head so loop=true has no seam click.
+        // Equal-power overlap-add shortens the loop by the fade length; applying the same
+        // fade to both A/B clips keeps them sample-aligned. fadeSec ~ a few ms is plenty.
+        function seamless(buf, fadeSec=0.05){
+          const sr=buf.sampleRate, L=buf.length;
+          const F=Math.max(1, Math.min(Math.floor(fadeSec*sr), Math.floor(L/4)));
+          const newLen=L-F;
+          const out=rctx.createBuffer(buf.numberOfChannels, newLen, sr);
+          for(let ch=0; ch<buf.numberOfChannels; ch++){
+            const src=buf.getChannelData(ch), dst=out.getChannelData(ch);
+            for(let i=0;i<newLen;i++) dst[i]=src[i];          // body
+            for(let i=0;i<F;i++){                              // tail folds onto head
+              const x=i/F, fin=Math.sin(x*0.5*Math.PI), fout=Math.cos(x*0.5*Math.PI);
+              dst[i]=src[i]*fin + src[newLen+i]*fout;
+            }
+          }
+          return out;
         }
         function applyAB(){
           if(!gBefore) return; const t=rctx.currentTime;
