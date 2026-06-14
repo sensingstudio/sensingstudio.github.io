@@ -1140,6 +1140,84 @@
             <span class="arrow">Open</span>
           </div>
         </a>
+        <a class="card-link" href="open-ear-anc/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- incoming noise wavefronts from the left -->
+              <g fill="none" stroke="#bc122a" stroke-width="1.3" opacity="0.8">
+                <path d="M 12 30 Q 26 50 12 70"/>
+                <path d="M 22 28 Q 38 50 22 72"/>
+                <path d="M 32 26 Q 50 50 32 74"/>
+              </g>
+              <!-- head (top-down) -->
+              <circle cx="118" cy="50" r="26" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.25)" stroke-width="1.2"/>
+              <!-- nose pointing left (facing the noise) -->
+              <path d="M 92 50 l 7 -4 l 0 8 z" fill="rgba(255,255,255,0.3)"/>
+              <!-- glasses frame across the face with 8 mic dots -->
+              <path d="M 96 34 Q 100 28 112 27 M 96 66 Q 100 72 112 73" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+              <g fill="#E8B923">
+                <circle cx="98" cy="33" r="2.3"/><circle cx="104" cy="29" r="2.3"/>
+                <circle cx="112" cy="27" r="2.3"/><circle cx="98" cy="67" r="2.3"/>
+                <circle cx="104" cy="71" r="2.3"/><circle cx="112" cy="73" r="2.3"/>
+                <circle cx="95" cy="44" r="2.3"/><circle cx="95" cy="56" r="2.3"/>
+              </g>
+              <!-- target ear + open-ear speaker emitting anti-noise -->
+              <circle cx="138" cy="58" r="3" fill="#fff"/>
+              <circle cx="132" cy="50" r="2.6" fill="#1f6feb"/>
+              <g fill="none" stroke="#1f6feb" stroke-width="1" opacity="0.7">
+                <circle cx="132" cy="50" r="6"/><circle cx="132" cy="50" r="10"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip sim">Simulation</span>
+            <h3>Virtual In-Ear Sensing</h3>
+            <p>ANC for open-ear glasses with no in-ear mic: an 8-mic frame array estimates the sound at your ear from the fixed geometry and cancels it. Drag the noise source and watch ~10&nbsp;dB hold across the 100&ndash;1000&nbsp;Hz band.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
+        <a class="card-link" href="sonicsieve/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="40"  y1="0" x2="40"  y2="100"/>
+                <line x1="80"  y1="0" x2="80"  y2="100"/>
+                <line x1="120" y1="0" x2="120" y2="100"/>
+                <line x1="160" y1="0" x2="160" y2="100"/>
+              </g>
+              <!-- focus wedge -->
+              <path d="M 100 86 L 70 14 L 130 14 Z" fill="rgba(42,139,42,0.16)" stroke="rgba(42,139,42,0.5)" stroke-width="0.7"/>
+              <!-- pinna spiral microstructure at origin -->
+              <g fill="none" stroke="#E8B923" stroke-width="1.4" stroke-linecap="round">
+                <path d="M 100 86 C 90 84 88 74 96 72 C 104 70 106 80 99 81"/>
+              </g>
+              <circle cx="100" cy="86" r="1.6" fill="#E8B923"/>
+              <!-- target ray + puck (green, inside wedge) -->
+              <line x1="100" y1="86" x2="86" y2="20" stroke="#2a8b2a" stroke-width="0.8" stroke-dasharray="3 3"/>
+              <circle cx="86" cy="20" r="4.5" fill="#2a8b2a" stroke="#fff" stroke-width="1"/>
+              <!-- interferer ray + puck (red, outside wedge) -->
+              <line x1="100" y1="86" x2="168" y2="40" stroke="#bc122a" stroke-width="0.8" stroke-dasharray="3 3"/>
+              <circle cx="168" cy="40" r="4.5" fill="#bc122a" stroke="#fff" stroke-width="1"/>
+              <!-- two spectral fingerprints with notches, top strip -->
+              <path d="M 12 30 L 24 28 L 30 40 L 36 27 L 48 30 L 54 41 L 60 28 L 70 30"
+                    fill="none" stroke="#2a8b2a" stroke-width="1.1"/>
+              <path d="M 12 34 L 22 33 L 28 33 L 34 44 L 42 33 L 50 34 L 58 45 L 66 34 L 70 34"
+                    fill="none" stroke="#bc122a" stroke-width="1.1" opacity="0.9"/>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip sim">Simulation</span>
+            <h3>SonicSieve</h3>
+            <p>A 3D-printed pinna stamps a direction-dependent notch pattern onto incoming sound, so two mics can isolate the talker you face. Drag two voices apart and watch their spectral fingerprints &mdash; and the separation gain &mdash; diverge.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
         </div>
       </section>
       <section class="tool-section" aria-labelledby="sec-signals">

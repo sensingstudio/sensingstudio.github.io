@@ -1,0 +1,1177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SonicSieve · Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --blue: #1f6feb;
+        --gold: #E8B923;
+        --green: #2a8b2a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 70ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+      }
+      input[type="range"] {
+        flex: 1 1 160px;
+        min-width: 140px;
+        accent-color: var(--red);
+      }
+      .tools {
+        display: inline-flex;
+        gap: 0;
+        border: 1px solid var(--grey-line);
+        border-radius: 7px;
+        overflow: hidden;
+        flex-wrap: wrap;
+      }
+      .tool-btn {
+        background: #fff;
+        color: var(--black);
+        border: none;
+        border-right: 1px solid var(--grey-line);
+        border-radius: 0;
+        padding: 9px 14px;
+        font-size: 12px;
+        font-family: inherit;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .tool-btn:last-child { border-right: none; }
+      .tool-btn.active { background: var(--black); color: #fff; }
+      .tool-btn:disabled { opacity: 0.4; cursor: default; }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--black);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        touch-action: none;
+        user-select: none;
+      }
+      .canvas-wrap canvas {
+        width: 100%;
+        display: block;
+      }
+      .tag {
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        font-size: 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.6);
+        font-weight: 700;
+        pointer-events: none;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--grey-text);
+        letter-spacing: 0.4px;
+      }
+      .legend span { display: inline-flex; align-items: center; gap: 7px; }
+      .swatch { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+      .swatch.dot { width: 11px; height: 11px; border-radius: 50%; }
+      .swatch.dash { height: 0; border-top: 2px dashed; background: none; }
+      .note {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin-top: 4px;
+        line-height: 1.6;
+      }
+      .note code {
+        background: rgba(0,0,0,0.05);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+      .note strong { color: var(--black); }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        background: rgba(188, 18, 42, 0.12);
+        color: var(--red);
+        border-radius: 999px;
+      }
+      .val {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        font-size: 14px;
+        min-width: 56px;
+      }
+      .hidden { display: none !important; }
+      .readouts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      @media (max-width: 760px) {
+        .readouts { grid-template-columns: repeat(2, 1fr); }
+      }
+      .readout {
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        padding: 14px 16px;
+        background: #fff;
+      }
+      .readout .k {
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .readout .v {
+        font-variant-numeric: tabular-nums;
+        font-weight: 900;
+        font-size: 24px;
+        letter-spacing: -0.5px;
+        line-height: 1.05;
+      }
+      .readout .v.good { color: var(--green); }
+      .readout .v.bad { color: var(--red); }
+      .readout .u { font-size: 12px; color: var(--grey-text); margin-top: 4px; }
+      ul.facts { margin: 8px 0 0; padding-left: 20px; }
+      ul.facts li { margin-bottom: 8px; line-height: 1.55; color: var(--grey-text); font-size: 13px; }
+      ul.facts li strong { color: var(--black); }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="SonicSieve"></header>
+    <script src="../nav.js" defer></script>
+    <main>
+      <h1>SonicSieve</h1>
+      <p class="lead">Your ear can tell a voice in front of you from one behind without turning your head &mdash; the folds of your <strong>pinna</strong> color each direction with its own pattern of spectral notches, and your brain reads the color. <a href="https://arxiv.org/abs/2504.10793" target="_blank" rel="noopener">SonicSieve</a> 3D-prints that trick: a hollow resin cylinder with a ring of <strong>surface holes</strong> and internal <strong>capillary tubes</strong>, clipped onto an earphone mic, stamps a <em>direction-dependent fingerprint</em> onto incoming sound &mdash; so a neural net can pull out the talker you&rsquo;re facing with just <strong>two mics</strong>, beating a flat five-mic array. Change the <strong>diameter</strong> and <strong>number of holes</strong> below and watch Fig.&nbsp;2 (per-angle coloring) and Fig.&nbsp;6 (spatial diversity) redraw.</p>
+
+      <section class="panel">
+        <h2>The microstructure — geometry</h2>
+        <div class="row">
+          <label style="min-width:96px;">Microstructure</label>
+          <div class="tools" role="group" aria-label="Toggle the acoustic microstructure">
+            <button class="tool-btn active" id="structOn" data-struct="1">Pinna-coded</button>
+            <button class="tool-btn" id="structOff" data-struct="0">Bare mic</button>
+          </div>
+          <span class="note" style="margin:0;">Bare mic &rarr; every direction sounds identical, so two mics have almost nothing to separate by.</span>
+        </div>
+        <div class="row">
+          <label for="diaSlider" style="min-width:96px;">Diameter</label>
+          <input type="range" id="diaSlider" min="10" max="24" step="0.5" value="20" />
+          <span class="val" id="diaVal" style="min-width:64px;">20 mm</span>
+          <label for="holeSlider" style="margin-left:8px;">Surface holes</label>
+          <input type="range" id="holeSlider" min="2" max="14" step="1" value="6" />
+          <span class="val" id="holeVal" style="min-width:48px;">6</span>
+        </div>
+        <div class="row">
+          <label for="focusSlider" style="min-width:96px;">Focus aim</label>
+          <input type="range" id="focusSlider" min="-90" max="90" step="1" value="-18" />
+          <span class="val" id="focusVal" style="min-width:64px;">−18°</span>
+          <label for="fovSlider" style="margin-left:8px;">Width</label>
+          <input type="range" id="fovSlider" min="10" max="90" step="2" value="30" />
+          <span class="val" id="fovVal" style="min-width:48px;">±15°</span>
+        </div>
+        <p class="note" style="margin-top:8px;">A <strong>larger diameter</strong> resonates at longer wavelengths, sliding the notch comb down into the <strong>1&ndash;8&nbsp;kHz</strong> speech band &mdash; the paper&rsquo;s 20&nbsp;mm design beats Owlet&rsquo;s 15&nbsp;mm. <strong>Holes</strong> act as virtual sound sources: too few and whole directions get attenuated; too many and the cylinder opens up, washing the coloring out. SonicSieve&rsquo;s sweet spot is <strong>20&nbsp;mm with 6 holes</strong>. The <strong>focus region</strong> is the angular wedge it keeps &mdash; the paper reports <strong>5.0&nbsp;dB</strong> gain over a 30° (±15°) wedge.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Top-down scene — drag the talkers</h2>
+        <div class="canvas-wrap" id="sceneWrap">
+          <span class="tag">Phone on the table · earphone mic + pinna microstructure</span>
+          <canvas id="scene"></canvas>
+        </div>
+        <div class="legend">
+          <span><i class="swatch dot" style="background:var(--green);"></i> Target talker (drag)</span>
+          <span><i class="swatch dot" style="background:var(--red);"></i> Interferer (drag)</span>
+          <span><i class="swatch" style="background:rgba(42,139,42,0.35);height:10px;"></i> Focus region kept</span>
+          <span><i class="swatch dash" style="border-color:rgba(255,255,255,0.4);"></i> Direction of arrival</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Figure 2 — effect of the microstructure on coloring</h2>
+        <div class="canvas-wrap">
+          <canvas id="fig2"></canvas>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:#2a8b2a;"></i> 0°</span>
+          <span><i class="swatch" style="background:#1f6feb;"></i> 60°</span>
+          <span><i class="swatch" style="background:#E8B923;"></i> 120°</span>
+          <span><i class="swatch" style="background:#bc122a;"></i> 180°</span>
+        </div>
+        <p class="note" style="margin-top:10px;">Redrawn from the paper&rsquo;s Fig.&nbsp;2. <strong>Left (bare mic):</strong> all four angles overlap &mdash; no spatial cue. <strong>Right (with microstructure):</strong> each angle leaves a distinct pattern of peaks and notches a model can learn. Grow the <strong>diameter</strong> and the structure pushes deeper into the speech band; the right panel reverts to flat lines whenever you choose <strong>Bare mic</strong>.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Directional fingerprint — magnitude vs frequency</h2>
+        <div class="canvas-wrap">
+          <span class="tag">Microstructure transfer function |H(f, θ)| · notches encode angle</span>
+          <canvas id="spectrum"></canvas>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--green);"></i> Target coloring |H(f, θ_t)|</span>
+          <span><i class="swatch" style="background:var(--red);"></i> Interferer coloring |H(f, θ_i)|</span>
+          <span><i class="swatch" style="background:var(--gold);"></i> Direction-matched mask m(f)</span>
+        </div>
+        <p class="note" style="margin-top:10px;">Each direction lands its notches at <strong>different frequencies</strong>. The net knows your target sits at <code>θ_t</code>, so it favors bands where the target&rsquo;s coloring is strong and the interferer&rsquo;s is weak (the gold mask). When the two fingerprints overlap &mdash; talkers close together, or the microstructure off &mdash; there&rsquo;s nothing to grab and the mask flattens to <code>½</code>.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Figure 6 — spatial diversity across the design</h2>
+        <div class="row" style="justify-content:space-between; align-items:flex-start;">
+          <div class="canvas-wrap" id="fig6Wrap" style="flex:1 1 320px;">
+            <span class="tag">Diversity ‖M<sub>θ1</sub>(f) − M<sub>θ2</sub>(f)‖ over a semicircle</span>
+            <canvas id="fig6"></canvas>
+          </div>
+          <div class="readout" style="flex:0 0 200px; align-self:center;">
+            <div class="k">Mean spatial diversity</div>
+            <div class="v" id="roDiv">0.13</div>
+            <div class="u" id="roDivU">D = 20 mm · 6 holes</div>
+          </div>
+        </div>
+        <p class="note" style="margin-top:10px;">Redrawn from the paper&rsquo;s Fig.&nbsp;6: each pixel is the spectral distance between two arrival angles, so the dark diagonal is &ldquo;an angle vs.&nbsp;itself.&rdquo; <strong>More yellow off the diagonal = more separable directions.</strong> Sweep the <strong>diameter</strong> up and the map lights up; crowd in too many <strong>holes</strong> and it fades back toward blue. Compare 10&nbsp;mm/10&nbsp;holes against 20&nbsp;mm/6&nbsp;holes &mdash; the SonicSieve design the authors landed on.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Result</h2>
+        <div class="readouts">
+          <div class="readout">
+            <div class="k">Signal-quality gain</div>
+            <div class="v" id="roImp">+5.0</div>
+            <div class="u">dB · target vs interferer</div>
+          </div>
+          <div class="readout">
+            <div class="k">Angular separation</div>
+            <div class="v" id="roSep">90°</div>
+            <div class="u" id="roSepU">target ↔ interferer</div>
+          </div>
+          <div class="readout">
+            <div class="k">Fingerprint distance</div>
+            <div class="v" id="roDist">0.42</div>
+            <div class="u">dex · spectral contrast</div>
+          </div>
+          <div class="readout">
+            <div class="k">Interferer</div>
+            <div class="v" id="roFocus">OUTSIDE</div>
+            <div class="u" id="roFocusU">of focus region</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:18px;">
+          <label style="min-width:96px;">Listen</label>
+          <div class="tools" role="group" aria-label="Play synthesized audio">
+            <button class="tool-btn" id="playTarget">Target only</button>
+            <button class="tool-btn" id="playMix">Mixture</button>
+            <button class="tool-btn" id="playOut">SonicSieve out</button>
+            <button class="tool-btn" id="playStop">Stop</button>
+          </div>
+          <span class="note" style="margin:0;" id="audioNote">Two synthetic vowels, colored by the microstructure, then masked by direction.</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>How it works</h2>
+        <ul class="facts">
+          <li>A microphone array localizes by <strong>time-of-arrival differences</strong> between elements &mdash; which needs many mics spread wide. SonicSieve instead borrows the <strong>pinna&rsquo;s</strong> trick: a passive shape that turns <em>direction</em> into a <strong>spectral pattern</strong> on a single channel, so the cue lives in the <em>color</em> of the sound, not the spacing of sensors.</li>
+          <li>The microstructure is a clip-on <strong>3D-printed resin cylinder</strong> on the in-line mic of cheap wired earphones &mdash; <strong>no electronics, no power</strong>. A ring of <strong>surface holes</strong> acts as virtual sound sources; sound from each angle <code>θ</code> couples into the holes facing it, travels <strong>capillary tubes of differing length</strong> to the mic, and the delayed copies interfere into <strong>angle-dependent notches</strong>.</li>
+          <li><strong>Diameter sets the band.</strong> The cylinder resonates at wavelengths tied to its size, so a bigger diameter slides the notch comb down into the <strong>1&ndash;8&nbsp;kHz</strong> speech range. Owlet&rsquo;s 15&nbsp;mm design only differs above 7&nbsp;kHz; SonicSieve&rsquo;s <strong>20&nbsp;mm</strong> spreads the cues right across speech &mdash; watch the <em>Fig.&nbsp;6</em> map brighten as you widen it.</li>
+          <li><strong>Holes have a sweet spot.</strong> Too few and whole swaths of directions never couple in (they get attenuated and look alike); too many and the wall between holes vanishes &mdash; the cylinder becomes acoustically open and the coloring washes out. The authors tuned a ten-hole design down to <strong>6 strategically placed holes</strong>.</li>
+          <li>Because each angle prints a <strong>distinct fingerprint</strong>, an on-device neural net extracts a target by <em>direction</em> &mdash; reported <strong>5.0&nbsp;dB</strong> gain over a 30° region, <strong>two mics out-performing a flat five-mic array</strong>. But separation lives or dies on <strong>fingerprint distance</strong>: two talkers close in angle share nearly the same notches and the gain collapses; pull them apart and the target pops out.</li>
+        </ul>
+      </section>
+
+      <footer style="margin-top:48px; padding-top:24px; border-top:1px solid var(--grey-line); font-size:13px; letter-spacing:0.5px; color:var(--grey-text); display:flex; align-items:center; justify-content:center; gap:8px;">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; color:var(--black); text-decoration:none; font-weight:700;">
+          <img src="../semanticsignals-logo.png" alt="" style="height:20px; width:auto;" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      "use strict";
+      const C = 343;                 // speed of sound, m/s
+      const $ = id => document.getElementById(id);
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      const dB = x => 20 * Math.log10(Math.max(x, 1e-6));
+
+      // ---------- state ----------
+      const state = {
+        structOn: true,
+        holes: 6,                    // number of surface holes
+        diaM: 0.020,                 // cylinder diameter, m
+        focusDeg: -18,               // focus aim (azimuth, deg)
+        fovDeg: 30,                  // full focus width (deg)
+        targetDeg: -18,              // target talker azimuth
+        interfDeg: 55,               // interferer azimuth
+      };
+
+      // ---------- the acoustic microstructure ----------
+      // A hollow cylinder of diameter D with N surface holes. Each hole couples to
+      // a source by how directly it faces it (cos^p directivity), then the captured
+      // wave runs a capillary tube of hole-specific length to the central mic. The
+      // delayed copies interfere into angle-dependent notches; a larger D scales the
+      // tube delays (notches slide down into the speech band), and crowding too many
+      // holes opens the wall up (a density "washout" toward the bare-mic response).
+      const HOLE_D = 0.0022;         // effective hole width, m
+      const FILL0  = 0.54;           // circumference fill fraction at half washout
+      const PDIR   = 1.6;            // hole directivity exponent
+      const frac = x => x - Math.floor(x);
+
+      function holePhis(N) {         // hole positions around the front semicircle
+        const o = [];
+        for (let k = 0; k < N; k++) o.push((-14 + (k + 0.5) / N * 208) * Math.PI / 180);
+        return o;
+      }
+      function tubeDelays(N, D) {    // capillary path delay per hole (scales with D)
+        const o = [];
+        for (let k = 0; k < N; k++) {
+          const L = D * (2.1 + 0.9 * frac(0.618 * (k + 1) + 0.13));
+          o.push((D * 0.5 + L) / C);
+        }
+        return o;
+      }
+      // |M_θ(f)| — magnitude of the microstructure's direction-specific filter
+      function Hmag(f, thetaRad) {
+        if (!state.structOn) return 1;
+        const N = state.holes, D = state.diaM;
+        const phi = holePhis(N), tau = tubeDelays(N, D);
+        let re = 0, im = 0;
+        for (let k = 0; k < N; k++) {
+          let w = Math.cos(thetaRad - phi[k]);
+          w = w > 0 ? Math.pow(w, PDIR) : 0;
+          const a = 2 * Math.PI * f * tau[k];
+          re += w * Math.cos(a);
+          im -= w * Math.sin(a);
+        }
+        const s = 1 / Math.sqrt(N);
+        re *= s; im *= s;
+        // hole-density washout: blend toward the flat (bare-mic) response as the
+        // holes crowd the circumference and the structure opens up
+        const fill = N * HOLE_D / (Math.PI * D);
+        const kk = Math.exp(-Math.pow(fill / FILL0, 2));
+        re = kk * re + (1 - kk);
+        im = kk * im;
+        return Math.hypot(re, im);
+      }
+
+      // ---------- analysis grid (speech band) ----------
+      const FMIN = 200, FMAX = 8000, NF = 200;
+      const grid = Array.from({ length: NF }, (_, i) =>
+        FMIN * Math.pow(FMAX / FMIN, i / (NF - 1)));   // log-spaced
+      // speech-shaped weight: emphasize 1–4 kHz
+      const wspeech = grid.map(f => {
+        const lo = 1 / (1 + Math.pow(300 / f, 4));
+        const hi = 1 / (1 + Math.pow(f / 4200, 3));
+        return lo * hi;
+      });
+
+      const deg2rad = d => d * Math.PI / 180;
+
+      // direction-matched ratio mask m(f) favoring the target coloring.
+      // a higher power sharpens the mask toward a confident keep/reject decision.
+      const MASK_P = 3;
+      function maskAt(f, thT, thI) {
+        const ht = Math.pow(Hmag(f, thT), MASK_P);
+        const hi = Math.pow(Hmag(f, thI), MASK_P);
+        return ht / (ht + hi + 1e-9);
+      }
+
+      // RMS log-magnitude distance between two directions' fingerprints (dex)
+      function fingerprintDistance(thT, thI) {
+        let acc = 0, wsum = 0;
+        for (let i = 0; i < NF; i++) {
+          const a = Math.log10(Hmag(grid[i], thT) + 0.05);
+          const b = Math.log10(Hmag(grid[i], thI) + 0.05);
+          acc += wspeech[i] * (a - b) * (a - b);
+          wsum += wspeech[i];
+        }
+        return Math.sqrt(acc / wsum);
+      }
+
+      // predicted signal-quality gain (dB). Driven by the genuine fingerprint
+      // distance between the two directions, gated by the focus geometry and
+      // calibrated so a well-aimed 30° focus lands near the paper's ~5 dB.
+      function predictGain(thT, thI) {
+        if (!state.structOn) return 0;
+        // interferer inside the focus wedge -> can't separate it by direction
+        const inFocus = Math.abs(state.interfDeg - state.focusDeg) <= state.fovDeg / 2;
+        if (inFocus) return 0;
+        const d = fingerprintDistance(thT, thI);
+        const dp = Math.pow(d, 3.3);
+        const base = 7.0 * dp / (dp + Math.pow(0.23, 3.3));    // saturating Hill curve
+        // the target should sit inside the focus wedge; fade as it drifts out
+        const aimErr = Math.abs(state.targetDeg - state.focusDeg);
+        const aimFade = clamp(1 - Math.max(0, aimErr - state.fovDeg / 2) / 45, 0.2, 1);
+        return base * aimFade;
+      }
+
+      // ---------- spatial diversity (Fig. 6) ----------
+      // Pairwise spectral distance ‖M_θ1 − M_θ2‖ between arrival angles across a
+      // semicircle. Speech-weighted, on a coarse frequency grid for speed.
+      const DIV_NF = 80;
+      const divGrid = Array.from({ length: DIV_NF }, (_, i) =>
+        300 * Math.pow(8000 / 300, i / (DIV_NF - 1)));
+      const divW = divGrid.map(f =>
+        (1 / (1 + Math.pow(f / 4800, 3))) * (1 / (1 + Math.pow(650 / f, 3))));
+      function pairDiversity(th1, th2) {
+        let d = 0, w = 0;
+        for (let q = 0; q < DIV_NF; q++) {
+          const m1 = Hmag(divGrid[q], th1), m2 = Hmag(divGrid[q], th2);
+          d += divW[q] * (m1 - m2) * (m1 - m2);
+          w += divW[q];
+        }
+        return Math.sqrt(d / w);
+      }
+
+      // ============================================================
+      //  CANVAS: top-down scene
+      // ============================================================
+      const scene = $('scene'), sctx = scene.getContext('2d');
+      const sceneWrap = $('sceneWrap');
+      let SW = 0, SH = 0, originX = 0, originY = 0, radius = 0;
+
+      function sizeScene() {
+        const dpr = window.devicePixelRatio || 1;
+        SW = sceneWrap.clientWidth;
+        SH = Math.round(clamp(SW * 0.52, 280, 440));
+        scene.width = SW * dpr; scene.height = SH * dpr;
+        scene.style.height = SH + 'px';
+        sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        originX = SW / 2;
+        originY = SH - 46;
+        radius = Math.min(SW / 2 - 36, SH - 86);
+      }
+
+      // azimuth (deg, -90..90, 0 = straight up) -> canvas point on the arc
+      function azToXY(deg, r) {
+        const a = deg2rad(deg);
+        return { x: originX + Math.sin(a) * r, y: originY - Math.cos(a) * r };
+      }
+      function xyToAz(x, y) {
+        const dx = x - originX, dy = originY - y;
+        return clamp(Math.atan2(dx, Math.max(dy, 1)) * 180 / Math.PI, -90, 90);
+      }
+
+      function drawScene() {
+        sctx.clearRect(0, 0, SW, SH);
+
+        // focus wedge
+        const half = state.fovDeg / 2;
+        const wedgeA = state.focusDeg - half, wedgeB = state.focusDeg + half;
+        sctx.beginPath();
+        sctx.moveTo(originX, originY);
+        for (let d = wedgeA; d <= wedgeB + 0.001; d += 2) {
+          const p = azToXY(d, radius); sctx.lineTo(p.x, p.y);
+        }
+        sctx.closePath();
+        sctx.fillStyle = 'rgba(42,139,42,0.16)';
+        sctx.fill();
+        sctx.strokeStyle = 'rgba(42,139,42,0.5)';
+        sctx.lineWidth = 1.2;
+        sctx.stroke();
+
+        // focus aim line
+        const aim = azToXY(state.focusDeg, radius);
+        sctx.strokeStyle = 'rgba(42,139,42,0.7)';
+        sctx.setLineDash([5, 5]);
+        sctx.beginPath(); sctx.moveTo(originX, originY); sctx.lineTo(aim.x, aim.y); sctx.stroke();
+        sctx.setLineDash([]);
+
+        // arc + angle ticks
+        sctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        sctx.lineWidth = 1;
+        sctx.beginPath();
+        for (let d = -90; d <= 90; d += 1) {
+          const p = azToXY(d, radius);
+          if (d === -90) sctx.moveTo(p.x, p.y); else sctx.lineTo(p.x, p.y);
+        }
+        sctx.stroke();
+        sctx.fillStyle = 'rgba(255,255,255,0.4)';
+        sctx.font = '11px Roboto, sans-serif';
+        sctx.textAlign = 'center';
+        for (let d = -90; d <= 90; d += 30) {
+          const p = azToXY(d, radius + 16);
+          sctx.fillText((d > 0 ? '+' : '') + d + '°', p.x, p.y + 4);
+        }
+
+        // microstructure (cylinder + surface holes) at origin
+        drawMicrostructure(originX, originY);
+
+        // direction rays + source pucks
+        drawSource(state.targetDeg, '#2a8b2a', 'TARGET');
+        drawSource(state.interfDeg, '#bc122a', 'NOISE');
+      }
+
+      function drawMicrostructure(cx, cy) {
+        // phone body
+        sctx.fillStyle = 'rgba(255,255,255,0.10)';
+        sctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        sctx.lineWidth = 1.4;
+        sctx.beginPath();
+        sctx.roundRect(cx - 30, cy - 6, 60, 28, 5);
+        sctx.fill(); sctx.stroke();
+
+        const diaMm = state.diaM * 1000;
+        const R = 10 + (diaMm - 10) / 14 * 12;   // 10mm -> 10px, 24mm -> 22px
+        const on = state.structOn;
+        const gold = 'rgba(232,185,35,0.95)';
+        const grey = 'rgba(255,255,255,0.32)';
+
+        // cylinder wall
+        sctx.strokeStyle = on ? gold : grey;
+        sctx.fillStyle = on ? 'rgba(232,185,35,0.08)' : 'rgba(255,255,255,0.04)';
+        sctx.lineWidth = 2;
+        sctx.beginPath(); sctx.arc(cx, cy - 2, R, 0, 2 * Math.PI); sctx.fill(); sctx.stroke();
+
+        if (on) {
+          const phi = holePhis(state.holes);
+          for (const a of phi) {
+            const hx = cx + Math.sin(a) * R, hy = (cy - 2) - Math.cos(a) * R;
+            // capillary tube hint from hole toward the mic
+            sctx.strokeStyle = 'rgba(232,185,35,0.35)';
+            sctx.lineWidth = 1;
+            sctx.beginPath(); sctx.moveTo(hx, hy); sctx.lineTo(cx, cy - 2); sctx.stroke();
+            // hole (punch a dark hole, ringed gold)
+            sctx.fillStyle = '#0c0c0e';
+            sctx.beginPath(); sctx.arc(hx, hy, 2.6, 0, 2 * Math.PI); sctx.fill();
+            sctx.strokeStyle = gold; sctx.lineWidth = 1.4;
+            sctx.beginPath(); sctx.arc(hx, hy, 2.6, 0, 2 * Math.PI); sctx.stroke();
+          }
+        }
+        // mic dot at center
+        sctx.fillStyle = on ? '#E8B923' : 'rgba(255,255,255,0.6)';
+        sctx.beginPath(); sctx.arc(cx, cy - 2, 2.4, 0, 2 * Math.PI); sctx.fill();
+      }
+
+      function drawSource(deg, color, lab) {
+        const ray = azToXY(deg, radius);
+        sctx.strokeStyle = color + '88';
+        sctx.setLineDash([4, 4]);
+        sctx.lineWidth = 1.2;
+        sctx.beginPath(); sctx.moveTo(originX, originY); sctx.lineTo(ray.x, ray.y); sctx.stroke();
+        sctx.setLineDash([]);
+        const p = azToXY(deg, radius);
+        // little wave arcs near the puck
+        sctx.strokeStyle = color;
+        sctx.lineWidth = 1.2;
+        const ia = deg2rad(deg);
+        for (let k = 1; k <= 3; k++) {
+          sctx.beginPath();
+          sctx.arc(p.x, p.y, 6 + k * 4, ia + Math.PI - 0.8, ia + Math.PI + 0.8);
+          sctx.stroke();
+        }
+        // puck
+        sctx.fillStyle = color;
+        sctx.strokeStyle = '#fff';
+        sctx.lineWidth = 1.5;
+        sctx.beginPath(); sctx.arc(p.x, p.y, 9, 0, 2 * Math.PI); sctx.fill(); sctx.stroke();
+        sctx.fillStyle = '#fff';
+        sctx.font = '700 10px Roboto, sans-serif';
+        sctx.textAlign = 'center';
+        sctx.fillText(lab, p.x, p.y - 16);
+      }
+
+      // dragging
+      let dragging = null;
+      function pickHandle(x, y) {
+        const pt = azToXY(state.targetDeg, radius);
+        const pi = azToXY(state.interfDeg, radius);
+        const dt = Math.hypot(x - pt.x, y - pt.y);
+        const di = Math.hypot(x - pi.x, y - pi.y);
+        if (dt < 22 && dt <= di) return 'target';
+        if (di < 22) return 'interf';
+        return null;
+      }
+      function pointerPos(e) {
+        const r = scene.getBoundingClientRect();
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+      }
+      function onDown(e) {
+        const { x, y } = pointerPos(e);
+        dragging = pickHandle(x, y);
+        if (dragging) { e.preventDefault(); onMove(e); }
+      }
+      function onMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const { x, y } = pointerPos(e);
+        const az = xyToAz(x, y);
+        if (dragging === 'target') state.targetDeg = az; else state.interfDeg = az;
+        render();
+      }
+      function onUp() { dragging = null; }
+      scene.addEventListener('mousedown', onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      scene.addEventListener('touchstart', onDown, { passive: false });
+      scene.addEventListener('touchmove', onMove, { passive: false });
+      scene.addEventListener('touchend', onUp);
+
+      // ============================================================
+      //  CANVAS: spectral fingerprint
+      // ============================================================
+      const spec = $('spectrum'), pctx = spec.getContext('2d');
+      let PW = 0, PH = 0;
+      function sizeSpec() {
+        const dpr = window.devicePixelRatio || 1;
+        PW = spec.parentElement.clientWidth;
+        PH = Math.round(clamp(PW * 0.42, 220, 320));
+        spec.width = PW * dpr; spec.height = PH * dpr;
+        spec.style.height = PH + 'px';
+        pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      const padL = 46, padR = 14, padT = 16, padB = 30;
+      const DBMIN = -26, DBMAX = 10;
+      function fx(f) {
+        const t = Math.log(f / FMIN) / Math.log(FMAX / FMIN);
+        return padL + t * (PW - padL - padR);
+      }
+      function dy(v) {
+        const t = (v - DBMIN) / (DBMAX - DBMIN);
+        return PH - padB - t * (PH - padT - padB);
+      }
+      function drawSpectrum() {
+        pctx.clearRect(0, 0, PW, PH);
+        // grid
+        pctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        pctx.fillStyle = 'rgba(255,255,255,0.4)';
+        pctx.font = '10px Roboto, sans-serif';
+        pctx.lineWidth = 1;
+        pctx.textAlign = 'center';
+        [250, 500, 1000, 2000, 4000, 7000].forEach(f => {
+          if (f < FMIN || f > FMAX) return;
+          const x = fx(f);
+          pctx.beginPath(); pctx.moveTo(x, padT); pctx.lineTo(x, PH - padB); pctx.stroke();
+          pctx.fillText(f >= 1000 ? (f / 1000) + 'k' : f + '', x, PH - padB + 14);
+        });
+        pctx.textAlign = 'right';
+        [-20, -10, 0, 10].forEach(v => {
+          const y = dy(v);
+          pctx.strokeStyle = v === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)';
+          pctx.beginPath(); pctx.moveTo(padL, y); pctx.lineTo(PW - padR, y); pctx.stroke();
+          pctx.fillStyle = 'rgba(255,255,255,0.4)';
+          pctx.fillText(v + (v === 10 ? ' dB' : ''), padL - 6, y + 3);
+        });
+
+        const thT = deg2rad(state.targetDeg), thI = deg2rad(state.interfDeg);
+
+        // mask m(f) as a filled gold band (0..1 mapped across plot height)
+        pctx.beginPath();
+        for (let i = 0; i < NF; i++) {
+          const x = fx(grid[i]);
+          const m = state.structOn ? maskAt(grid[i], thT, thI) : 0.5;
+          const y = PH - padB - m * (PH - padT - padB);
+          if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y);
+        }
+        pctx.lineTo(fx(FMAX), PH - padB);
+        pctx.lineTo(fx(FMIN), PH - padB);
+        pctx.closePath();
+        pctx.fillStyle = 'rgba(232,185,35,0.10)';
+        pctx.fill();
+        pctx.strokeStyle = 'rgba(232,185,35,0.85)';
+        pctx.lineWidth = 1.4;
+        pctx.beginPath();
+        for (let i = 0; i < NF; i++) {
+          const x = fx(grid[i]);
+          const m = state.structOn ? maskAt(grid[i], thT, thI) : 0.5;
+          const y = PH - padB - m * (PH - padT - padB);
+          if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y);
+        }
+        pctx.stroke();
+
+        // coloring curves
+        const drawH = (th, color) => {
+          pctx.strokeStyle = color;
+          pctx.lineWidth = 2;
+          pctx.beginPath();
+          for (let i = 0; i < NF; i++) {
+            const x = fx(grid[i]);
+            const y = dy(clamp(dB(Hmag(grid[i], th)), DBMIN, DBMAX));
+            if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y);
+          }
+          pctx.stroke();
+        };
+        drawH(thI, '#bc122a');
+        drawH(thT, '#2a8b2a');
+      }
+
+      // ============================================================
+      //  READOUTS
+      // ============================================================
+      function updateReadouts() {
+        const thT = deg2rad(state.targetDeg), thI = deg2rad(state.interfDeg);
+        const sep = Math.abs(state.targetDeg - state.interfDeg);
+        const dist = state.structOn ? fingerprintDistance(thT, thI) : 0;
+        const gain = predictGain(thT, thI);
+        const inFocus = Math.abs(state.interfDeg - state.focusDeg) <= state.fovDeg / 2;
+
+        const gEl = $('roImp');
+        gEl.textContent = (gain >= 0.05 ? '+' : '') + gain.toFixed(1);
+        gEl.className = 'v ' + (gain >= 2 ? 'good' : (gain < 0.5 ? 'bad' : ''));
+
+        $('roSep').textContent = Math.round(sep) + '°';
+        $('roDist').textContent = dist.toFixed(2);
+        const fEl = $('roFocus');
+        fEl.textContent = inFocus ? 'INSIDE' : 'OUTSIDE';
+        fEl.className = 'v ' + (inFocus ? 'bad' : 'good');
+        $('roFocusU').textContent = inFocus ? 'can’t separate by angle' : 'of focus region';
+      }
+
+      // mean off-diagonal spatial diversity over the semicircle (Fig. 6 summary)
+      function meanDiversity() {
+        if (!state.structOn) return 0;
+        let acc = 0, cnt = 0;
+        const A = 13;
+        for (let i = 0; i < A; i++) for (let j = 0; j < A; j++) {
+          if (i === j) continue;
+          acc += pairDiversity(i / (A - 1) * Math.PI, j / (A - 1) * Math.PI);
+          cnt++;
+        }
+        return acc / cnt;
+      }
+
+      // ============================================================
+      //  AUDIO — additive vowels, colored, then direction-masked
+      // ============================================================
+      let actx = null, activeSrc = null;
+      const VOICES = {
+        target: { f0: 132, formants: [620, 1100, 2600], bw: [70, 100, 160] },
+        interf: { f0: 205, formants: [420, 1900, 2700], bw: [60, 110, 150] },
+      };
+      function formantEnv(f, v) {
+        let g = 0.04;
+        for (let i = 0; i < v.formants.length; i++) {
+          const F = v.formants[i], B = v.bw[i];
+          g += 1 / (1 + Math.pow((f - F) / B, 2));
+        }
+        return g;
+      }
+      // render one voice into a Float32 buffer; returns the array
+      function renderVoice(buf, v, thetaRad, maskFn, gain) {
+        const sr = actx.sampleRate, N = buf.length;
+        const nH = Math.floor((FMAX) / v.f0);
+        for (let n = 1; n <= nH; n++) {
+          const f = n * v.f0;
+          if (f > FMAX) break;
+          let amp = formantEnv(f, v) * Math.pow(n, -0.7);
+          amp *= Hmag(f, thetaRad);
+          if (maskFn) amp *= maskFn(f);
+          if (amp < 1e-4) continue;
+          const w = 2 * Math.PI * f / sr;
+          const ph = (n * 1.6180339) % (2 * Math.PI);   // fixed pseudo-random phase
+          for (let i = 0; i < N; i++) buf[i] += gain * amp * Math.sin(w * i + ph);
+        }
+      }
+      // syllable amplitude envelope (makes it speechy, not a drone)
+      function applyEnvelope(buf, sr, seed) {
+        const N = buf.length;
+        for (let i = 0; i < N; i++) {
+          const t = i / sr;
+          let e = 0.55 + 0.45 * Math.sin(2 * Math.PI * 2.7 * t + seed);
+          e *= 0.6 + 0.4 * Math.sin(2 * Math.PI * 4.3 * t + seed * 1.7);
+          const fade = Math.min(1, t / 0.04, (N / sr - t) / 0.06);
+          buf[i] *= Math.max(0, e) * Math.max(0, fade);
+        }
+      }
+      function buildBuffer(kind) {
+        const sr = actx.sampleRate, dur = 1.7, N = Math.floor(sr * dur);
+        const ab = actx.createBuffer(1, N, sr);
+        const ch = ab.getChannelData(0);
+        const thT = deg2rad(state.targetDeg), thI = deg2rad(state.interfDeg);
+        const tmpT = new Float32Array(N), tmpI = new Float32Array(N);
+
+        if (kind === 'target') {
+          renderVoice(tmpT, VOICES.target, thT, null, 1);
+          applyEnvelope(tmpT, sr, 0.4);
+          for (let i = 0; i < N; i++) ch[i] = tmpT[i];
+        } else {
+          const mask = kind === 'out' && state.structOn
+            ? (f => maskAt(f, thT, thI)) : null;
+          const maskI = kind === 'out' && state.structOn
+            ? (f => maskAt(f, thT, thI)) : null;
+          renderVoice(tmpT, VOICES.target, thT, mask, 1);
+          renderVoice(tmpI, VOICES.interf, thI, maskI, 0.9);
+          applyEnvelope(tmpT, sr, 0.4);
+          applyEnvelope(tmpI, sr, 2.1);
+          for (let i = 0; i < N; i++) ch[i] = tmpT[i] + tmpI[i];
+        }
+        // normalize
+        let peak = 1e-6;
+        for (let i = 0; i < N; i++) peak = Math.max(peak, Math.abs(ch[i]));
+        const g = 0.82 / peak;
+        for (let i = 0; i < N; i++) ch[i] *= g;
+        return ab;
+      }
+      function stopAudio() {
+        if (activeSrc) { try { activeSrc.stop(); } catch (e) {} activeSrc = null; }
+        ['playTarget', 'playMix', 'playOut'].forEach(id => $(id).classList.remove('active'));
+      }
+      function play(kind, btnId) {
+        if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+        if (actx.state === 'suspended') actx.resume();
+        stopAudio();
+        const ab = buildBuffer(kind);
+        const src = actx.createBufferSource();
+        src.buffer = ab; src.connect(actx.destination); src.start();
+        src.onended = () => { if (activeSrc === src) stopAudio(); };
+        activeSrc = src;
+        $(btnId).classList.add('active');
+      }
+      $('playTarget').addEventListener('click', () => play('target', 'playTarget'));
+      $('playMix').addEventListener('click', () => play('mix', 'playMix'));
+      $('playOut').addEventListener('click', () => play('out', 'playOut'));
+      $('playStop').addEventListener('click', stopAudio);
+
+      // ============================================================
+      //  CANVAS: Figure 2 — per-angle coloring, without vs with
+      // ============================================================
+      const fig2 = $('fig2'), f2ctx = fig2.getContext('2d');
+      let F2W = 0, F2H = 0;
+      const F2MIN = 1000, F2MAX = 7000, F2DBMIN = -28, F2DBMAX = 14;
+      const F2_ANGLES = [0, 60, 120, 180];
+      const F2_COLS = ['#2a8b2a', '#1f6feb', '#E8B923', '#bc122a'];
+      function sizeFig2() {
+        const dpr = window.devicePixelRatio || 1;
+        F2W = fig2.parentElement.clientWidth;
+        F2H = Math.round(clamp(F2W * 0.40, 200, 300));
+        fig2.width = F2W * dpr; fig2.height = F2H * dpr;
+        fig2.style.height = F2H + 'px';
+        f2ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      function drawF2Panel(x0, w, title, withStruct) {
+        const pl = 34, pr = 10, pt = 22, pb = 24;
+        const flat = !withStruct || !state.structOn;
+        const fxx = f => x0 + pl + (Math.log(f / F2MIN) / Math.log(F2MAX / F2MIN)) * (w - pl - pr);
+        const dyy = v => pt + (F2DBMAX - v) / (F2DBMAX - F2DBMIN) * (F2H - pt - pb);
+        // frame + title
+        f2ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        f2ctx.font = '700 11px Roboto, sans-serif';
+        f2ctx.textAlign = 'center';
+        f2ctx.fillText(title, x0 + (pl + w - pr) / 2, pt - 8);
+        // grid
+        f2ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        f2ctx.lineWidth = 1;
+        f2ctx.font = '9px Roboto, sans-serif';
+        f2ctx.fillStyle = 'rgba(255,255,255,0.38)';
+        [1000, 3000, 5000, 7000].forEach(f => {
+          const x = fxx(f);
+          f2ctx.beginPath(); f2ctx.moveTo(x, pt); f2ctx.lineTo(x, F2H - pb); f2ctx.stroke();
+          f2ctx.textAlign = 'center'; f2ctx.fillText((f / 1000) + 'k', x, F2H - pb + 12);
+        });
+        f2ctx.textAlign = 'right';
+        [-20, 0, 10].forEach(v => {
+          const y = dyy(v);
+          f2ctx.strokeStyle = v === 0 ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.06)';
+          f2ctx.beginPath(); f2ctx.moveTo(x0 + pl, y); f2ctx.lineTo(x0 + w - pr, y); f2ctx.stroke();
+          f2ctx.fillStyle = 'rgba(255,255,255,0.38)';
+          f2ctx.fillText(v, x0 + pl - 4, y + 3);
+        });
+        // angle curves
+        F2_ANGLES.forEach((deg, ai) => {
+          const th = deg2rad(deg);
+          const off = flat ? (ai - 1.5) * 0.8 : 0;   // tiny spread so flat lines read as 4
+          f2ctx.strokeStyle = F2_COLS[ai];
+          f2ctx.lineWidth = 1.6;
+          f2ctx.globalAlpha = flat ? 0.7 : 0.95;
+          f2ctx.beginPath();
+          let started = false;
+          for (let i = 0; i < NF; i++) {
+            const f = grid[i];
+            if (f < F2MIN || f > F2MAX) continue;
+            const v = clamp(dB(withStruct ? Hmag(f, th) : 1) + off, F2DBMIN, F2DBMAX);
+            const x = fxx(f), y = dyy(v);
+            if (!started) { f2ctx.moveTo(x, y); started = true; } else f2ctx.lineTo(x, y);
+          }
+          f2ctx.stroke();
+        });
+        f2ctx.globalAlpha = 1;
+      }
+      function drawFig2() {
+        f2ctx.clearRect(0, 0, F2W, F2H);
+        const gap = 18, halfW = (F2W - gap) / 2;
+        drawF2Panel(0, halfW, 'Bare mic', false);
+        drawF2Panel(halfW + gap, halfW, 'With microstructure', true);
+        // divider
+        f2ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        f2ctx.beginPath(); f2ctx.moveTo(F2W / 2, 14); f2ctx.lineTo(F2W / 2, F2H - 18); f2ctx.stroke();
+      }
+
+      // ============================================================
+      //  CANVAS: Figure 6 — spatial-diversity heatmap (cached)
+      // ============================================================
+      const fig6 = $('fig6'), f6ctx = fig6.getContext('2d');
+      const fig6Wrap = $('fig6Wrap');
+      let F6W = 0, F6H = 0;
+      const DIV_A = 46, FIXED_DIV = 0.40;
+      let divMatrix = new Float32Array(DIV_A * DIV_A), divMeanVal = 0;
+      const offc = document.createElement('canvas');
+      offc.width = DIV_A; offc.height = DIV_A;
+      const offctx = offc.getContext('2d');
+
+      function computeDivMatrix() {
+        let sum = 0, cnt = 0;
+        for (let i = 0; i < DIV_A; i++) {
+          const t1 = i / (DIV_A - 1) * Math.PI;
+          for (let j = 0; j <= i; j++) {
+            const t2 = j / (DIV_A - 1) * Math.PI;
+            const v = state.structOn ? pairDiversity(t1, t2) : 0;
+            divMatrix[i * DIV_A + j] = v;
+            divMatrix[j * DIV_A + i] = v;
+            if (i !== j) { sum += 2 * v; cnt += 2; }
+          }
+        }
+        divMeanVal = cnt ? sum / cnt : 0;
+      }
+      // parula-like blue -> teal -> green -> yellow
+      function palette(t) {
+        const stops = [
+          [0.00, 53, 42, 135], [0.35, 16, 110, 190],
+          [0.62, 60, 185, 130], [1.00, 249, 231, 33]];
+        for (let s = 1; s < stops.length; s++) {
+          if (t <= stops[s][0]) {
+            const a = stops[s - 1], b = stops[s];
+            const u = (t - a[0]) / (b[0] - a[0]);
+            return [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u, a[3] + (b[3] - a[3]) * u];
+          }
+        }
+        return [249, 231, 33];
+      }
+      function renderDivImage() {
+        const img = offctx.createImageData(DIV_A, DIV_A);
+        for (let i = 0; i < DIV_A; i++) {
+          for (let j = 0; j < DIV_A; j++) {
+            const t = clamp(divMatrix[i * DIV_A + j] / FIXED_DIV, 0, 1);
+            const c = palette(t);
+            const idx = (i * DIV_A + j) * 4;
+            img.data[idx] = c[0]; img.data[idx + 1] = c[1]; img.data[idx + 2] = c[2]; img.data[idx + 3] = 255;
+          }
+        }
+        offctx.putImageData(img, 0, 0);
+      }
+      function sizeFig6() {
+        const dpr = window.devicePixelRatio || 1;
+        F6W = fig6Wrap.clientWidth;
+        F6H = Math.round(clamp(F6W * 0.82, 220, 340));
+        fig6.width = F6W * dpr; fig6.height = F6H * dpr;
+        fig6.style.height = F6H + 'px';
+        f6ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      function drawFig6() {
+        f6ctx.clearRect(0, 0, F6W, F6H);
+        const ml = 34, mr = 56, mt = 24, mb = 28;
+        const pw = F6W - ml - mr, ph = F6H - mt - mb;
+        // heatmap (scaled from the cached offscreen image)
+        f6ctx.imageSmoothingEnabled = true;
+        f6ctx.drawImage(offc, ml, mt, pw, ph);
+        f6ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        f6ctx.lineWidth = 1;
+        f6ctx.strokeRect(ml, mt, pw, ph);
+        // axes labels
+        f6ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        f6ctx.font = '10px Roboto, sans-serif';
+        f6ctx.textAlign = 'center';
+        [0, 60, 120, 180].forEach(a => {
+          const x = ml + a / 180 * pw, y = mt + a / 180 * ph;
+          f6ctx.fillText(a + '°', x, F6H - mb + 13);
+          f6ctx.textAlign = 'right'; f6ctx.fillText(a + '°', ml - 5, y + 3); f6ctx.textAlign = 'center';
+        });
+        f6ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        f6ctx.font = '700 10px Roboto, sans-serif';
+        f6ctx.fillText('arrival angle θ₂', ml + pw / 2, F6H - 4);
+        // colorbar
+        const cbx = ml + pw + 16, cbw = 12, cbTop = mt, cbH = ph;
+        for (let s = 0; s < cbH; s++) {
+          const t = 1 - s / cbH, c = palette(t);
+          f6ctx.fillStyle = `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;
+          f6ctx.fillRect(cbx, cbTop + s, cbw, 1);
+        }
+        f6ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        f6ctx.strokeRect(cbx, cbTop, cbw, cbH);
+        f6ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        f6ctx.font = '9px Roboto, sans-serif';
+        f6ctx.textAlign = 'left';
+        f6ctx.fillText('high', cbx + cbw + 4, cbTop + 8);
+        f6ctx.fillText('low', cbx + cbw + 4, cbTop + cbH);
+      }
+      function updateDivReadout() {
+        $('roDiv').textContent = divMeanVal.toFixed(2);
+        const dia = +(state.diaM * 1000).toFixed(1);
+        $('roDivU').textContent = state.structOn
+          ? `D = ${dia} mm · ${state.holes} holes` : 'bare mic';
+        const el = $('roDiv');
+        el.className = 'v ' + (divMeanVal >= 0.10 ? 'good' : (divMeanVal < 0.04 ? 'bad' : ''));
+      }
+      // recompute everything that depends only on the microstructure geometry
+      function refreshStructure() {
+        computeDivMatrix();
+        renderDivImage();
+        drawFig6();
+        updateDivReadout();
+      }
+
+      // ============================================================
+      //  CONTROLS
+      // ============================================================
+      function syncLabels() {
+        const dia = +(state.diaM * 1000).toFixed(1);
+        $('diaVal').textContent = dia + ' mm';
+        $('holeVal').textContent = state.holes;
+        $('focusVal').textContent = (state.focusDeg > 0 ? '+' : '') + state.focusDeg + '°';
+        $('fovVal').textContent = '±' + (state.fovDeg / 2) + '°';
+      }
+      $('diaSlider').addEventListener('input', e => {
+        state.diaM = +e.target.value / 1000; refreshStructure(); render();
+      });
+      $('holeSlider').addEventListener('input', e => {
+        state.holes = +e.target.value; refreshStructure(); render();
+      });
+      $('focusSlider').addEventListener('input', e => { state.focusDeg = +e.target.value; render(); });
+      $('fovSlider').addEventListener('input', e => { state.fovDeg = +e.target.value; render(); });
+      $('structOn').addEventListener('click', () => setStruct(true));
+      $('structOff').addEventListener('click', () => setStruct(false));
+      function setStruct(on) {
+        state.structOn = on;
+        $('structOn').classList.toggle('active', on);
+        $('structOff').classList.toggle('active', !on);
+        refreshStructure(); render();
+      }
+
+      // ============================================================
+      //  RENDER (event-driven; structure cached separately)
+      // ============================================================
+      function render() {
+        syncLabels();
+        drawScene();
+        drawFig2();
+        drawSpectrum();
+        updateReadouts();
+      }
+      function resizeAll() {
+        sizeScene(); sizeFig2(); sizeSpec(); sizeFig6();
+        render(); drawFig6();
+      }
+      window.addEventListener('resize', resizeAll);
+      computeDivMatrix();
+      renderDivImage();
+      resizeAll();
+      updateDivReadout();
+    </script>
+  </body>
+</html>

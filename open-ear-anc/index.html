@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Virtual In-Ear Sensing · Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --blue: #1f6feb;
+        --gold: #E8B923;
+        --green: #2a8b2a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 1080px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 72ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+      .row:last-child { margin-bottom: 0; }
+      label { font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--grey-text); font-weight: 500; }
+      .tools { display: inline-flex; gap: 0; border: 1px solid var(--grey-line); border-radius: 7px; overflow: hidden; flex-wrap: wrap; }
+      .tool-btn {
+        background: #fff; color: var(--black); border: none;
+        border-right: 1px solid var(--grey-line); border-radius: 0;
+        padding: 9px 14px; font-size: 12px; font-family: inherit; font-weight: 700;
+        letter-spacing: 0.6px; text-transform: uppercase; cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .tool-btn:last-child { border-right: none; }
+      .tool-btn.active { background: var(--black); color: #fff; }
+      button.act {
+        font-family: inherit; font-weight: 700; font-size: 12px; letter-spacing: 0.6px;
+        text-transform: uppercase; padding: 9px 16px; border: 1px solid var(--black);
+        background: #fff; color: var(--black); border-radius: 6px; cursor: pointer;
+      }
+      button.act.on { background: var(--black); color: #fff; }
+      .canvas-wrap {
+        position: relative; background: #0c0c0e; border-radius: 6px; overflow: hidden;
+        touch-action: none; user-select: none;
+      }
+      .canvas-wrap canvas { width: 100%; display: block; }
+      #sceneWrap { cursor: grab; }
+      #sceneWrap.drag { cursor: grabbing; }
+      .tag {
+        position: absolute; left: 10px; top: 8px; font-size: 10px; letter-spacing: 1px;
+        text-transform: uppercase; color: rgba(255,255,255,0.55); font-weight: 700; pointer-events: none;
+      }
+      .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--grey-text); letter-spacing: 0.4px; }
+      .legend span { display: inline-flex; align-items: center; gap: 7px; }
+      .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+      .swatch { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+      .note { font-size: 13px; color: var(--grey-text); margin-top: 4px; line-height: 1.6; }
+      .note code { background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+      .note strong { color: var(--black); }
+      .readouts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+      @media (max-width: 760px) { .readouts { grid-template-columns: repeat(2, 1fr); } }
+      .readout { border: 1px solid var(--grey-line); border-radius: 8px; padding: 14px 16px; background: #fff; }
+      .readout .k { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--grey-text); font-weight: 600; margin-bottom: 6px; }
+      .readout .v { font-variant-numeric: tabular-nums; font-weight: 900; font-size: 24px; letter-spacing: -0.5px; line-height: 1.05; }
+      .readout .v.good { color: var(--green); }
+      .readout .u { font-size: 12px; color: var(--grey-text); margin-top: 4px; }
+      ul.facts { margin: 8px 0 0; padding-left: 20px; }
+      ul.facts li { margin-bottom: 8px; line-height: 1.55; color: var(--grey-text); font-size: 13px; }
+      ul.facts li strong { color: var(--black); }
+      .paperbadge { display:inline-block; padding: 2px 8px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; background: rgba(31,111,235,0.12); color: var(--blue); border-radius: 999px; }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="Virtual In-Ear Sensing"></header>
+    <script src="../nav.js" defer></script>
+    <main>
+      <h1>Virtual In-Ear Sensing</h1>
+      <p class="lead">Open-ear wearables &mdash; smart glasses, AR headsets &mdash; can&rsquo;t put a microphone in your ear canal, so they can&rsquo;t measure the residual noise that normal ANC relies on. This simulates the approach from <em>Active noise cancellation on open-ear wearable devices</em>: an array of microphones around the glasses frame <strong>estimates the sound at your ear</strong> from the fixed frame&harr;head geometry, and the speaker plays anti-noise to cancel it &mdash; no error mic required. Drag the noise source and watch the cancellation across the 100&ndash;1000&nbsp;Hz band where real-world noise lives.</p>
+
+      <section class="panel">
+        <h2>Top-down scene &mdash; drag the noise source</h2>
+        <div class="canvas-wrap" id="sceneWrap">
+          <canvas id="scene" width="760" height="540"></canvas>
+          <span class="tag">drag the source &middot; angle + distance</span>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--red);"></i> Noise source</span>
+          <span><i class="dot" style="background:var(--green);"></i> Signal source</span>
+          <span><i class="dot" style="background:var(--gold);"></i> Active frame mic</span>
+          <span><i class="dot" style="background:rgba(255,255,255,0.25);"></i> Idle mic</span>
+          <span><i class="dot" style="background:var(--blue);"></i> Open-ear speaker</span>
+          <span><i class="dot" style="background:#fff;border:1px solid #999;"></i> Target ear</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Controls</h2>
+        <div class="row">
+          <label style="min-width:80px;">Frame mics</label>
+          <div class="tools" role="group" aria-label="Number of frame microphones">
+            <button class="tool-btn" data-mics="1">1</button>
+            <button class="tool-btn" data-mics="2">2</button>
+            <button class="tool-btn active" data-mics="4">4</button>
+            <button class="tool-btn" data-mics="8">8</button>
+          </div>
+          <span class="note" style="margin:0;">more mics &rarr; better estimate of the ear signal from the frame</span>
+        </div>
+        <div class="row">
+          <label style="min-width:80px;">Calibration</label>
+          <button class="act" id="calBtn">Off &middot; population avg</button>
+          <span class="note" style="margin:0;">a brief user-specific secondary-path calibration recovers the speaker&rarr;ear response of <em>your</em> ear</span>
+        </div>
+        <div class="row">
+          <label style="min-width:80px;" for="latencyMs">ANC latency</label>
+          <input type="range" id="latencyMs" min="0" max="1.5" step="0.01" value="0.1" style="flex:1 1 150px;" />
+          <span class="note" style="margin:0; min-width:64px;" id="latencyVal">100 µs</span>
+          <span class="note" style="margin:0;">processing delay &mdash; more latency kills high-frequency cancellation first</span>
+        </div>
+        <div class="row">
+          <label style="min-width:80px;">Mobility</label>
+          <button class="act" id="orbitBtn">Orbit source</button>
+          <span class="note" style="margin:0;">drag the <span style="color:var(--red);font-weight:700;">noise</span> and <span style="color:var(--blue);font-weight:700;">signal</span> dots to move them independently; orbit sweeps the noise around the head</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Noise reduction at the ear</h2>
+        <div class="readouts">
+          <div class="readout">
+            <div class="k">In-band reduction</div>
+            <div class="v good" id="roRed">— dB</div>
+            <div class="u">100&ndash;1000 Hz, at your ear</div>
+          </div>
+          <div class="readout">
+            <div class="k">Source angle</div>
+            <div class="v" id="roAng">—</div>
+            <div class="u">0° = straight ahead</div>
+          </div>
+          <div class="readout">
+            <div class="k">Source distance</div>
+            <div class="v" id="roDist">—</div>
+            <div class="u">drag in/out to change</div>
+          </div>
+          <div class="readout">
+            <div class="k">Calibration</div>
+            <div class="v" id="roCal">Off</div>
+            <div class="u" id="roCalU">paper: 9.6 dB → 11.2 dB</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Hear it for yourself</h2>
+        <p class="note" style="margin-top:0; margin-bottom:16px;"><strong>Put on headphones.</strong> The desired audio is Simon &amp; Garfunkel&rsquo;s <em>The Sounds of Silence</em> &mdash; fittingly, you switch on <em>noise cancellation</em> to hear it. Play it over background noise, then toggle ANC: like the glasses, it suppresses the 100&ndash;1000&nbsp;Hz noise while leaving the music untouched, so it comes through. The strength follows the mic count, calibration, and source position you set above.</p>
+        <div class="row" style="align-items:flex-start;">
+          <img id="albumArt" src="sounds-of-silence-cover.png" alt="Sounds of Silence album cover"
+               style="width:180px; height:180px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
+               onerror="this.style.display='none'" />
+          <div style="flex:1 1 280px; min-width:240px;">
+            <div class="row">
+              <button class="act on" id="playBtn">► Play</button>
+              <button class="act on" id="ancAudioBtn">ANC: ON</button>
+            </div>
+            <div class="row">
+              <span class="note" style="margin:0;" id="audioStatus">loading clip…</span>
+            </div>
+            <div class="row">
+              <label style="min-width:80px;">Desired audio</label>
+              <button class="act" id="uploadBtn">Upload your own</button>
+              <input type="file" id="speechFile" accept="audio/*" hidden />
+              <button class="act" id="ttsBtn">Speak a sample</button>
+              <label for="speechVol" style="margin-left:6px;">Level</label>
+              <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:0 1 110px;" />
+            </div>
+            <div class="row">
+              <label style="min-width:80px;">Noise</label>
+              <select id="noiseType">
+                <option value="cafe">Café / crowd rumble</option>
+                <option value="street">Street / broadband</option>
+                <option value="engine">Engine / cabin hum</option>
+                <option value="tone">Pure tone</option>
+              </select>
+              <label for="noiseVol" style="margin-left:6px;">Level</label>
+              <input type="range" id="noiseVol" min="0" max="1.5" step="0.01" value="0.85" style="flex:0 1 110px;" />
+            </div>
+            <div class="row" id="toneRow" style="display:none;">
+              <label style="min-width:80px;" for="toneFreq">Tone freq</label>
+              <input type="range" id="toneFreq" min="50" max="2000" step="5" value="220" style="flex:1 1 160px;" />
+              <span class="note" style="margin:0; min-width:64px;" id="toneFreqVal">220 Hz</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Live spectrum &mdash; noise at the ear</h2>
+        <div class="canvas-wrap">
+          <canvas id="spectrum" width="1200" height="380"></canvas>
+          <span class="tag">live FFT</span>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--red);"></i> Incoming — before ANC</span>
+          <span><i class="swatch" style="background:var(--gold);height:4px;"></i> At the ear — after ANC</span>
+        </div>
+        <p class="note" style="margin-top:12px;">A real-time FFT of the background noise, tapped <strong>before</strong> (red) and <strong>after</strong> (gold) the canceller. Press <em>Play</em>, then toggle <strong>ANC</strong>: the gold curve drops below the red across the <strong>100&ndash;1000&nbsp;Hz</strong> band (shaded) and snaps back when you turn it off. Cancellation is strongest at low frequencies and fades above ~1&nbsp;kHz &mdash; where the ear&rsquo;s acoustics are too fine-grained to infer from the frame, and where environmental noise mostly isn&rsquo;t.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Sound at the ear</h2>
+        <div class="canvas-wrap">
+          <canvas id="earscope" width="1200" height="220"></canvas>
+          <span class="tag">broadband noise vs residual</span>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--red);"></i> Incoming — before ANC</span>
+          <span><i class="swatch" style="background:var(--gold);height:4px;"></i> At the ear — after ANC</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>What you're looking at</h2>
+        <ul class="facts">
+          <li>Normal ANC puts an <strong>error mic</strong> in the ear canal to measure leftover noise. Open-ear devices leave the ear uncovered, so that mic is impossible &mdash; the system has to <strong>infer</strong> the ear signal instead.</li>
+          <li>Because the glasses hold a <strong>fixed geometry</strong> relative to your head, the sound at the ear is a predictable mix of what the frame mics hear. A set of filters (one per mic) learned from that geometry reconstructs the ear signal &mdash; <strong>virtual in-ear sensing</strong>. The anti-noise is just the negative of that estimate.</li>
+          <li>The filters are trained across a <strong>population</strong> of head shapes, so they generalize to a new user without retraining &mdash; but the population average caps the achievable reduction (~10&nbsp;dB). A brief <strong>calibration</strong> of your ear&rsquo;s speaker&rarr;ear response recovers the rest (to ~11&nbsp;dB).</li>
+          <li>Drag the source anywhere and the reduction barely changes &mdash; the array covers all directions. That spatial robustness is what lets it work <strong>under mobility</strong>, unlike fixed quiet-zone methods.</li>
+          <li>It cancels <strong>low frequencies</strong> well and high frequencies poorly: short wavelengths vary too fast across the head to predict from the frame. Conveniently, that&rsquo;s also where most environmental noise <em>isn&rsquo;t</em> &mdash; buses, engines, and HVAC live in the 100&ndash;1000&nbsp;Hz band.</li>
+          <li><span class="paperbadge">From the paper</span> 8 MEMS mics + 2 open-ear speakers on a 3D-printed frame; a neural net updates the filters every 200&nbsp;ms while a DSP applies them at 113&nbsp;µs end-to-end latency. Measured: 9.6&nbsp;dB mean reduction, 11.2&nbsp;dB with calibration.</li>
+        </ul>
+      </section>
+
+      <footer style="margin-top:48px; padding-top:24px; border-top:1px solid var(--grey-line); font-size:13px; letter-spacing:0.5px; color:var(--grey-text); display:flex; align-items:center; justify-content:center; gap:8px;">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; color:var(--black); text-decoration:none; font-weight:700;">
+          <img src="../semanticsignals-logo.png" alt="" style="height:20px; width:auto;" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      "use strict";
+      // ===================== virtual in-ear sensing model =====================
+      const C = 343;
+      const cadd=(a,b)=>[a[0]+b[0],a[1]+b[1]];
+      const csub=(a,b)=>[a[0]-b[0],a[1]-b[1]];
+      const cmul=(a,b)=>[a[0]*b[0]-a[1]*b[1], a[0]*b[1]+a[1]*b[0]];
+      const cconj=a=>[a[0],-a[1]];
+      const cabs=a=>Math.hypot(a[0],a[1]);
+      const cexpj=t=>[Math.cos(t),Math.sin(t)];
+
+      // glasses frame mic positions (meters; face forward = +y)
+      const MICS = [
+        [-0.075, 0.060],[-0.030,0.082],[0.030,0.082],[0.075,0.060],
+        [-0.090, 0.010],[-0.090,-0.045],[0.090,0.010],[0.090,-0.045]
+      ];
+      const EAR0 = [-0.095,-0.020];                 // reference (left) ear the filters fit
+      const SPK  = [-0.086, 0.004];                 // open-ear speaker near the ear
+      const MIC_ORDER = MICS.map((m,i)=>[i,Math.hypot(m[0]-EAR0[0],m[1]-EAR0[1])])
+                            .sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+
+      function H(q, P, f, aHead){                    // source P -> receiver q transfer fn
+        const k = 2*Math.PI*f/C;
+        const r = Math.max(0.05, Math.hypot(q[0]-P[0], q[1]-P[1]));
+        let val = cmul([1/r,0], cexpj(-k*r));
+        const nS = Math.hypot(P[0],P[1])||1, nQ = Math.hypot(q[0],q[1])||1;
+        const cosps = (P[0]*q[0]+P[1]*q[1])/(nS*nQ);
+        const ps = Math.acos(Math.max(-1,Math.min(1,cosps)));
+        const ka = k*aHead;
+        const shadowMin = 1/(1+0.3*ka);
+        let t = (ps-1.2)/0.6; t = Math.max(0,Math.min(1,t));
+        const shadow = 1-(1-shadowMin)*t;
+        const extra = aHead*t*ps*0.5;
+        val = cmul(val,[shadow,0]);
+        val = cmul(val, cexpj(-k*extra));
+        return val;
+      }
+      const srcPos = (thetaDeg,d)=>{ const th=thetaDeg*Math.PI/180; return [d*Math.sin(th), d*Math.cos(th)]; };
+
+      function csolve(M, b){                          // complex N×N solve
+        const n=b.length;
+        const a=M.map((row,i)=>row.map(c=>c.slice()).concat([b[i].slice()]));
+        for(let col=0;col<n;col++){
+          let piv=col; for(let r=col+1;r<n;r++) if(cabs(a[r][col])>cabs(a[piv][col])) piv=r;
+          [a[col],a[piv]]=[a[piv],a[col]];
+          const d=a[col][col]; const den=d[0]*d[0]+d[1]*d[1]; const inv=[d[0]/den,-d[1]/den];
+          for(let c=col;c<=n;c++) a[col][c]=cmul(a[col][c],inv);
+          for(let r=0;r<n;r++){ if(r===col) continue; const fac=a[r][col]; for(let c=col;c<=n;c++) a[r][c]=csub(a[r][c],cmul(fac,a[col][c])); }
+        }
+        return a.map(row=>row[n]);
+      }
+
+      const NF=32, FLO=60, FHI=2000;
+      const FREQS=Array.from({length:NF},(_,i)=>FLO*Math.pow(FHI/FLO, i/(NF-1)));
+      const inBand=f=>f>=100&&f<=1000;
+
+      // population of head/ear geometries the fixed filters train on
+      const SUBJECTS=[];
+      for(const dx of [-0.011,0,0.011]) for(const dy of [-0.007,0,0.007]) for(const a of [0.083,0.090,0.097])
+        SUBJECTS.push({ear:[EAR0[0]+dx, EAR0[1]+dy], a});
+      const USER={ear:[EAR0[0]+0.004, EAR0[1]-0.003], a:0.093};   // held-out test user
+      const TRAIN_SRC=[]; for(let a=0;a<360;a+=20) TRAIN_SRC.push(srcPos(a,1.5));
+
+      function fitWeights(nMics){
+        const idx = MIC_ORDER.slice(0,nMics);
+        const W=[];
+        for(const f of FREQS){
+          const AhA = idx.map(()=>idx.map(()=>[0,0]));
+          const Ahb = idx.map(()=>[0,0]);
+          let meanP=0, rows=0;
+          for(const subj of SUBJECTS) for(const P of TRAIN_SRC){
+            const M = idx.map(mi=>H(MICS[mi],P,f,subj.a));
+            const e = H(subj.ear,P,f,subj.a);
+            rows++;
+            for(let i=0;i<idx.length;i++){
+              meanP += M[i][0]*M[i][0]+M[i][1]*M[i][1];
+              Ahb[i]=cadd(Ahb[i], cmul(cconj(M[i]), e));
+              for(let j=0;j<idx.length;j++) AhA[i][j]=cadd(AhA[i][j], cmul(cconj(M[i]),M[j]));
+            }
+          }
+          const lam = 1e-3 * meanP/(rows*idx.length);
+          for(let i=0;i<idx.length;i++) AhA[i][i]=cadd(AhA[i][i],[lam,0]);
+          W.push({idx, w: csolve(AhA, Ahb)});
+        }
+        return W;
+      }
+
+      function Serr(f, calibrated){                   // secondary-path (speaker->ear) mismatch
+        const ms  = calibrated? 0.97 : 0.86;
+        const tau = calibrated? 6e-6 : 25e-6;
+        const ph  = calibrated? 0.03 : 0.13;
+        return cmul([ms,0], cexpj(-(2*Math.PI*f*tau+ph)));
+      }
+      // irreducible sensing floor: ear acoustics the frame mics can't predict, rising with freq
+      let _s=12345; const _rnd=()=>{_s=(1103515245*_s+12345)&0x7fffffff; return _s/0x7fffffff;};
+      const FLOOR_NOISE = FREQS.map(()=>{const a=2*Math.PI*_rnd(); return [Math.cos(a),Math.sin(a)];});
+      const floorMag=f=>0.13 + 0.72*Math.pow(f/1000, 1.4);
+
+      function earAndResidual(W, fi, P, calibrated){
+        const f=FREQS[fi]; const {idx,w}=W[fi];
+        let est=[0,0];
+        for(let i=0;i<idx.length;i++) est=cadd(est, cmul(w[i], H(MICS[idx[i]],P,f,USER.a)));
+        const ear=H(USER.ear,P,f,USER.a);
+        const u = cmul([floorMag(f)*cabs(ear),0], FLOOR_NOISE[fi]);
+        const res=cadd(csub(ear, cmul(est, Serr(f,calibrated))), u);
+        return {ear, res};
+      }
+
+      // ===================== state =====================
+      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: false, latencyMs: 0.1 };
+      let W = fitWeights(state.nMics);
+      let perFreq = [];          // {ear,res} per model freq for current noise source
+      let meanRedDb = 0, geomRedDb = 0, liveRedDb = null;
+
+      // anti-noise depth g (0..1): how completely the canceller matches the ear signal.
+      // near 1 in good conditions -> deep cancellation at low latency; latency limits it by frequency.
+      function ancGain(){
+        if(!state.ancOn) return 0;
+        const base = {1:0.86, 2:0.93, 4:0.97, 8:0.99}[state.nMics] ?? 0.97;
+        const cal = state.calibrated ? 0.006 : 0;
+        const pen = 0.02*Math.max(0,Math.min(1,(12-geomRedDb)/6));  // harder source geometry -> slightly shallower
+        return Math.max(0, Math.min(0.998, base+cal-pen));
+      }
+      function compute(){
+        const P = srcPos(state.theta, state.dist);
+        perFreq = FREQS.map((f,fi)=>earAndResidual(W, fi, P, state.calibrated));
+        let nE=0,nR=0;
+        FREQS.forEach((f,fi)=>{ if(!inBand(f)) return; const {ear,res}=perFreq[fi];
+          const pink=1/f; nE+=pink*(ear[0]*ear[0]+ear[1]*ear[1]); nR+=pink*(res[0]*res[0]+res[1]*res[1]); });
+        geomRedDb = 10*Math.log10(nE/Math.max(nR,1e-20));     // geometry quality (drives the depth penalty)
+        const g = ancGain();                                  // cancellation depth
+        const dt = state.latencyMs*1e-3;
+        let eL=0,rL=0;
+        FREQS.forEach(f=>{ if(!inBand(f)) return; const w=1/f;
+          const combRes=Math.sqrt(1+g*g-2*g*Math.cos(2*Math.PI*f*dt));   // residual fraction (=2·sin(πfΔt) at g=1)
+          eL+=w; rL+=w*combRes*combRes; });
+        meanRedDb = state.ancOn ? -10*Math.log10(Math.max(rL/eL,1e-12)) : 0;
+      }
+      function effRedDb(){ return (audioPlaying && liveRedDb!=null) ? liveRedDb : meanRedDb; }
+
+      // ===================== DOM =====================
+      const $ = id => document.getElementById(id);
+      const scene = $('scene'), sctx = scene.getContext('2d');
+      const spectrum = $('spectrum'), pctx = spectrum.getContext('2d');
+      const earscope = $('earscope'), ectx = earscope.getContext('2d');
+
+      // ----- scene drawing -----
+      const SCL = 620;                  // px per meter for the head/array
+      function headCenter(){ return [scene.width*0.5, scene.height*0.56]; }
+      function mToPx(p){ const [cx,cy]=headCenter(); return [cx + p[0]*SCL, cy - p[1]*SCL]; }
+      // source shown on a compressed ring so both head and far source are visible
+      const RING_IN=140, RING_SPAN=70;
+      function dispRadius(d){ return RING_IN + (Math.min(3,Math.max(0.3,d))-0.3)/(3-0.3)*RING_SPAN; }
+      function srcDisplayPx(thetaDeg, dist){
+        const [cx,cy]=headCenter(); const th=thetaDeg*Math.PI/180; const R=dispRadius(dist);
+        return [cx + R*Math.sin(th), cy - R*Math.cos(th)];
+      }
+
+      function drawScene(){
+        const W2=scene.width, H2=scene.height; sctx.clearRect(0,0,W2,H2);
+        const [cx,cy]=headCenter();
+        const activeIdx = new Set(MIC_ORDER.slice(0, state.nMics));
+        const [sx,sy]=srcDisplayPx(state.theta,state.dist);
+        const [gx,gy]=srcDisplayPx(state.sigTheta,state.sigDist);
+
+        // incoming wavefront arcs from source toward head
+        const ang = Math.atan2(cy-sy, cx-sx);
+        sctx.strokeStyle='rgba(188,18,42,0.5)'; sctx.lineWidth=1.6;
+        for(let i=1;i<=4;i++){
+          sctx.beginPath();
+          sctx.arc(sx, sy, 16*i, ang-0.5, ang+0.5);
+          sctx.stroke();
+        }
+        // direction line
+        sctx.strokeStyle='rgba(188,18,42,0.25)'; sctx.setLineDash([4,5]); sctx.lineWidth=1;
+        sctx.beginPath(); sctx.moveTo(sx,sy); sctx.lineTo(cx,cy); sctx.stroke(); sctx.setLineDash([]);
+
+        // head
+        const aPx = USER.a*SCL;
+        sctx.fillStyle='rgba(255,255,255,0.06)'; sctx.strokeStyle='rgba(255,255,255,0.28)'; sctx.lineWidth=1.6;
+        sctx.beginPath(); sctx.arc(cx,cy,aPx,0,2*Math.PI); sctx.fill(); sctx.stroke();
+        // nose (front = up)
+        sctx.fillStyle='rgba(255,255,255,0.28)';
+        sctx.beginPath(); sctx.moveTo(cx, cy-aPx-9); sctx.lineTo(cx-6, cy-aPx+3); sctx.lineTo(cx+6, cy-aPx+3); sctx.closePath(); sctx.fill();
+        // ears (left target + right)
+        const [exL,eyL]=mToPx(EAR0); const [exR,eyR]=mToPx([-EAR0[0],EAR0[1]]);
+        sctx.fillStyle='rgba(255,255,255,0.18)';
+        sctx.beginPath(); sctx.ellipse(exR,eyR,5,8,0,0,2*Math.PI); sctx.fill();
+
+        // glasses frame outline
+        const fp = i => mToPx(MICS[i]);
+        sctx.strokeStyle='rgba(255,255,255,0.32)'; sctx.lineWidth=2; sctx.lineJoin='round';
+        sctx.beginPath();
+        let p=fp(0); sctx.moveTo(p[0],p[1]);
+        [1,2,3].forEach(i=>{p=fp(i); sctx.lineTo(p[0],p[1]);});
+        sctx.stroke();
+        // temples
+        sctx.beginPath(); p=fp(0); sctx.moveTo(p[0],p[1]); p=fp(4); sctx.lineTo(p[0],p[1]); p=fp(5); sctx.lineTo(p[0],p[1]); sctx.stroke();
+        sctx.beginPath(); p=fp(3); sctx.moveTo(p[0],p[1]); p=fp(6); sctx.lineTo(p[0],p[1]); p=fp(7); sctx.lineTo(p[0],p[1]); sctx.stroke();
+
+        // target ear (highlight) + speaker
+        sctx.fillStyle='#fff'; sctx.strokeStyle='#999'; sctx.lineWidth=1;
+        sctx.beginPath(); sctx.ellipse(exL,eyL,5.5,9,0,0,2*Math.PI); sctx.fill(); sctx.stroke();
+        const [spx,spy]=mToPx(SPK);
+        sctx.fillStyle='#1f6feb';
+        sctx.beginPath(); sctx.arc(spx,spy,5,0,2*Math.PI); sctx.fill();
+        // anti-noise ripples from speaker
+        sctx.strokeStyle='rgba(31,111,235,0.5)'; sctx.lineWidth=1.2;
+        for(let i=1;i<=2;i++){ sctx.beginPath(); sctx.arc(spx,spy,5+5*i,0,2*Math.PI); sctx.stroke(); }
+
+        // mics
+        MICS.forEach((m,i)=>{
+          const [mx,my]=mToPx(m); const on=activeIdx.has(i);
+          sctx.beginPath(); sctx.arc(mx,my,on?5.5:4,0,2*Math.PI);
+          sctx.fillStyle = on ? '#E8B923' : 'rgba(255,255,255,0.22)';
+          sctx.fill();
+          if(on){ sctx.strokeStyle='rgba(255,255,255,0.85)'; sctx.lineWidth=1.2; sctx.stroke(); }
+        });
+
+        // signal source (desired audio) — green, with its own direction line
+        sctx.strokeStyle='rgba(42,139,42,0.35)'; sctx.setLineDash([4,5]); sctx.lineWidth=1;
+        sctx.beginPath(); sctx.moveTo(gx,gy); sctx.lineTo(cx,cy); sctx.stroke(); sctx.setLineDash([]);
+        sctx.fillStyle='#2a8b2a'; sctx.strokeStyle='#fff'; sctx.lineWidth=1.5;
+        sctx.beginPath(); sctx.arc(gx,gy,7,0,2*Math.PI); sctx.fill(); sctx.stroke();
+        sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 11px Roboto, sans-serif'; sctx.textAlign='center';
+        sctx.fillText('signal', gx, gy-12);
+        // noise source — red
+        sctx.fillStyle='#bc122a'; sctx.strokeStyle='#fff'; sctx.lineWidth=1.5;
+        sctx.beginPath(); sctx.arc(sx,sy,8,0,2*Math.PI); sctx.fill(); sctx.stroke();
+        sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 11px Roboto, sans-serif'; sctx.textAlign='center';
+        sctx.fillText('noise', sx, sy-13);
+
+        // reduction label near ear
+        sctx.textAlign='right';
+        if(state.ancOn){
+          sctx.fillStyle='#E8B923'; sctx.font='700 22px Roboto, sans-serif';
+          sctx.fillText('−'+effRedDb().toFixed(1)+' dB', exL-14, eyL-6);
+          sctx.fillStyle='rgba(255,255,255,0.55)'; sctx.font='600 11px Roboto, sans-serif';
+          sctx.fillText('at ear', exL-14, eyL+10);
+        } else {
+          sctx.fillStyle='rgba(255,255,255,0.6)'; sctx.font='700 18px Roboto, sans-serif';
+          sctx.fillText('ANC off', exL-14, eyL-4);
+        }
+      }
+
+      // ----- live FFT of the noise (incoming vs residual after ANC) -----
+      const FA=40, FB=3000;                       // display range, log Hz
+      let fftRaw=null, fftProc=null;
+      function lx(f,W2){ const a=Math.log10(FA),b=Math.log10(FB); return (Math.log10(f)-a)/(b-a)*W2; }
+      function drawLiveFFT(){
+        const W2=spectrum.width, H2=spectrum.height; pctx.clearRect(0,0,W2,H2);
+        // operating band + grid
+        const x1=lx(100,W2), x2=lx(1000,W2);
+        pctx.fillStyle='rgba(42,139,42,0.10)'; pctx.fillRect(x1,0,x2-x1,H2);
+        pctx.fillStyle='rgba(255,255,255,0.4)'; pctx.font='11px Roboto, sans-serif'; pctx.textAlign='center';
+        pctx.fillText('operating band 100–1000 Hz', (x1+x2)/2, 16);
+        pctx.strokeStyle='rgba(255,255,255,0.08)'; pctx.lineWidth=1;
+        [40,100,200,500,1000,2000,3000].forEach(ft=>{ const x=lx(ft,W2);
+          pctx.beginPath(); pctx.moveTo(x,0); pctx.lineTo(x,H2); pctx.stroke();
+          pctx.fillStyle='rgba(255,255,255,0.45)'; pctx.fillText(ft>=1000?(ft/1000)+'k':''+ft, x, H2-6); });
+
+        if(!procAnalyser || !audioPlaying){
+          pctx.fillStyle='rgba(255,255,255,0.5)'; pctx.font='13px Roboto, sans-serif'; pctx.textAlign='center';
+          pctx.fillText('press ► Play to see the live spectrum', W2/2, H2/2);
+          return;
+        }
+        rawAnalyser.getFloatFrequencyData(fftRaw);
+        procAnalyser.getFloatFrequencyData(fftProc);
+        const nyq=actx.sampleRate/2, bins=fftProc.length;
+        const DBT=-20, DBB=-100;
+        const yf=db=>Math.max(0,Math.min(1,(DBT-db)/(DBT-DBB)))*H2;
+        // fractional bin lookup (linear interpolation) -> smooth curve, no staircase
+        const sampleDb=(arr,f)=>{ const b=Math.max(0,Math.min(bins-1.001, f/nyq*bins)); const i=b|0; return arr[i]+(arr[i+1]-arr[i])*(b-i); };
+        const la=Math.log10(FA), lb=Math.log10(FB);
+        const curve=(arr)=>{ pctx.beginPath();
+          for(let px=0;px<=W2;px++){ const f=Math.pow(10, la+px/W2*(lb-la)); const y=yf(sampleDb(arr,f));
+            px===0?pctx.moveTo(px,y):pctx.lineTo(px,y); } };
+        // residual (after ANC): filled gold
+        curve(fftProc); pctx.lineTo(W2,H2); pctx.lineTo(0,H2); pctx.closePath();
+        pctx.fillStyle='rgba(232,185,35,0.16)'; pctx.fill();
+        // incoming noise: faint red reference
+        pctx.strokeStyle='rgba(188,18,42,0.6)'; pctx.lineWidth=1.6; curve(fftRaw); pctx.stroke();
+        // residual outline: bold gold
+        pctx.strokeStyle='#E8B923'; pctx.lineWidth=2.2; curve(fftProc); pctx.stroke();
+      }
+
+      // ----- ear scope: live time-domain from the same analysers (incoming vs residual) -----
+      // scrolling level envelope (RMS over time) — calm and readable, and it reflects
+      // music + noise + ANC + levels. Gold (at the ear) sits inside red (incoming).
+      let timeRaw=null, timeProc=null, envIn=null, envEar=null;
+      function rmsOf(arr){ let s=0; const n=arr.length; for(let i=0;i<n;i++) s+=arr[i]*arr[i]; return Math.sqrt(s/n); }
+      function drawEarscope(){
+        const W2=earscope.width, H2=earscope.height, mid=H2/2; ectx.clearRect(0,0,W2,H2);
+        ectx.strokeStyle='rgba(255,255,255,0.10)'; ectx.lineWidth=1;
+        ectx.beginPath(); ectx.moveTo(0,mid); ectx.lineTo(W2,mid); ectx.stroke();
+        if(!procAnalyser || !audioPlaying){
+          ectx.fillStyle='rgba(255,255,255,0.5)'; ectx.font='13px Roboto, sans-serif'; ectx.textAlign='center';
+          ectx.fillText('press ► Play to see the level over time', W2/2, mid-6);
+          return;
+        }
+        if(!envIn || envIn.length!==W2){ envIn=new Float32Array(W2); envEar=new Float32Array(W2); }
+        rawAnalyser.getFloatTimeDomainData(timeRaw);
+        procAnalyser.getFloatTimeDomainData(timeProc);
+        const aIn=rmsOf(timeRaw), aEar=rmsOf(timeProc), SH=3;
+        envIn.copyWithin(0,SH); envEar.copyWithin(0,SH);
+        for(let k=W2-SH;k<W2;k++){ envIn[k]=aIn; envEar[k]=aEar; }
+        const gain=H2*1.7, cap=H2*0.46;
+        const amp=v=>cap*Math.tanh(v*gain/cap);   // soft knee -> compresses smoothly, never flat-clips
+        const band=(env,color)=>{ ectx.fillStyle=color; ectx.beginPath();
+          for(let x=0;x<W2;x++){ const a=amp(env[x]); x===0?ectx.moveTo(x,mid-a):ectx.lineTo(x,mid-a); }
+          for(let x=W2-1;x>=0;x--){ ectx.lineTo(x,mid+amp(env[x])); }
+          ectx.closePath(); ectx.fill(); };
+        band(envIn,'rgba(188,18,42,0.30)');    // incoming, before ANC
+        band(envEar,'rgba(232,185,35,0.85)');  // at the ear, after ANC
+      }
+
+      // ===================== render + readouts =====================
+      function updateReadouts(){
+        $('roRed').textContent = state.ancOn ? ('−'+effRedDb().toFixed(1)+' dB') : 'ANC off';
+        $('roRed').className = 'v' + (state.ancOn ? ' good' : '');
+        const a=((state.theta%360)+360)%360; $('roAng').textContent = (a>180?a-360:a).toFixed(0)+'°';
+        $('roDist').textContent = state.dist.toFixed(2)+' m';
+        $('roCal').textContent = state.calibrated? 'On' : 'Off';
+        $('roCal').className = 'v' + (state.calibrated?' good':'');
+        $('roCalU').textContent = state.calibrated? 'user-specific secondary path' : 'population average';
+      }
+      // measure the actual in-band reduction from the noise-only analysers (pre vs post ANC)
+      function measureLiveReduction(){
+        if(!noiseRawAnalyser) return;
+        noiseRawAnalyser.getFloatFrequencyData(nFftRaw);
+        noiseProcAnalyser.getFloatFrequencyData(nFftProc);
+        const nyq=actx.sampleRate/2, bins=nFftRaw.length;
+        const lo=Math.max(1,Math.floor(100/nyq*bins)), hi=Math.min(bins-1,Math.ceil(1000/nyq*bins));
+        let pr=0,pp=0;
+        for(let i=lo;i<=hi;i++){ pr+=Math.pow(10,nFftRaw[i]/10); pp+=Math.pow(10,nFftProc[i]/10); }
+        if(pr<1e-9) return;                       // not enough in-band noise to measure
+        let db=10*Math.log10(pr/Math.max(pp,1e-20)); db=Math.max(0,Math.min(40,db));
+        liveRedDb = (liveRedDb==null)? db : liveRedDb*0.85 + db*0.15;   // smooth
+      }
+      function spatialize(thetaDeg, dist, panner, filter, distGain, t){
+        const a=thetaDeg*Math.PI/180;
+        panner.pan.setTargetAtTime(Math.max(-1,Math.min(1,Math.sin(a))), t, 0.03);          // left/right
+        distGain.gain.setTargetAtTime(Math.max(0.25,Math.min(2.2, 1.0/dist)), t, 0.03);      // closer = louder
+        const frontness=Math.cos(a);                                                          // 1 front, -1 behind
+        filter.frequency.setTargetAtTime(2200 + (frontness*0.5+0.5)*15000, t, 0.03);          // behind = muffled
+      }
+      function updateSpatial(){
+        if(!noisePanner) return;
+        const t=actx.currentTime;
+        spatialize(state.theta,    state.dist,    noisePanner, noiseFilter, noiseDist, t);
+        spatialize(state.sigTheta, state.sigDist, sigPanner,   sigFilter,   sigDist,   t);
+      }
+      function renderStatic(){ compute(); drawScene(); updateReadouts(); updateAncAudio(); updateSpatial(); }
+
+      // ===================== interaction =====================
+      const sceneWrap=$('sceneWrap');
+      let dragging=false, dragTarget='noise';
+      function pointerPx(ev){
+        const rect=scene.getBoundingClientRect();
+        return [(ev.clientX-rect.left)*(scene.width/rect.width), (ev.clientY-rect.top)*(scene.height/rect.height)];
+      }
+      function pointerToState(ev){
+        const [px,py]=pointerPx(ev);
+        const [cx,cy]=headCenter(); const dx=px-cx, dy=cy-py;
+        const th=Math.atan2(dx,dy)*180/Math.PI;
+        const R=Math.hypot(dx,dy);
+        let d=0.3 + (Math.max(RING_IN,Math.min(RING_IN+RING_SPAN,R))-RING_IN)/RING_SPAN*(3-0.3);
+        d=Math.max(0.3,Math.min(3,d));
+        if(dragTarget==='sig'){ state.sigTheta=th; state.sigDist=d; } else { state.theta=th; state.dist=d; }
+        renderStatic();
+      }
+      sceneWrap.addEventListener('pointerdown', ev=>{
+        dragging=true; sceneWrap.classList.add('drag'); scene.setPointerCapture?.(ev.pointerId);
+        const [px,py]=pointerPx(ev);
+        const [sx,sy]=srcDisplayPx(state.theta,state.dist), [gx,gy]=srcDisplayPx(state.sigTheta,state.sigDist);
+        dragTarget = (Math.hypot(px-gx,py-gy) < Math.hypot(px-sx,py-sy)) ? 'sig' : 'noise';
+        pointerToState(ev);
+      });
+      sceneWrap.addEventListener('pointermove', ev=>{ if(dragging) pointerToState(ev); });
+      window.addEventListener('pointerup', ()=>{ dragging=false; sceneWrap.classList.remove('drag'); });
+
+      document.querySelectorAll('[data-mics]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('[data-mics]').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          state.nMics=parseInt(btn.dataset.mics,10);
+          W=fitWeights(state.nMics);
+          renderStatic();
+        });
+      });
+      $('calBtn').addEventListener('click', ()=>{
+        state.calibrated=!state.calibrated;
+        $('calBtn').classList.toggle('on', state.calibrated);
+        $('calBtn').textContent = state.calibrated? 'On · user-specific' : 'Off · population avg';
+        renderStatic();
+      });
+      $('orbitBtn').addEventListener('click', ()=>{
+        state.orbit=!state.orbit;
+        $('orbitBtn').classList.toggle('on', state.orbit);
+        $('orbitBtn').textContent = state.orbit? 'Stop orbit' : 'Orbit source';
+      });
+
+      // ===================== animation loop =====================
+      function frame(ts){
+        if(audioPlaying) measureLiveReduction();
+        if(state.orbit){ state.theta=(state.theta+0.6); if(state.theta>180) state.theta-=360; }
+        if(state.orbit || audioPlaying) renderStatic();
+        drawLiveFFT();
+        drawEarscope();
+        requestAnimationFrame(frame);
+      }
+
+      // ===================== audio: "hear it for yourself" =====================
+      // ANC attenuates only the background noise (shaped like the reduction curve);
+      // speech passes through untouched. Strength tracks the on-screen reduction.
+      state.ancOn = true;
+      let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
+      let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
+      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, speechSrc=null;
+      let audioPlaying=false;
+
+      function makeNoiseBuffer(ac){
+        const len=Math.floor(ac.sampleRate*4), buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
+        let b0=0,b1=0,b2=0;                  // cheap pink-ish noise
+        for(let i=0;i<len;i++){ const w=Math.random()*2-1;
+          b0=0.99*b0+0.05*w; b1=0.963*b1+0.08*w; b2=0.57*b2+0.5*w; d[i]=(b0+b1+0.2*b2)*0.35; }
+        return buf;
+      }
+      function ensureAudio(){
+        if(actx) return;
+        actx=new (window.AudioContext||window.webkitAudioContext)();
+        master=actx.createGain(); master.gain.value=0.85; master.connect(actx.destination);
+        charFilter=actx.createBiquadFilter(); charFilter.type='lowpass'; charFilter.frequency.value=900;
+        // delay-and-subtract canceller: ancOut = noiseSum − g·delay(noiseSum, Δt)  → 2·sin(πfΔt) response
+        ancDelay=actx.createDelay(0.05);
+        ancInvGain=actx.createGain(); ancInvGain.gain.value=0;   // −g when ANC on
+        ancOut=actx.createGain(); ancOut.gain.value=1;
+        noisePanner=actx.createStereoPanner(); sigPanner=actx.createStereoPanner();
+        // noiseSum carries the noise LEVEL and feeds the analyser taps, so level changes
+        // the spectrum and waveform live; both taps scale together (reduction gap preserved).
+        noiseSum=actx.createGain(); noiseSum.gain.value=parseFloat($('noiseVol').value);
+        rawAnalyser=actx.createAnalyser();  rawAnalyser.fftSize=16384;  rawAnalyser.smoothingTimeConstant=0.82;
+        procAnalyser=actx.createAnalyser(); procAnalyser.fftSize=16384; procAnalyser.smoothingTimeConstant=0.82;
+        fftRaw=new Float32Array(rawAnalyser.frequencyBinCount);
+        fftProc=new Float32Array(procAnalyser.frequencyBinCount);
+        timeRaw=new Float32Array(rawAnalyser.fftSize);
+        timeProc=new Float32Array(procAnalyser.fftSize);
+        noiseRawAnalyser=actx.createAnalyser();  noiseRawAnalyser.fftSize=8192;  noiseRawAnalyser.smoothingTimeConstant=0.7;
+        noiseProcAnalyser=actx.createAnalyser(); noiseProcAnalyser.fftSize=8192; noiseProcAnalyser.smoothingTimeConstant=0.7;
+        nFftRaw=new Float32Array(noiseRawAnalyser.frequencyBinCount);
+        nFftProc=new Float32Array(noiseProcAnalyser.frequencyBinCount);
+        noiseBufGain=actx.createGain(); noiseBufGain.gain.value=1;   // broadband path (muted in pure-tone mode)
+        charFilter.connect(noiseBufGain); noiseBufGain.connect(noiseSum);
+        speechGain=actx.createGain(); speechGain.gain.value=parseFloat($('speechVol').value);
+        const rawMix=actx.createGain(), procMix=actx.createGain();
+        // delay-and-subtract canceller on the noise: ancOut = noiseSum − g·delay(noiseSum, Δt)
+        noiseSum.connect(ancOut);
+        noiseSum.connect(ancDelay); ancDelay.connect(ancInvGain); ancInvGain.connect(ancOut);
+        // noise-only analysis taps (mono) for the live in-band reduction number
+        noiseSum.connect(noiseRawAnalyser);
+        ancOut.connect(noiseProcAnalyser);
+        // visuals: incoming (red) = music + full noise ; at-the-ear (gold) = music + cancelled noise
+        noiseSum.connect(rawMix); speechGain.connect(rawMix); rawMix.connect(rawAnalyser);
+        ancOut.connect(procMix); speechGain.connect(procMix); procMix.connect(procAnalyser);
+        // audio output: each source gets pan + distance loudness + behind-muffle
+        noiseFilter=actx.createBiquadFilter(); noiseFilter.type='lowpass'; noiseFilter.frequency.value=17000; noiseDist=actx.createGain();
+        sigFilter=actx.createBiquadFilter();   sigFilter.type='lowpass';   sigFilter.frequency.value=17000;   sigDist=actx.createGain();
+        ancOut.connect(noiseFilter); noiseFilter.connect(noisePanner); noisePanner.connect(noiseDist); noiseDist.connect(master);
+        speechGain.connect(sigFilter); sigFilter.connect(sigPanner); sigPanner.connect(sigDist); sigDist.connect(master);
+        noiseBuf=makeNoiseBuffer(actx);
+        updateAncAudio();
+      }
+      function applyNoiseType(){
+        if(!charFilter) return;
+        const t=$('noiseType').value;
+        if(engineOsc){ try{engineOsc.stop();}catch(e){} engineOsc=null; engineGain=null; }
+        if(toneOsc){ try{toneOsc.stop();}catch(e){} toneOsc=null; toneGain=null; }
+        const isTone = (t==='tone');
+        if(noiseBufGain) noiseBufGain.gain.value = isTone ? 0 : 1;   // mute broadband in pure-tone mode
+        if(t==='cafe'){ charFilter.type='lowpass'; charFilter.frequency.value=850; charFilter.Q.value=0.7; }
+        else if(t==='street'){ charFilter.type='bandpass'; charFilter.frequency.value=650; charFilter.Q.value=0.45; }
+        else if(t==='engine'){ charFilter.type='lowpass'; charFilter.frequency.value=480; charFilter.Q.value=0.7; }
+        if(t==='engine' && audioPlaying){
+          engineOsc=actx.createOscillator(); engineOsc.type='sawtooth'; engineOsc.frequency.value=112;
+          engineGain=actx.createGain(); engineGain.gain.value=0.10;
+          engineOsc.connect(engineGain); engineGain.connect(noiseSum);  // hum joins the noise, gets cancelled too
+          engineOsc.start();
+        }
+        if(isTone && audioPlaying){
+          toneOsc=actx.createOscillator(); toneOsc.type='sine'; toneOsc.frequency.value=parseFloat($('toneFreq').value);
+          toneGain=actx.createGain(); toneGain.gain.value=0.18;
+          toneOsc.connect(toneGain); toneGain.connect(noiseSum);
+          toneOsc.start();
+        }
+      }
+      function updateAncAudio(){
+        if(!ancOut) return;
+        const t=actx.currentTime;
+        ancDelay.delayTime.setTargetAtTime(Math.max(0, state.latencyMs*1e-3), t, 0.01);   // ANC latency
+        ancInvGain.gain.setTargetAtTime(-ancGain(), t, 0.02);                             // cancellation depth
+      }
+      function startSources(){
+        noiseSrc=actx.createBufferSource(); noiseSrc.buffer=noiseBuf; noiseSrc.loop=true;
+        noiseSrc.connect(charFilter); noiseSrc.start();
+        applyNoiseType();
+        if(speechBuf){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
+      }
+      function stopSources(){
+        [noiseSrc,speechSrc,engineOsc].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
+        noiseSrc=speechSrc=engineOsc=null;
+      }
+      // default desired audio: a local clip, fetched up front and decoded on first play
+      let defaultClipBytes=null;
+      fetch('the-sounds-of-silence.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{
+        defaultClipBytes=b; $('audioStatus').textContent='Loaded “The Sounds of Silence” — press ► Play, then toggle ANC.';
+      }).catch(()=>{});
+      function loadDefaultClip(){
+        if(!defaultClipBytes || speechBuf) return;
+        actx.decodeAudioData(defaultClipBytes.slice(0)).then(buf=>{
+          speechBuf=buf;
+          if(audioPlaying && !speechSrc){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
+        }).catch(()=>{});
+      }
+
+      $('playBtn').addEventListener('click', async ()=>{
+        ensureAudio();
+        loadDefaultClip();
+        if(actx.state==='suspended') await actx.resume();
+        if(audioPlaying){ stopSources(); audioPlaying=false; liveRedDb=null; $('playBtn').textContent='► Play'; renderStatic(); }
+        else { audioPlaying=true; startSources(); $('playBtn').textContent='■ Stop'; }
+      });
+      $('ancAudioBtn').addEventListener('click', ()=>{
+        state.ancOn=!state.ancOn;
+        $('ancAudioBtn').textContent='ANC: '+(state.ancOn?'ON':'OFF');
+        $('ancAudioBtn').classList.toggle('on', state.ancOn);
+        renderStatic();   // updates audio filter + scene/readouts; live FFT follows on the next frame
+      });
+      $('latencyMs').addEventListener('input', ()=>{
+        state.latencyMs=parseFloat($('latencyMs').value);
+        $('latencyVal').textContent = Math.round(state.latencyMs*1000)+' µs';
+        renderStatic();
+      });
+      $('noiseVol').addEventListener('input', ()=>{ if(noiseSum) noiseSum.gain.value=parseFloat($('noiseVol').value); });
+      $('speechVol').addEventListener('input', ()=>{
+        if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
+      });
+      $('noiseType').addEventListener('change', ()=>{
+        $('toneRow').style.display = $('noiseType').value==='tone' ? '' : 'none';
+        applyNoiseType();
+      });
+      $('toneFreq').addEventListener('input', ()=>{
+        $('toneFreqVal').textContent = $('toneFreq').value+' Hz';
+        if(toneOsc) toneOsc.frequency.setTargetAtTime(parseFloat($('toneFreq').value), actx.currentTime, 0.01);
+      });
+      $('uploadBtn').addEventListener('click', ()=>$('speechFile').click());
+      $('speechFile').addEventListener('change', async e=>{
+        const f=e.target.files && e.target.files[0]; if(!f) return;
+        ensureAudio();
+        try{
+          speechBuf=await actx.decodeAudioData(await f.arrayBuffer());
+          $('audioStatus').textContent='Loaded “'+f.name+'” — '+(audioPlaying?'playing':'press Play');
+          if(audioPlaying){ if(speechSrc){try{speechSrc.stop();}catch(e){}} speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
+        }catch(err){ $('audioStatus').textContent='Could not decode that file.'; }
+      });
+      $('ttsBtn').addEventListener('click', ()=>{
+        if(!('speechSynthesis' in window)){ $('audioStatus').textContent='Speech synthesis isn’t available here — upload a clip instead.'; return; }
+        const u=new SpeechSynthesisUtterance('The quick brown fox jumps over the lazy dog. With active noise cancellation, my voice comes through clearly.');
+        u.rate=0.95;
+        window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+        $('audioStatus').textContent='Speaking a sample — toggle ANC to compare.';
+      });
+
+      // ===================== init =====================
+      renderStatic();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>
