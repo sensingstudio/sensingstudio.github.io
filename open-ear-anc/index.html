@@ -210,13 +210,6 @@
               </div>
             </div>
             <div class="crow">
-              <label>Canceller</label>
-              <div class="tools" role="group" aria-label="Canceller engine">
-                <button class="tool-btn active" data-algo="model">Model</button>
-                <button class="tool-btn" data-algo="adaptive">Adaptive FIR</button>
-              </div>
-            </div>
-            <div class="crow">
               <label for="latencyMs">Latency</label>
               <input type="range" id="latencyMs" min="0" max="1.5" step="0.01" value="0.1" style="flex:1 1 90px;" />
               <span class="note" style="margin:0; min-width:50px;" id="latencyVal">100 µs</span>
@@ -359,6 +352,7 @@
         <ul class="facts">
           <li>Normal ANC puts an <strong>error mic</strong> in the ear canal to measure leftover noise. Open-ear devices leave the ear uncovered, so that mic is impossible &mdash; the system has to <strong>infer</strong> the ear signal instead.</li>
           <li>Because the glasses hold a <strong>fixed geometry</strong> relative to your head, the sound at the ear is a predictable mix of what the frame mics hear. A set of filters (one per mic) learned from that geometry reconstructs the ear signal &mdash; <strong>virtual in-ear sensing</strong>. The anti-noise is just the negative of that estimate.</li>
+          <li><strong>How the filters are estimated:</strong> there&rsquo;s a right answer for each mic&rsquo;s weight &mdash; the combination that best reproduces the ear sound &mdash; so the weights are found by <strong>least squares</strong>: play many source directions, record what the mics and the ear each hear, and solve for the per-mic weights that map one to the other (with a touch of regularization for stability). This demo then runs a live <strong>adaptive FIR</strong> (normalized&nbsp;LMS): starting from nothing, it nudges those weights every sample to shrink the leftover noise, converging in about a second &mdash; the same idea as the paper&rsquo;s filters being updated on the fly.</li>
           <li>The filters are trained across a <strong>population</strong> of head shapes, so they generalize to a new user without retraining &mdash; but the population average caps the achievable reduction (~10&nbsp;dB). A brief <strong>calibration</strong> of your ear&rsquo;s speaker&rarr;ear response recovers the rest (to ~11&nbsp;dB).</li>
           <li>Drag the source anywhere and the reduction barely changes &mdash; the array covers all directions. That spatial robustness is what lets it work <strong>under mobility</strong>, unlike fixed quiet-zone methods.</li>
           <li>It cancels <strong>low frequencies</strong> well and high frequencies poorly: short wavelengths vary too fast across the head to predict from the frame. Conveniently, that&rsquo;s also where most environmental noise <em>isn&rsquo;t</em> &mdash; buses, engines, and HVAC live in the 100&ndash;1000&nbsp;Hz band.</li>
@@ -488,7 +482,7 @@
       }
 
       // ===================== state =====================
-      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'model' };
+      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive' };
       let W = fitWeights(state.nMics);
       let perFreq = [];          // {ear,res} per model freq for current noise source
       let meanRedDb = 0, geomRedDb = 0, liveRedDb = null;
@@ -705,7 +699,7 @@
       }
 
       // ----- what each active mic sees: the noise delayed + scaled per its geometry -----
-      let micTime=null, micScopePk=0, micWinSec=0.008;
+      let micTime=null, micScopePk=0, micWinSec=0.008, micRefresh=8;   // micscope is a snapshot: redraws only while micRefresh>0 (bumped when the source moves)
       function micColor(k,n){ const h=(205 + k*(300/Math.max(1,n)))%360; return 'hsl('+h.toFixed(0)+',78%,62%)'; }
       function micTaps(SR){
         const P=srcPos(state.theta,state.dist);
@@ -794,6 +788,7 @@
         d=Math.max(0.3,Math.min(3,d));
         if(dragTarget==='sig'){ state.sigTheta=th; state.sigDist=d; } else { state.theta=th; state.dist=d; }
         renderStatic();
+        micRefresh=8;   // source moved -> refresh the mic snapshot
       }
       sceneWrap.addEventListener('pointerdown', ev=>{
         dragging=true; sceneWrap.classList.add('drag'); scene.setPointerCapture?.(ev.pointerId);
@@ -812,6 +807,7 @@
           state.nMics=parseInt(btn.dataset.mics,10);
           W=fitWeights(state.nMics);
           renderStatic();
+          micRefresh=8;   // active-mic set changed -> refresh snapshot
         });
       });
       document.querySelectorAll('[data-algo]').forEach(btn=>{
@@ -832,11 +828,11 @@
       // ===================== animation loop =====================
       function frame(ts){
         if(audioPlaying) measureLiveReduction();
-        if(state.orbit){ state.theta=(state.theta+state.orbitSpeed); if(state.theta>180) state.theta-=360; }
+        if(state.orbit){ state.theta=(state.theta+state.orbitSpeed); if(state.theta>180) state.theta-=360; micRefresh=8; }   // orbit moves the noise -> keep snapshot live
         if(state.orbit || audioPlaying) renderStatic();
         if(!frozen.fft) drawLiveFFT();
         if(!frozen.ear) drawEarscope();
-        if(!frozen.mic) drawMicScope();
+        if(micRefresh>0 && !frozen.mic){ drawMicScope(); micRefresh--; }   // snapshot: only refreshes after the source position changes
         requestAnimationFrame(frame);
       }
 
@@ -1011,7 +1007,7 @@
         loadDefaultClip();
         if(actx.state==='suspended') await actx.resume();
         if(audioPlaying){ stopSources(); audioPlaying=false; liveRedDb=null; $('playBtn').textContent='► Play'; renderStatic(); }
-        else { audioPlaying=true; startSources(); $('playBtn').textContent='■ Stop'; }
+        else { audioPlaying=true; startSources(); $('playBtn').textContent='■ Stop'; micRefresh=10; }
       });
       $('ancAudioBtn').addEventListener('click', ()=>{
         state.ancOn=!state.ancOn;
@@ -1024,7 +1020,7 @@
         $('latencyVal').textContent = Math.round(state.latencyMs*1000)+' µs';
         renderStatic();
       });
-      $('noiseVol').addEventListener('input', ()=>{ if(noiseSum) noiseSum.gain.value=parseFloat($('noiseVol').value); });
+      $('noiseVol').addEventListener('input', ()=>{ if(noiseSum) noiseSum.gain.value=parseFloat($('noiseVol').value); micRefresh=8; });
       $('speechVol').addEventListener('input', ()=>{
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
       });
@@ -1033,7 +1029,7 @@
       function wirePause(btnId,key){ const b=$(btnId); b.addEventListener('click',()=>{ frozen[key]=!frozen[key]; b.textContent=frozen[key]?'▶':'⏸'; b.classList.toggle('on',frozen[key]); }); }
       wirePause('fftPause','fft'); wirePause('earPause','ear'); wirePause('micPause','mic');
       $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); });
-      $('micZoom').addEventListener('input', ()=>{ micWinSec=parseFloat($('micZoom').value)/1000; $('micZoomVal').textContent=$('micZoom').value+' ms'; });
+      $('micZoom').addEventListener('input', ()=>{ micWinSec=parseFloat($('micZoom').value)/1000; $('micZoomVal').textContent=$('micZoom').value+' ms'; micRefresh=8; });
       document.querySelectorAll('[data-noise]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           document.querySelectorAll('[data-noise]').forEach(b=>b.classList.remove('active'));
@@ -1041,11 +1037,13 @@
           state.noiseType=btn.dataset.noise;
           $('toneRow').style.display = state.noiseType==='tone' ? '' : 'none';
           applyNoiseType();
+          micRefresh=8;   // noise source changed -> refresh mic snapshot
         });
       });
       $('toneFreq').addEventListener('input', ()=>{
         $('toneFreqVal').textContent = $('toneFreq').value+' Hz';
         if(toneOsc) toneOsc.frequency.setTargetAtTime(parseFloat($('toneFreq').value), actx.currentTime, 0.01);
+        micRefresh=8;   // tone pitch changed -> refresh mic snapshot
       });
       // ===================== init =====================
       renderStatic();
