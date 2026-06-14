@@ -568,9 +568,10 @@
         let eL=0,rL=0;
         FREQS.forEach(f=>{ if(!inBand(f)) return; const w=1/f;
           const ge=g*sensingQ(f);                                        // depth × sensing bandwidth
-          const combRes=Math.sqrt(1+ge*ge-2*ge*Math.cos(2*Math.PI*f*dt));// residual fraction (=2·sin(πfΔt) at ge=1)
+          const combRes=2*ge*Math.abs(Math.sin(Math.PI*f*dt));           // delay-and-subtract residual: 0 at Δt=0 (perfect), →2·sin(πfΔt) at full depth
           eL+=w; rL+=w*combRes*combRes; });
-        meanRedDb = state.ancOn ? -10*Math.log10(Math.max(rL/eL,1e-12)) : 0;
+        // floor at 1e-6 => caps the readout near 60 dB (effectively perfect) at zero latency
+        meanRedDb = state.ancOn ? -10*Math.log10(Math.max(rL/eL,1e-6)) : 0;
       }
       function effRedDb(){ return (audioPlaying && liveRedDb!=null) ? liveRedDb : meanRedDb; }
 
@@ -1038,12 +1039,14 @@
         const xbuf=new Float32Array(Mx);          // incoming noise (the source signal)
         const w=new Float32Array(NMAX*T);         // per-mic FIR weights (flattened)
         const mbuf=new Float32Array(NMAX*Mm);     // each active mic's recent signal
+        const Yh=new Float32Array(Mx);            // history of the anti-noise estimate (for the latency delay)
         const MU=0.5, LEAK=1e-4, SIG=0.5;         // step, leakage, per-mic sensor-noise level
-        let xpos=0, mpos=0, curN=-1;
+        let xpos=0, mpos=0, ypos=0, curN=-1;
         node.onaudioprocess=(ev)=>{
           const inp=ev.inputBuffer.getChannelData(0), out=ev.outputBuffer.getChannelData(0), Nn=inp.length;
           if(state.algo!=='adaptive'){ out.fill(0); return; }
           const SR=actx.sampleRate, en=state.ancOn?1:0;
+          const latSamp=Math.min(Mx-1, Math.round(Math.max(0,state.latencyMs*1e-3)*SR));   // processing latency in samples
           // geometry: per-active-mic delay + the ear delay (relative to nearest receiver)
           const P=srcPos(state.theta,state.dist), idx=selectedMics(state.nMics), N=idx.length;
           const ds=idx.map(mi=>Math.hypot(MICS[mi][0]-P[0],MICS[mi][1]-P[1]));
@@ -1064,14 +1067,16 @@
             let yhat=0, energy=1e-6;
             for(let i=0;i<N;i++){ const b=i*Mm;
               for(let k=0;k<T;k++){ const mv=mbuf[b+((mpos-k+Mm)%Mm)]; yhat+=w[i*T+k]*mv; energy+=mv*mv; } }
-            const e = en ? (ear - yhat) : ear;               // residual at the ear
+            Yh[ypos]=yhat;                                   // store this sample's anti-noise estimate
+            const yDel = en ? Yh[(ypos-latSamp+Mx)%Mx] : 0;  // ...but it reaches the ear late by the latency
+            const e = en ? (ear - yDel) : ear;               // residual at the ear (comb-limited by latency)
             out[n]=Math.max(-2, Math.min(2, e));
             if(en){
-              const step=MU*(ear-yhat)/energy;               // multichannel NLMS
+              const step=MU*(ear-yhat)/energy;               // adapt on the un-delayed prediction error
               for(let i=0;i<N;i++){ const b=i*Mm;
                 for(let k=0;k<T;k++){ const j=b+((mpos-k+Mm)%Mm); w[i*T+k]=w[i*T+k]*(1-LEAK)+step*mbuf[j]; } }
             }
-            xpos=(xpos+1)%Mx; mpos=(mpos+1)%Mm;
+            xpos=(xpos+1)%Mx; mpos=(mpos+1)%Mm; ypos=(ypos+1)%Mx;
           }
         };
         return node;
