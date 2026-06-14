@@ -199,12 +199,11 @@
           <div class="card2">
             <h3>Virtual sensing &amp; ANC</h3>
             <div class="crow">
-              <label>Mics</label>
-              <div class="tools" role="group" aria-label="Number of frame microphones">
+              <label>Mics/side</label>
+              <div class="tools" role="group" aria-label="Frame mics per side (symmetric)">
                 <button class="tool-btn" data-mics="1">1</button>
-                <button class="tool-btn" data-mics="2">2</button>
-                <button class="tool-btn active" data-mics="4">4</button>
-                <button class="tool-btn" data-mics="8">8</button>
+                <button class="tool-btn active" data-mics="2">2</button>
+                <button class="tool-btn" data-mics="4">4</button>
               </div>
             </div>
             <div class="crow">
@@ -226,6 +225,7 @@
             <div class="crow">
               <label>Mobility</label>
               <button class="act" id="orbitBtn">Orbit noise</button>
+              <input type="range" id="orbitSpeed" min="0.1" max="3" step="0.1" value="0.6" title="orbit speed" style="flex:1 1 70px;" />
             </div>
           </div>
 
@@ -323,6 +323,17 @@
               <span class="tag">level over time</span>
             </div>
           </div>
+
+          <div class="card2 nopad">
+            <div class="vhead">
+              <span>What the active mics see</span>
+              <span class="leg" style="margin-left:auto;">each color = one active frame mic</span>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="micscope" width="1200" height="180"></canvas>
+              <span class="tag">time domain · ~8 ms · synthesized from source geometry</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -365,8 +376,12 @@
       ];
       const EAR0 = [-0.095,-0.020];                 // reference (left) ear the filters fit
       const SPK  = [-0.086, 0.004];                 // open-ear speaker near the ear
-      const MIC_ORDER = MICS.map((m,i)=>[i,Math.hypot(m[0]-EAR0[0],m[1]-EAR0[1])])
-                            .sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+      const EAR_R = [-EAR0[0], EAR0[1]];            // mirrored right ear
+      const _byDist = (ear) => (a,b) => Math.hypot(MICS[a][0]-ear[0],MICS[a][1]-ear[1]) - Math.hypot(MICS[b][0]-ear[0],MICS[b][1]-ear[1]);
+      const LEFT_MICS  = MICS.map((m,i)=>i).filter(i=>MICS[i][0]<0).sort(_byDist(EAR0));
+      const RIGHT_MICS = MICS.map((m,i)=>i).filter(i=>MICS[i][0]>0).sort(_byDist(EAR_R));
+      // symmetric selection: N mics per side (left + right)
+      function selectedMics(perSide){ return [...LEFT_MICS.slice(0,perSide), ...RIGHT_MICS.slice(0,perSide)]; }
 
       function H(q, P, f, aHead){                    // source P -> receiver q transfer fn
         const k = 2*Math.PI*f/C;
@@ -410,8 +425,8 @@
       const USER={ear:[EAR0[0]+0.004, EAR0[1]-0.003], a:0.093};   // held-out test user
       const TRAIN_SRC=[]; for(let a=0;a<360;a+=20) TRAIN_SRC.push(srcPos(a,1.5));
 
-      function fitWeights(nMics){
-        const idx = MIC_ORDER.slice(0,nMics);
+      function fitWeights(perSide){
+        const idx = selectedMics(perSide);
         const W=[];
         for(const f of FREQS){
           const AhA = idx.map(()=>idx.map(()=>[0,0]));
@@ -456,7 +471,7 @@
       }
 
       // ===================== state =====================
-      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: false, latencyMs: 0.1 };
+      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 2, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1 };
       let W = fitWeights(state.nMics);
       let perFreq = [];          // {ear,res} per model freq for current noise source
       let meanRedDb = 0, geomRedDb = 0, liveRedDb = null;
@@ -465,7 +480,7 @@
       // near 1 in good conditions -> deep cancellation at low latency; latency limits it by frequency.
       function ancGain(){
         if(!state.ancOn) return 0;
-        const base = {1:0.86, 2:0.93, 4:0.97, 8:0.99}[state.nMics] ?? 0.97;
+        const base = {1:0.93, 2:0.97, 4:0.99}[state.nMics] ?? 0.97;   // per-side mic count
         const cal = state.calibrated ? 0.006 : 0;
         const pen = 0.02*Math.max(0,Math.min(1,(12-geomRedDb)/6));  // harder source geometry -> slightly shallower
         return Math.max(0, Math.min(0.998, base+cal-pen));
@@ -492,6 +507,7 @@
       const scene = $('scene'), sctx = scene.getContext('2d');
       const spectrum = $('spectrum'), pctx = spectrum.getContext('2d');
       const earscope = $('earscope'), ectx = earscope.getContext('2d');
+      const micscope = $('micscope'), mctx = micscope.getContext('2d');
 
       // ----- scene drawing -----
       const SCL = 620;                  // px per meter for the head/array
@@ -508,7 +524,7 @@
       function drawScene(){
         const W2=scene.width, H2=scene.height; sctx.clearRect(0,0,W2,H2);
         const [cx,cy]=headCenter();
-        const activeIdx = new Set(MIC_ORDER.slice(0, state.nMics));
+        const activeIdx = new Set(selectedMics(state.nMics));
         const [sx,sy]=srcDisplayPx(state.theta,state.dist);
         const [gx,gy]=srcDisplayPx(state.sigTheta,state.sigDist);
 
@@ -666,6 +682,44 @@
         band(envEar,'rgba(232,185,35,0.85)');  // at the ear, after ANC
       }
 
+      // ----- what each active mic sees: the noise delayed + scaled per its geometry -----
+      let micTime=null, micScopePk=0;
+      function micColor(k,n){ const h=(205 + k*(300/Math.max(1,n)))%360; return 'hsl('+h.toFixed(0)+',78%,62%)'; }
+      function micTaps(SR){
+        const P=srcPos(state.theta,state.dist);
+        const idx=selectedMics(state.nMics);
+        const info=idx.map(mi=>({mi, r:Math.hypot(MICS[mi][0]-P[0],MICS[mi][1]-P[1])}));
+        const rmin=Math.min(...info.map(o=>o.r));
+        return info.map(o=>({mi:o.mi, gain:rmin/o.r, delaySmp:(o.r-rmin)/C*SR}));
+      }
+      function drawMicScope(){
+        const W2=micscope.width, H2=micscope.height, mid=H2/2; mctx.clearRect(0,0,W2,H2);
+        mctx.strokeStyle='rgba(255,255,255,0.10)'; mctx.lineWidth=1;
+        mctx.beginPath(); mctx.moveTo(0,mid); mctx.lineTo(W2,mid); mctx.stroke();
+        if(!noiseRawAnalyser || !audioPlaying){
+          mctx.fillStyle='rgba(255,255,255,0.5)'; mctx.font='13px Roboto, sans-serif'; mctx.textAlign='center';
+          mctx.fillText('press ► Play to see what each active mic hears', W2/2, mid-6); return;
+        }
+        noiseRawAnalyser.getFloatTimeDomainData(micTime);
+        const len=micTime.length, SR=actx.sampleRate, taps=micTaps(SR);
+        const winSmp=Math.round(0.008*SR);
+        const maxDelay=Math.ceil(Math.max(0,...taps.map(t=>t.delaySmp)));
+        // trigger on a rising zero-crossing so a tone holds still
+        let start=Math.floor(len*0.3);
+        for(let i=start;i<Math.min(len-winSmp-maxDelay-2, len*0.55);i++){ if(micTime[i]<0 && micTime[i+1]>=0){ start=i; break; } }
+        let pk=1e-4; for(let i=start;i<start+winSmp && i<len;i++){ const a=Math.abs(micTime[i]); if(a>pk)pk=a; }
+        micScopePk = micScopePk ? micScopePk*0.85+pk*0.15 : pk;
+        const cap=H2*0.45, amp=(H2*0.4)/Math.max(micScopePk,0.02);
+        taps.forEach((t,k)=>{
+          mctx.strokeStyle=micColor(k,taps.length); mctx.lineWidth=1.6; mctx.lineJoin='round'; mctx.beginPath();
+          for(let px=0;px<=W2;px++){ const s=start + Math.round(px/W2*winSmp) - Math.round(t.delaySmp);
+            const v=(s>=0&&s<len)? micTime[s]*t.gain : 0;
+            const y=mid - Math.max(-cap,Math.min(cap, v*amp));
+            px===0?mctx.moveTo(px,y):mctx.lineTo(px,y); }
+          mctx.stroke();
+        });
+      }
+
       // ===================== render + readouts =====================
       function updateReadouts(){
         $('roRed').textContent = state.ancOn ? ('−'+effRedDb().toFixed(1)+' dB') : 'ANC off';
@@ -747,10 +801,11 @@
       // ===================== animation loop =====================
       function frame(ts){
         if(audioPlaying) measureLiveReduction();
-        if(state.orbit){ state.theta=(state.theta+0.6); if(state.theta>180) state.theta-=360; }
+        if(state.orbit){ state.theta=(state.theta+state.orbitSpeed); if(state.theta>180) state.theta-=360; }
         if(state.orbit || audioPlaying) renderStatic();
         drawLiveFFT();
         drawEarscope();
+        drawMicScope();
         requestAnimationFrame(frame);
       }
 
@@ -793,6 +848,7 @@
         noiseProcAnalyser=actx.createAnalyser(); noiseProcAnalyser.fftSize=8192; noiseProcAnalyser.smoothingTimeConstant=0.7;
         nFftRaw=new Float32Array(noiseRawAnalyser.frequencyBinCount);
         nFftProc=new Float32Array(noiseProcAnalyser.frequencyBinCount);
+        micTime=new Float32Array(noiseRawAnalyser.fftSize);
         noiseBufGain=actx.createGain(); noiseBufGain.gain.value=1;   // broadband path (muted in pure-tone mode)
         charFilter.connect(noiseBufGain); noiseBufGain.connect(noiseSum);
         speechGain=actx.createGain(); speechGain.gain.value=parseFloat($('speechVol').value);
@@ -889,6 +945,7 @@
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
       });
       $('scopeDetail').addEventListener('input', ()=>setScopeDetail(parseFloat($('scopeDetail').value)));
+      $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); });
       $('noiseType').addEventListener('change', ()=>{
         $('toneRow').style.display = $('noiseType').value==='tone' ? '' : 'none';
         applyNoiseType();
