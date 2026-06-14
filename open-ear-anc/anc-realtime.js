@@ -157,12 +157,13 @@
     const master = ctx.createGain(); master.gain.value = makeup;
     gBefore.connect(master); gAfter.connect(master); master.connect(ctx.destination);
 
-    const anBefore = ctx.createAnalyser(); anBefore.fftSize = 8192; anBefore.smoothingTimeConstant = 0.8;
-    const anAfter = ctx.createAnalyser(); anAfter.fftSize = 8192; anAfter.smoothingTimeConstant = 0.8;
+    const anBefore = ctx.createAnalyser(); anBefore.fftSize = 8192; anBefore.smoothingTimeConstant = 0.9;
+    const anAfter = ctx.createAnalyser(); anAfter.fftSize = 8192; anAfter.smoothingTimeConstant = 0.9;
     beforeBus.connect(anBefore); residualBus.connect(anAfter);
 
     nodes = { split, banks, bankGain, active: -1, eB, eR, gBefore, gAfter, anBefore, anAfter,
-              fB: new Float32Array(anBefore.frequencyBinCount), fA: new Float32Array(anAfter.frequencyBinCount) };
+              fB: new Float32Array(anBefore.frequencyBinCount), fA: new Float32Array(anAfter.frequencyBinCount),
+              sB: null, sA: null };
     makeSources();
     applyAB();
   }
@@ -221,12 +222,17 @@
     if (!running) return;
     const cv = g('rmspectrum'), cx = cv.getContext('2d');
     nodes.anBefore.getFloatFrequencyData(nodes.fB); nodes.anAfter.getFloatFrequencyData(nodes.fA);
+    // temporal EMA on top of the analyser smoothing — steadies the noisy per-bin magnitudes
+    if (!nodes.sB) { nodes.sB = Float32Array.from(nodes.fB); nodes.sA = Float32Array.from(nodes.fA); }
+    else { const a = 0.85; for (let i = 0; i < nodes.sB.length; i++) {
+      nodes.sB[i] = a * nodes.sB[i] + (1 - a) * nodes.fB[i];
+      nodes.sA[i] = a * nodes.sA[i] + (1 - a) * nodes.fA[i]; } }
     cx.clearRect(0, 0, cv.width, cv.height);
     cx.fillStyle = 'rgba(255,255,255,0.05)'; cx.fillRect(fx(cv, 100), 0, fx(cv, 1000) - fx(cv, 100), cv.height);
-    path(cx, cv, nodes.fB); cx.lineTo(fx(cv, 2000), cv.height); cx.lineTo(fx(cv, 50), cv.height); cx.closePath();
+    path(cx, cv, nodes.sB); cx.lineTo(fx(cv, 2000), cv.height); cx.lineTo(fx(cv, 50), cv.height); cx.closePath();
     cx.fillStyle = 'rgba(188,18,42,0.18)'; cx.fill();
-    path(cx, cv, nodes.fB); cx.strokeStyle = 'rgba(188,18,42,0.9)'; cx.lineWidth = 1.5; cx.stroke();
-    path(cx, cv, nodes.fA); cx.strokeStyle = '#E8B923'; cx.lineWidth = 2.4; cx.stroke();
+    path(cx, cv, nodes.sB); cx.strokeStyle = 'rgba(188,18,42,0.9)'; cx.lineWidth = 1.5; cx.stroke();
+    path(cx, cv, nodes.sA); cx.strokeStyle = '#E8B923'; cx.lineWidth = 2.4; cx.stroke();
     drawRaf = requestAnimationFrame(draw);
   }
 
