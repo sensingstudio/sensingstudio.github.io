@@ -167,6 +167,8 @@
       .lat-tbl td { color:var(--black); }
       .lat-tbl .edge { color:var(--grey-text); }
       .lat-tbl .good { color:var(--green); font-weight:700; }
+      .pausebtn { font-family:inherit; font-size:12px; line-height:1; padding:4px 8px; border:1px solid var(--grey-line); background:#fff; color:var(--black); border-radius:5px; cursor:pointer; }
+      .pausebtn.on { background:var(--red); color:#fff; border-color:var(--red); }
     </style>
   </head>
   <body>
@@ -297,6 +299,7 @@
           <div class="card2 nopad">
             <div class="vhead">
               <span>Live spectrum — noise at the ear</span>
+              <button class="pausebtn" id="fftPause" title="freeze / snapshot">⏸</button>
               <span class="leg">
                 <span><i class="swatch" style="background:var(--red);"></i> before ANC</span>
                 <span><i class="swatch" style="background:var(--gold);height:4px;"></i> at the ear</span>
@@ -311,8 +314,10 @@
           <div class="card2 nopad">
             <div class="vhead">
               <span>Sound at the ear</span>
-              <label for="scopeDetail" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Detail</label>
-              <input type="range" id="scopeDetail" min="0" max="100" step="1" value="50" style="width:130px; accent-color:var(--red);" />
+              <button class="pausebtn" id="earPause" title="freeze / snapshot">⏸</button>
+              <label for="scopeWindow" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Window</label>
+              <input type="range" id="scopeWindow" min="1" max="15" step="0.5" value="6" style="width:110px; accent-color:var(--red);" />
+              <span class="note" style="margin:0; min-width:42px;" id="scopeWindowVal">6.0 s</span>
               <span class="leg">
                 <span><i class="swatch" style="background:var(--red);"></i> before ANC</span>
                 <span><i class="swatch" style="background:var(--gold);height:4px;"></i> at the ear</span>
@@ -327,6 +332,7 @@
           <div class="card2 nopad">
             <div class="vhead">
               <span>What the active mics see</span>
+              <button class="pausebtn" id="micPause" title="freeze / snapshot">⏸</button>
               <label for="micZoom" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Window</label>
               <input type="range" id="micZoom" min="2" max="40" step="1" value="8" style="width:110px; accent-color:var(--red);" />
               <span class="note" style="margin:0; min-width:42px;" id="micZoomVal">8 ms</span>
@@ -662,7 +668,7 @@
       let timeRaw=null, timeProc=null, envIn=null, envEar=null;
       // time-detail (slider): shorter RMS window + faster scroll = finer/more responsive
       let scopeWin=4096, scopeSh=3;
-      function setScopeDetail(v){ const t=v/100; scopeWin=Math.max(256, Math.round(16384*Math.pow(256/16384, t))); scopeSh=Math.round(2+t*6); }
+      function setScopeWindow(sec){ scopeSh=Math.max(1, Math.round(earscope.width/(sec*60))); scopeWin=Math.max(512, Math.min(16384, Math.round(sec*600))); }
       function rmsOf(arr, win){ const n=Math.min(win||arr.length, arr.length), s0=arr.length-n; let s=0; for(let i=s0;i<arr.length;i++) s+=arr[i]*arr[i]; return Math.sqrt(s/n); }
       function drawEarscope(){
         const W2=earscope.width, H2=earscope.height, mid=H2/2; ectx.clearRect(0,0,W2,H2);
@@ -810,9 +816,9 @@
         if(audioPlaying) measureLiveReduction();
         if(state.orbit){ state.theta=(state.theta+state.orbitSpeed); if(state.theta>180) state.theta-=360; }
         if(state.orbit || audioPlaying) renderStatic();
-        drawLiveFFT();
-        drawEarscope();
-        drawMicScope();
+        if(!frozen.fft) drawLiveFFT();
+        if(!frozen.ear) drawEarscope();
+        if(!frozen.mic) drawMicScope();
         requestAnimationFrame(frame);
       }
 
@@ -954,7 +960,10 @@
       $('speechVol').addEventListener('input', ()=>{
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
       });
-      $('scopeDetail').addEventListener('input', ()=>setScopeDetail(parseFloat($('scopeDetail').value)));
+      $('scopeWindow').addEventListener('input', ()=>{ const s=parseFloat($('scopeWindow').value); setScopeWindow(s); $('scopeWindowVal').textContent=s.toFixed(1)+' s'; });
+      const frozen={fft:false, ear:false, mic:false};
+      function wirePause(btnId,key){ const b=$(btnId); b.addEventListener('click',()=>{ frozen[key]=!frozen[key]; b.textContent=frozen[key]?'▶':'⏸'; b.classList.toggle('on',frozen[key]); }); }
+      wirePause('fftPause','fft'); wirePause('earPause','ear'); wirePause('micPause','mic');
       $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); });
       $('micZoom').addEventListener('input', ()=>{ micWinSec=parseFloat($('micZoom').value)/1000; $('micZoomVal').textContent=$('micZoom').value+' ms'; });
       $('noiseType').addEventListener('change', ()=>{
