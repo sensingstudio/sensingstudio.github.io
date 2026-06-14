@@ -21,7 +21,7 @@
   let A = null, session = null, recFile = null;     // recFile: cached recording channels
   let rec = null, source = 'recording', curGeom = '';
   let ctx = null, nodes = null, startTime = 0, running = false, makeup = 1;
-  let ancOn = true, inferBusy = false, stopReq = false, drawRaf = 0;
+  let ancOn = false, inferBusy = false, stopReq = false, drawRaf = 0;
 
   function setStatus(s) { const el = g('rmLiveStatus'); if (el) el.textContent = s; }
 
@@ -230,9 +230,9 @@
     cx.clearRect(0, 0, cv.width, cv.height);
     cx.fillStyle = 'rgba(255,255,255,0.05)'; cx.fillRect(fx(cv, 100), 0, fx(cv, 1000) - fx(cv, 100), cv.height);
     path(cx, cv, nodes.sB); cx.lineTo(fx(cv, 2000), cv.height); cx.lineTo(fx(cv, 50), cv.height); cx.closePath();
-    cx.fillStyle = 'rgba(188,18,42,0.18)'; cx.fill();
-    path(cx, cv, nodes.sB); cx.strokeStyle = 'rgba(188,18,42,0.9)'; cx.lineWidth = 1.5; cx.stroke();
-    path(cx, cv, nodes.sA); cx.strokeStyle = '#E8B923'; cx.lineWidth = 2.4; cx.stroke();
+    cx.fillStyle = 'rgba(122,134,153,0.16)'; cx.fill();                              // before ANC (slate)
+    path(cx, cv, nodes.sB); cx.strokeStyle = 'rgba(122,134,153,0.85)'; cx.lineWidth = 1.5; cx.stroke();
+    path(cx, cv, nodes.sA); cx.strokeStyle = '#2ECC71'; cx.lineWidth = 2.4; cx.stroke();   // after ANC (green)
     drawRaf = requestAnimationFrame(draw);
   }
 
@@ -263,6 +263,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const btn = g('rmLive'); if (!btn) return;
     btn.addEventListener('click', async () => {
+      btn.classList.remove('needs-click');
       if (running) { stop(); btn.textContent = '⚡ Run in real time'; setStatus('stopped'); return; }
       btn.disabled = true;
       try { await start(); btn.textContent = '■ Stop'; }
@@ -282,8 +283,9 @@
     if (anc) anc.addEventListener('click', () => {
       if (!running) return;
       ancOn = !ancOn; applyAB();
-      anc.textContent = 'ANC: ' + (ancOn ? 'ON' : 'OFF');
+      anc.textContent = ancOn ? 'ANC ON' : 'ANC OFF';
       anc.classList.toggle('on', ancOn);
+      anc.classList.toggle('off', !ancOn);
     });
   });
 })();

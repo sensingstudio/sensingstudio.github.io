@@ -22,6 +22,9 @@
         --blue: #1f6feb;
         --gold: #E8B923;
         --green: #2a8b2a;
+        --before: #7A8699;   /* spectrum/scope: noise BEFORE ANC (muted slate) */
+        --after:  #2ECC71;   /* spectrum/scope: what you hear AFTER ANC (bright green) */
+        --anc-off: #E5484D;  /* ANC disabled (noise present) */
         --black: #111;
         --grey-line: #dee2e6;
         --grey-text: #5b6068;
@@ -107,6 +110,30 @@
         background: #fff; color: var(--black); border-radius: 6px; cursor: pointer;
       }
       button.act.on { background: var(--black); color: #fff; }
+
+      /* Big, color-coded ANC state toggle */
+      button.anc-toggle {
+        font-family: inherit; font-weight: 800; font-size: 16px; letter-spacing: 0.8px;
+        text-transform: uppercase; padding: 15px 20px; border-radius: 10px;
+        cursor: pointer; white-space: nowrap; min-width: 150px; text-align: center;
+        color: #fff; border: 2px solid transparent;
+        transition: background .18s ease, box-shadow .18s ease, transform .05s ease;
+      }
+      button.anc-toggle:active { transform: translateY(1px); }
+      button.anc-toggle.on  { background: var(--after); color: #06281a; box-shadow: 0 3px 12px rgba(46,204,113,0.35); }
+      button.anc-toggle.off { background: var(--anc-off); box-shadow: 0 3px 12px rgba(229,72,77,0.30); }
+
+      /* "click me to start" attention pulse on the Play / Run buttons */
+      @keyframes ccPulse {
+        0%   { box-shadow: 0 0 0 0 rgba(31,111,235,0.55); }
+        70%  { box-shadow: 0 0 0 12px rgba(31,111,235,0); }
+        100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
+      }
+      button.act.play-cta {
+        background: var(--blue); color: #fff; border-color: var(--blue);
+        font-size: 14px; padding: 11px 20px;
+      }
+      button.act.needs-click { animation: ccPulse 1.6s ease-out infinite; }
       .canvas-wrap {
         position: relative; background: #0c0c0e; border-radius: 6px; overflow: hidden;
         touch-action: none; user-select: none;
@@ -183,9 +210,11 @@
           <div class="card2">
             <h3>Playback</h3>
             <div class="crow">
-              <button class="act on" id="playBtn">► Play</button>
-              <button class="act on" id="ancAudioBtn">ANC: ON</button>
+              <button class="act play-cta needs-click" id="playBtn">► Play the demo</button>
+              <span class="note" style="margin:0;">&larr; start here</span>
             </div>
+            <button class="anc-toggle off" id="ancAudioBtn" style="width:100%; margin-top:2px;">ANC OFF</button>
+            <span class="note" style="margin:2px 0 0; text-align:center; display:block;">click the sign to toggle noise cancellation</span>
             <div class="crow" style="gap:12px;">
               <img id="albumArt" src="sounds-of-silence-cover.png" alt="Sounds of Silence album cover"
                    style="width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
@@ -302,8 +331,8 @@
               <span>Live spectrum — noise at the left ear</span>
               <button class="pausebtn" id="fftPause" title="freeze / snapshot">⏸</button>
               <span class="leg">
-                <span style="color:var(--red);"><i class="swatch" style="background:var(--red);"></i> noise before ANC</span>
-                <span style="color:#b78a00;"><i class="swatch" style="background:var(--gold);height:4px;"></i> what you hear (after ANC)</span>
+                <span style="color:var(--before);"><i class="swatch" style="background:var(--before);"></i> noise before ANC</span>
+                <span style="color:var(--after);"><i class="swatch" style="background:var(--after);height:4px;"></i> what you hear (after ANC)</span>
               </span>
             </div>
             <div class="canvas-wrap">
@@ -320,8 +349,8 @@
               <input type="range" id="scopeWindow" min="1" max="15" step="0.5" value="6" style="width:110px; accent-color:var(--red);" />
               <span class="note" style="margin:0; min-width:42px;" id="scopeWindowVal">6.0 s</span>
               <span class="leg">
-                <span style="color:var(--red);"><i class="swatch" style="background:var(--red);"></i> noise before ANC</span>
-                <span style="color:#b78a00;"><i class="swatch" style="background:var(--gold);height:4px;"></i> what you hear (after ANC)</span>
+                <span style="color:var(--before);"><i class="swatch" style="background:var(--before);"></i> noise before ANC</span>
+                <span style="color:var(--after);"><i class="swatch" style="background:var(--after);height:4px;"></i> what you hear (after ANC)</span>
               </span>
             </div>
             <div class="canvas-wrap">
@@ -352,16 +381,16 @@
         <p class="lead" style="font-size:15px;">Everything above is an interactive <em>simulation</em>. This is the real thing: the paper&rsquo;s trained <strong>U-Net&nbsp;+&nbsp;LSTM</strong> network running <strong>live in your browser</strong> (via WebAssembly) on an actual multi-channel glasses recording. The network predicts its control filters from the frame mics; those filters are applied through the <strong>measured speaker&rarr;ear path</strong>, and you hear the sound at the ear <strong>before</strong> vs <strong>after</strong> cancellation. <strong>Headphones recommended.</strong></p>
         <div class="card2 nopad">
           <div class="vhead" style="flex-wrap:wrap; gap:12px;">
-            <button class="act on" id="rmLive">⚡ Run in real time</button>
-            <button class="act on" id="rmAnc">ANC: ON</button>
+            <button class="act play-cta needs-click" id="rmLive">⚡ Run in real time</button>
+            <button class="anc-toggle off" id="rmAnc">ANC OFF</button>
             <label style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Input</label>
             <div class="tools" role="group" aria-label="Live input source">
               <button class="tool-btn active" data-rmsrc="recording">Real recording</button>
               <button class="tool-btn" data-rmsrc="sim">Simulation</button>
             </div>
             <span class="leg" style="margin-left:auto;">
-              <span style="color:var(--red);"><i class="swatch" style="background:var(--red);"></i> noise before ANC</span>
-              <span style="color:#b78a00;"><i class="swatch" style="background:var(--gold);height:4px;"></i> what you hear (after ANC)</span>
+              <span style="color:var(--before);"><i class="swatch" style="background:var(--before);"></i> noise before ANC</span>
+              <span style="color:var(--after);"><i class="swatch" style="background:var(--after);height:4px;"></i> what you hear (after ANC)</span>
             </span>
           </div>
           <div class="canvas-wrap">
@@ -510,7 +539,7 @@
       }
 
       // ===================== state =====================
-      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive' };
+      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: true, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive', attract: true };
       let W = fitWeights(state.nMics);
       let perFreq = [];          // {ear,res} per model freq for current noise source
       let meanRedDb = 0, geomRedDb = 0, liveRedDb = null;
@@ -564,6 +593,7 @@
         return [cx + R*Math.sin(th), cy - R*Math.cos(th)];
       }
 
+      let animTime=0;   // ms timestamp from the rAF loop, drives the attract pulse
       function drawScene(){
         const W2=scene.width, H2=scene.height; sctx.clearRect(0,0,W2,H2);
         const [cx,cy]=headCenter();
@@ -638,6 +668,20 @@
         sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='600 12px Roboto, sans-serif'; sctx.textAlign='center';
         sctx.fillText('noise', sx, sy-13);
 
+        // attract cue: pulsing rings + "drag me" on both sources until the user grabs one
+        if(state.attract){
+          const ph=(animTime%1500)/1500;          // 0..1 expanding ring
+          sctx.lineWidth=2.5;
+          [[sx,sy,'#e5484d'],[gx,gy,'#2a8b2a']].forEach(([x,y,col])=>{
+            sctx.strokeStyle=col; sctx.globalAlpha=0.65*(1-ph);
+            sctx.beginPath(); sctx.arc(x,y, 11+ph*24, 0, 2*Math.PI); sctx.stroke();
+          });
+          sctx.globalAlpha=1;
+          sctx.fillStyle='rgba(255,255,255,0.92)'; sctx.font='700 11px Roboto, sans-serif'; sctx.textAlign='center';
+          sctx.fillText('drag me', sx, sy+24);
+          sctx.fillText('drag me', gx, gy+24);
+        }
+
         // reduction label near ear
         sctx.textAlign='right';
         if(state.ancOn){
@@ -659,7 +703,7 @@
         const W2=spectrum.width, H2=spectrum.height; pctx.clearRect(0,0,W2,H2);
         // operating band + grid
         const x1=lx(100,W2), x2=lx(1000,W2);
-        pctx.fillStyle='rgba(42,139,42,0.10)'; pctx.fillRect(x1,0,x2-x1,H2);
+        pctx.fillStyle='rgba(255,255,255,0.05)'; pctx.fillRect(x1,0,x2-x1,H2);
         pctx.fillStyle='rgba(255,255,255,0.4)'; pctx.font='12px Roboto, sans-serif'; pctx.textAlign='center';
         pctx.fillText('operating band 100–1000 Hz', (x1+x2)/2, 16);
         pctx.strokeStyle='rgba(255,255,255,0.08)'; pctx.lineWidth=1;
@@ -683,13 +727,13 @@
         const curve=(arr)=>{ pctx.beginPath();
           for(let px=0;px<=W2;px++){ const f=Math.pow(10, la+px/W2*(lb-la)); const y=yf(sampleDb(arr,f));
             px===0?pctx.moveTo(px,y):pctx.lineTo(px,y); } };
-        // residual (after ANC): filled gold
+        // residual (after ANC): filled green
         curve(fftProc); pctx.lineTo(W2,H2); pctx.lineTo(0,H2); pctx.closePath();
-        pctx.fillStyle='rgba(232,185,35,0.16)'; pctx.fill();
-        // incoming noise: faint red reference
-        pctx.strokeStyle='rgba(188,18,42,0.6)'; pctx.lineWidth=1.6; curve(fftRaw); pctx.stroke();
-        // residual outline: bold gold
-        pctx.strokeStyle='#E8B923'; pctx.lineWidth=2.2; curve(fftProc); pctx.stroke();
+        pctx.fillStyle='rgba(46,204,113,0.16)'; pctx.fill();
+        // incoming noise: muted slate reference
+        pctx.strokeStyle='rgba(122,134,153,0.75)'; pctx.lineWidth=1.6; curve(fftRaw); pctx.stroke();
+        // residual outline: bold green
+        pctx.strokeStyle='#2ECC71'; pctx.lineWidth=2.2; curve(fftProc); pctx.stroke();
       }
 
       // ----- ear scope: live time-domain from the same analysers (incoming vs residual) -----
@@ -722,8 +766,8 @@
           for(let x=0;x<W2;x++){ const a=amp(env[x]); x===0?ectx.moveTo(x,mid-a):ectx.lineTo(x,mid-a); }
           for(let x=W2-1;x>=0;x--){ ectx.lineTo(x,mid+amp(env[x])); }
           ectx.closePath(); ectx.fill(); };
-        band(envIn,'rgba(188,18,42,0.30)');    // incoming, before ANC
-        band(envEar,'rgba(232,185,35,0.85)');  // at the ear, after ANC
+        band(envIn,'rgba(122,134,153,0.32)');  // incoming, before ANC (slate)
+        band(envEar,'rgba(46,204,113,0.85)');  // at the ear, after ANC (green)
       }
 
       // ----- what each active mic sees: the noise delayed + scaled per its geometry -----
@@ -820,6 +864,8 @@
       }
       sceneWrap.addEventListener('pointerdown', ev=>{
         dragging=true; sceneWrap.classList.add('drag'); scene.setPointerCapture?.(ev.pointerId);
+        if(state.attract){ state.attract=false; state.orbit=false; syncOrbitBtn(); }   // first grab = user takes over
+
         const [px,py]=pointerPx(ev);
         const [sx,sy]=srcDisplayPx(state.theta,state.dist), [gx,gy]=srcDisplayPx(state.sigTheta,state.sigDist);
         dragTarget = (Math.hypot(px-gx,py-gy) < Math.hypot(px-sx,py-sy)) ? 'sig' : 'noise';
@@ -847,17 +893,23 @@
           renderStatic();
         });
       });
+      function syncOrbitBtn(){
+        $('orbitBtn').classList.toggle('on', state.orbit);
+        $('orbitBtn').textContent = state.orbit? 'Stop orbit' : 'Orbit noise';
+      }
       $('orbitBtn').addEventListener('click', ()=>{
         state.orbit=!state.orbit;
-        $('orbitBtn').classList.toggle('on', state.orbit);
-        $('orbitBtn').textContent = state.orbit? 'Stop orbit' : 'Orbit source';
+        state.attract=false;   // user took control of the motion
+        syncOrbitBtn();
       });
+      syncOrbitBtn();   // orbit starts on as an attract cue
 
       // ===================== animation loop =====================
       function frame(ts){
+        animTime = ts||0;
         if(audioPlaying) measureLiveReduction();
         if(state.orbit){ state.theta=(state.theta+state.orbitSpeed); if(state.theta>180) state.theta-=360; micRefresh=8; }   // orbit moves the noise -> keep snapshot live
-        if(state.orbit || audioPlaying) renderStatic();
+        if(state.orbit || audioPlaying || state.attract) renderStatic();
         if(!frozen.fft) drawLiveFFT();
         if(!frozen.ear) drawEarscope();
         if(micRefresh>0 && !frozen.mic){ drawMicScope(); micRefresh--; }   // snapshot: only refreshes after the source position changes
@@ -867,7 +919,7 @@
       // ===================== audio: "hear it for yourself" =====================
       // ANC attenuates only the background noise (shaped like the reduction curve);
       // speech passes through untouched. Strength tracks the on-screen reduction.
-      state.ancOn = true;
+      state.ancOn = false;
       let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancSenseLP=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
       let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
@@ -1048,18 +1100,25 @@
       }
 
       $('playBtn').addEventListener('click', async ()=>{
+        $('playBtn').classList.remove('needs-click');
         ensureAudio();
         loadDefaultClip();
         if(actx.state==='suspended') await actx.resume();
         if(audioPlaying){ stopSources(); audioPlaying=false; liveRedDb=null; $('playBtn').textContent='► Play'; renderStatic(); }
         else { audioPlaying=true; startSources(); $('playBtn').textContent='■ Stop'; micRefresh=10; }
       });
+      function syncAncBtn(){
+        const b=$('ancAudioBtn');
+        b.textContent = state.ancOn ? 'ANC ON' : 'ANC OFF';
+        b.classList.toggle('on', state.ancOn);
+        b.classList.toggle('off', !state.ancOn);
+      }
       $('ancAudioBtn').addEventListener('click', ()=>{
         state.ancOn=!state.ancOn;
-        $('ancAudioBtn').textContent='ANC: '+(state.ancOn?'ON':'OFF');
-        $('ancAudioBtn').classList.toggle('on', state.ancOn);
+        syncAncBtn();
         renderStatic();   // updates audio filter + scene/readouts; live FFT follows on the next frame
       });
+      syncAncBtn();
       $('latencyMs').addEventListener('input', ()=>{
         state.latencyMs=parseFloat($('latencyMs').value);
         $('latencyVal').textContent = Math.round(state.latencyMs*1000)+' µs';
