@@ -193,9 +193,10 @@
               <span class="note" style="margin:0; flex:1; min-width:90px;" id="audioStatus">loading clip…</span>
             </div>
             <div class="crow">
-              <label>Music</label>
+              <label style="color:var(--green);">Music <span style="font-weight:400; text-transform:none; letter-spacing:0;">(signal to keep)</span></label>
               <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:1 1 120px;" />
             </div>
+            <p class="note" style="margin:6px 0 0; font-size:11px; line-height:1.45;">The <strong>music is the signal you want to hear</strong> &mdash; it always passes through untouched. ANC only removes the <strong style="color:var(--red);">background noise</strong> around it, so as you toggle ANC the music stays put while the noise drops.</p>
           </div>
 
           <div class="card2">
@@ -204,8 +205,8 @@
               <label>Mics/side</label>
               <div class="tools" role="group" aria-label="Frame mics per side (symmetric)">
                 <button class="tool-btn" data-mics="1">1</button>
-                <button class="tool-btn active" data-mics="2">2</button>
-                <button class="tool-btn" data-mics="4">4</button>
+                <button class="tool-btn" data-mics="2">2</button>
+                <button class="tool-btn active" data-mics="4">4</button>
               </div>
             </div>
             <div class="crow">
@@ -266,11 +267,11 @@
             <div class="card2 nopad">
               <div class="canvas-wrap" id="sceneWrap">
                 <canvas id="scene" width="760" height="520"></canvas>
-                <span class="tag">drag noise (red) &amp; signal (green)</span>
+                <span class="tag">drag noise (red) &amp; music signal (green)</span>
               </div>
               <div class="legend" style="padding:8px 4px 2px; gap:12px;">
                 <span><i class="dot" style="background:var(--red);"></i> Noise</span>
-                <span><i class="dot" style="background:var(--green);"></i> Signal</span>
+                <span><i class="dot" style="background:var(--green);"></i> Signal (music to keep)</span>
                 <span><i class="dot" style="background:var(--gold);"></i> Active mic</span>
                 <span><i class="dot" style="background:var(--blue);"></i> Speaker</span>
                 <span><i class="dot" style="background:#fff;border:1px solid #999;"></i> Target ear (left)</span>
@@ -487,7 +488,7 @@
       }
 
       // ===================== state =====================
-      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 2, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'model' };
+      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: false, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'model' };
       let W = fitWeights(state.nMics);
       let perFreq = [];          // {ear,res} per model freq for current noise source
       let meanRedDb = 0, geomRedDb = 0, liveRedDb = null;
@@ -951,23 +952,31 @@
       function buildAdaptiveProc(){
         const node=actx.createScriptProcessor(1024,1,1);
         const L=320, M=16384, w=new Float32Array(L), xbuf=new Float32Array(M);
-        let pos=0, ms=1e-3;
+        const MU=0.3, LEAK=1e-4;          // step size + leakage (bleeds off any slow weight drift)
+        let pos=0, ms=1e-3, active=false;
         node.onaudioprocess=(ev)=>{
           const inp=ev.inputBuffer.getChannelData(0), out=ev.outputBuffer.getChannelData(0), N=inp.length;
-          if(state.algo!=='adaptive'){ out.fill(0); return; }              // engine idle when not selected
+          if(state.algo!=='adaptive'){ out.fill(0); active=false; return; }  // engine idle when not selected
           const SR=actx.sampleRate;
           const dl=Math.max(0, Math.round(state.latencyMs*1e-3*SR));
           const taps=Math.max(1, Math.min(L, {1:64,2:128,4:240}[state.nMics] || 128));
-          const mu=0.4, en=state.ancOn?1:0;
+          const en=state.ancOn?1:0;
+          // (re)engage with a clean slate so we never start from stale/diverged weights
+          if(en && !active){ w.fill(0); active=true; } else if(!en){ active=false; }
+          // normalize by the CURRENT block energy (seeded high enough that the first
+          // block can never produce an explosive step) — the old slow EMA seeded at 1e-3
+          // divided by a near-zero estimate on a fresh page and blew the filter up.
+          let be=0; for(let n=0;n<N;n++) be+=inp[n]*inp[n]; be/=N;
+          ms=Math.max(0.85*ms+0.15*be, be);
+          const norm=ms*taps+1e-3;
           for(let n=0;n<N;n++){
             const x=inp[n]; xbuf[pos]=x;
             let y=0; for(let k=0;k<taps;k++){ y+=w[k]*xbuf[(pos-dl-k+2*M)%M]; }
             const e = en ? (x - y) : x;                                     // residual at the ear
             out[n]=Math.max(-2, Math.min(2, e));                            // safety clamp
             if(en){
-              const xd=xbuf[(pos-dl+2*M)%M]; ms=0.999*ms+0.001*xd*xd;
-              const step=mu*e/(ms*taps+1e-6);
-              for(let k=0;k<taps;k++){ const idx=(pos-dl-k+2*M)%M; w[k]+=step*xbuf[idx]; }
+              const step=MU*e/norm;
+              for(let k=0;k<taps;k++){ const idx=(pos-dl-k+2*M)%M; w[k]=w[k]*(1-LEAK)+step*xbuf[idx]; }
             }
             pos=(pos+1)%M;
           }
