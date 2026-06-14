@@ -206,6 +206,9 @@
               <span class="note" style="margin:0; min-width:50px;" id="latencyVal">100 µs</span>
             </div>
             <div class="crow">
+              <span class="note" style="margin:0; font-size:11px; line-height:1.5;">Cancellation needs <code>Δt &lt; 1/(6·f)</code>: to reach <strong>500&nbsp;Hz</strong> stay under <strong>330&nbsp;µs</strong>, <strong>1&nbsp;kHz</strong> under <strong>170&nbsp;µs</strong>, <strong>2&nbsp;kHz</strong> under <strong>85&nbsp;µs</strong>. More latency fails the highest frequencies first.</span>
+            </div>
+            <div class="crow">
               <label>Mobility</label>
               <button class="act" id="orbitBtn">Orbit noise</button>
             </div>
@@ -619,9 +622,9 @@
       // scrolling level envelope (RMS over time) — calm and readable, and it reflects
       // music + noise + ANC + levels. Gold (at the ear) sits inside red (incoming).
       let timeRaw=null, timeProc=null, envIn=null, envEar=null;
-      // time-detail: shorter RMS window + faster scroll = finer/more responsive
-      const SCOPE_LEVELS=[{name:'Fine',win:1024,sh:6},{name:'Medium',win:4096,sh:3},{name:'Coarse',win:16384,sh:2}];
-      let scopeDetail=1;
+      // time-detail (slider): shorter RMS window + faster scroll = finer/more responsive
+      let scopeWin=4096, scopeSh=3;
+      function setScopeDetail(v){ const t=v/100; scopeWin=Math.max(256, Math.round(16384*Math.pow(256/16384, t))); scopeSh=Math.round(2+t*6); }
       function rmsOf(arr, win){ const n=Math.min(win||arr.length, arr.length), s0=arr.length-n; let s=0; for(let i=s0;i<arr.length;i++) s+=arr[i]*arr[i]; return Math.sqrt(s/n); }
       function drawEarscope(){
         const W2=earscope.width, H2=earscope.height, mid=H2/2; ectx.clearRect(0,0,W2,H2);
@@ -635,8 +638,7 @@
         if(!envIn || envIn.length!==W2){ envIn=new Float32Array(W2); envEar=new Float32Array(W2); }
         rawAnalyser.getFloatTimeDomainData(timeRaw);
         procAnalyser.getFloatTimeDomainData(timeProc);
-        const lv=SCOPE_LEVELS[scopeDetail];
-        const aIn=rmsOf(timeRaw,lv.win), aEar=rmsOf(timeProc,lv.win), SH=lv.sh;
+        const aIn=rmsOf(timeRaw,scopeWin), aEar=rmsOf(timeProc,scopeWin), SH=scopeSh;
         envIn.copyWithin(0,SH); envEar.copyWithin(0,SH);
         for(let k=W2-SH;k<W2;k++){ envIn[k]=aIn; envEar[k]=aEar; }
         const gain=H2*1.7, cap=H2*0.46;
@@ -720,12 +722,6 @@
           W=fitWeights(state.nMics);
           renderStatic();
         });
-      });
-      $('calBtn').addEventListener('click', ()=>{
-        state.calibrated=!state.calibrated;
-        $('calBtn').classList.toggle('on', state.calibrated);
-        $('calBtn').textContent = state.calibrated? 'On · user-specific' : 'Off · population avg';
-        renderStatic();
       });
       $('orbitBtn').addEventListener('click', ()=>{
         state.orbit=!state.orbit;
@@ -877,10 +873,7 @@
       $('speechVol').addEventListener('input', ()=>{
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
       });
-      $('scopeDetailBtn').addEventListener('click', ()=>{
-        scopeDetail=(scopeDetail+1)%SCOPE_LEVELS.length;
-        $('scopeDetailBtn').textContent='Detail: '+SCOPE_LEVELS[scopeDetail].name;
-      });
+      $('scopeDetail').addEventListener('input', ()=>setScopeDetail(parseFloat($('scopeDetail').value)));
       $('noiseType').addEventListener('change', ()=>{
         $('toneRow').style.display = $('noiseType').value==='tone' ? '' : 'none';
         applyNoiseType();
@@ -889,24 +882,6 @@
         $('toneFreqVal').textContent = $('toneFreq').value+' Hz';
         if(toneOsc) toneOsc.frequency.setTargetAtTime(parseFloat($('toneFreq').value), actx.currentTime, 0.01);
       });
-      $('uploadBtn').addEventListener('click', ()=>$('speechFile').click());
-      $('speechFile').addEventListener('change', async e=>{
-        const f=e.target.files && e.target.files[0]; if(!f) return;
-        ensureAudio();
-        try{
-          speechBuf=await actx.decodeAudioData(await f.arrayBuffer());
-          $('audioStatus').textContent='Loaded “'+f.name+'” — '+(audioPlaying?'playing':'press Play');
-          if(audioPlaying){ if(speechSrc){try{speechSrc.stop();}catch(e){}} speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
-        }catch(err){ $('audioStatus').textContent='Could not decode that file.'; }
-      });
-      $('ttsBtn').addEventListener('click', ()=>{
-        if(!('speechSynthesis' in window)){ $('audioStatus').textContent='Speech synthesis isn’t available here — upload a clip instead.'; return; }
-        const u=new SpeechSynthesisUtterance('The quick brown fox jumps over the lazy dog. With active noise cancellation, my voice comes through clearly.');
-        u.rate=0.95;
-        window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
-        $('audioStatus').textContent='Speaking a sample — toggle ANC to compare.';
-      });
-
       // ===================== init =====================
       renderStatic();
       requestAnimationFrame(frame);
