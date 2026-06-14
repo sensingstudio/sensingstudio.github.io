@@ -341,7 +341,7 @@
             </div>
             <div class="canvas-wrap">
               <canvas id="micscope" width="1200" height="180"></canvas>
-              <span class="tag">time domain · synthesized from source geometry</span>
+              <span class="tag">time domain · the signals the canceller actually combines</span>
             </div>
           </div>
         </div>
@@ -382,7 +382,7 @@
         <ul class="facts">
           <li>Normal ANC puts an <strong>error mic</strong> in the ear canal to measure leftover noise. Open-ear devices leave the ear uncovered, so that mic is impossible &mdash; the system has to <strong>infer</strong> the ear signal instead.</li>
           <li>Because the glasses hold a <strong>fixed geometry</strong> relative to your head, the sound at the ear is a predictable mix of what the frame mics hear. A set of filters (one per mic) learned from that geometry reconstructs the ear signal &mdash; <strong>virtual in-ear sensing</strong>. The anti-noise is just the negative of that estimate.</li>
-          <li><strong>How the filters are estimated:</strong> there&rsquo;s a right answer for each mic&rsquo;s weight &mdash; the combination that best reproduces the ear sound &mdash; so the weights are found by <strong>least squares</strong>: play many source directions, record what the mics and the ear each hear, and solve for the per-mic weights that map one to the other (with a touch of regularization for stability). This demo then runs a live <strong>adaptive FIR</strong> (normalized&nbsp;LMS): starting from nothing, it nudges those weights every sample to shrink the leftover noise, converging in about a second &mdash; the same idea as the paper&rsquo;s filters being updated on the fly.</li>
+          <li><strong>How the filters are estimated:</strong> there&rsquo;s a right answer for each mic&rsquo;s weight &mdash; the combination that best reproduces the ear sound &mdash; so the weights are found by <strong>least squares</strong>: play many source directions, record what the mics and the ear each hear, and solve for the per-mic weights that map one to the other (with a touch of regularization for stability). The interactive demo runs this live as a <strong>multichannel adaptive filter</strong> (normalized&nbsp;LMS) over the <em>active mic signals</em>: each active frame mic feeds in what it hears (the source plus its own sensor noise), and the filter learns to combine them into the best estimate of the ear sound and subtract it. Adding mics averages down the per-mic noise, so the cancellation deepens by a few dB each time you double them &mdash; converging in about a second, the same idea as the paper&rsquo;s filters being updated on the fly.</li>
           <li>The filters are trained across a <strong>population</strong> of head shapes, so they generalize to a new user without retraining &mdash; but the population average caps the achievable reduction (~10&nbsp;dB). A brief <strong>calibration</strong> of your ear&rsquo;s speaker&rarr;ear response recovers the rest (to ~11&nbsp;dB).</li>
           <li>Drag the source anywhere and the reduction barely changes &mdash; the array covers all directions. That spatial robustness is what lets it work <strong>under mobility</strong>, unlike fixed quiet-zone methods.</li>
           <li>It cancels <strong>low frequencies</strong> well and high frequencies poorly: short wavelengths vary too fast across the head to predict from the frame. Conveniently, that&rsquo;s also where most environmental noise <em>isn&rsquo;t</em> &mdash; buses, engines, and HVAC live in the 100&ndash;1000&nbsp;Hz band.</li>
@@ -975,36 +975,53 @@
       // adaptive feedforward canceller: normalized-LMS FIR that learns to predict the
       // noise and subtract it. Latency = delayed reference (limits broadband), taps grow
       // with mic count. Output is the live residual (drives the spectrum/scope/readout).
+      // Multichannel virtual-sensing canceller. The mono noise comes in; we synthesize
+      // what each ACTIVE frame mic actually picks up (the source delayed by its distance,
+      // plus independent sensor noise), then a per-mic adaptive FIR (multichannel NLMS)
+      // combines those mic signals to reconstruct the ear sound. The residual ear−estimate
+      // is what you hear. More active mics average down the sensor noise → deeper cancel.
+      // The ear sound is the adaptation target (the role a calibration/measurement mic
+      // plays at training time); the live array signals are the real input.
       function buildAdaptiveProc(){
         const node=actx.createScriptProcessor(1024,1,1);
-        const L=320, M=16384, w=new Float32Array(L), xbuf=new Float32Array(M);
-        const MU=0.3, LEAK=1e-4;          // step size + leakage (bleeds off any slow weight drift)
-        let pos=0, ms=1e-3, active=false;
+        const T=40, NMAX=8, Mx=1024, Mm=128;     // taps/mic, max mics, ring sizes
+        const xbuf=new Float32Array(Mx);          // incoming noise (the source signal)
+        const w=new Float32Array(NMAX*T);         // per-mic FIR weights (flattened)
+        const mbuf=new Float32Array(NMAX*Mm);     // each active mic's recent signal
+        const MU=0.5, LEAK=1e-4, SIG=0.5;         // step, leakage, per-mic sensor-noise level
+        let xpos=0, mpos=0, curN=-1;
         node.onaudioprocess=(ev)=>{
-          const inp=ev.inputBuffer.getChannelData(0), out=ev.outputBuffer.getChannelData(0), N=inp.length;
-          if(state.algo!=='adaptive'){ out.fill(0); active=false; return; }  // engine idle when not selected
-          const SR=actx.sampleRate;
-          const dl=Math.max(0, Math.round(state.latencyMs*1e-3*SR));
-          const taps=Math.max(1, Math.min(L, {1:64,2:128,4:240}[state.nMics] || 128));
-          const en=state.ancOn?1:0;
-          // (re)engage with a clean slate so we never start from stale/diverged weights
-          if(en && !active){ w.fill(0); active=true; } else if(!en){ active=false; }
-          // normalize by the CURRENT block energy (seeded high enough that the first
-          // block can never produce an explosive step) — the old slow EMA seeded at 1e-3
-          // divided by a near-zero estimate on a fresh page and blew the filter up.
-          let be=0; for(let n=0;n<N;n++) be+=inp[n]*inp[n]; be/=N;
-          ms=Math.max(0.85*ms+0.15*be, be);
-          const norm=ms*taps+1e-3;
-          for(let n=0;n<N;n++){
-            const x=inp[n]; xbuf[pos]=x;
-            let y=0; for(let k=0;k<taps;k++){ y+=w[k]*xbuf[(pos-dl-k+2*M)%M]; }
-            const e = en ? (x - y) : x;                                     // residual at the ear
-            out[n]=Math.max(-2, Math.min(2, e));                            // safety clamp
+          const inp=ev.inputBuffer.getChannelData(0), out=ev.outputBuffer.getChannelData(0), Nn=inp.length;
+          if(state.algo!=='adaptive'){ out.fill(0); return; }
+          const SR=actx.sampleRate, en=state.ancOn?1:0;
+          // geometry: per-active-mic delay + the ear delay (relative to nearest receiver)
+          const P=srcPos(state.theta,state.dist), idx=selectedMics(state.nMics), N=idx.length;
+          const ds=idx.map(mi=>Math.hypot(MICS[mi][0]-P[0],MICS[mi][1]-P[1]));
+          const dEar=Math.hypot(EAR0[0]-P[0],EAR0[1]-P[1]);
+          const dmin=Math.min(dEar,...ds);
+          const di=ds.map(d=>(d-dmin)/C*SR);                 // mic delays (samples, fractional)
+          let dE=(dEar-dmin)/C*SR, mld=0; for(const d of di) mld=Math.max(mld,d-dE);
+          const tgt=dE+mld;                                  // modeling delay keeps every shift causal
+          const di0=di.map(d=>d|0), dif=di.map((d,i)=>d-di0[i]);
+          const tg0=tgt|0, tgf=tgt-tg0;
+          if(N!==curN){ w.fill(0); curN=N; }                 // active-mic set changed → reset filters
+          const readX=(d0,df)=>{ const a=xbuf[(xpos-d0+Mx)%Mx], b=xbuf[(xpos-d0-1+Mx)%Mx]; return a+(b-a)*df; };
+          for(let n=0;n<Nn;n++){
+            const x=inp[n]; xbuf[xpos]=x;
+            // what each active mic hears = delayed source + its own sensor noise
+            for(let i=0;i<N;i++) mbuf[i*Mm+mpos]=readX(di0[i],dif[i]) + SIG*(Math.random()*2-1);
+            const ear=readX(tg0,tgf);                        // true ear sound (adaptation target)
+            let yhat=0, energy=1e-6;
+            for(let i=0;i<N;i++){ const b=i*Mm;
+              for(let k=0;k<T;k++){ const mv=mbuf[b+((mpos-k+Mm)%Mm)]; yhat+=w[i*T+k]*mv; energy+=mv*mv; } }
+            const e = en ? (ear - yhat) : ear;               // residual at the ear
+            out[n]=Math.max(-2, Math.min(2, e));
             if(en){
-              const step=MU*e/norm;
-              for(let k=0;k<taps;k++){ const idx=(pos-dl-k+2*M)%M; w[k]=w[k]*(1-LEAK)+step*xbuf[idx]; }
+              const step=MU*(ear-yhat)/energy;               // multichannel NLMS
+              for(let i=0;i<N;i++){ const b=i*Mm;
+                for(let k=0;k<T;k++){ const j=b+((mpos-k+Mm)%Mm); w[i*T+k]=w[i*T+k]*(1-LEAK)+step*mbuf[j]; } }
             }
-            pos=(pos+1)%M;
+            xpos=(xpos+1)%Mx; mpos=(mpos+1)%Mm;
           }
         };
         return node;
