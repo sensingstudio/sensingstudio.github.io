@@ -309,8 +309,8 @@
               <span>Live spectrum — noise at the left ear</span>
               <button class="pausebtn" id="fftPause" title="freeze / snapshot">⏸</button>
               <span class="leg">
-                <span><i class="swatch" style="background:var(--red);"></i> before ANC</span>
-                <span><i class="swatch" style="background:var(--gold);height:4px;"></i> at the ear</span>
+                <span style="color:var(--red);"><i class="swatch" style="background:var(--red);"></i> noise before ANC</span>
+                <span style="color:#b78a00;"><i class="swatch" style="background:var(--gold);height:4px;"></i> what you hear (after ANC)</span>
               </span>
             </div>
             <div class="canvas-wrap">
@@ -327,8 +327,8 @@
               <input type="range" id="scopeWindow" min="1" max="15" step="0.5" value="6" style="width:110px; accent-color:var(--red);" />
               <span class="note" style="margin:0; min-width:42px;" id="scopeWindowVal">6.0 s</span>
               <span class="leg">
-                <span><i class="swatch" style="background:var(--red);"></i> before ANC</span>
-                <span><i class="swatch" style="background:var(--gold);height:4px;"></i> at the ear</span>
+                <span style="color:var(--red);"><i class="swatch" style="background:var(--red);"></i> noise before ANC</span>
+                <span style="color:#b78a00;"><i class="swatch" style="background:var(--gold);height:4px;"></i> what you hear (after ANC)</span>
               </span>
             </div>
             <div class="canvas-wrap">
@@ -344,7 +344,7 @@
               <label for="micZoom" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Window</label>
               <input type="range" id="micZoom" min="2" max="40" step="1" value="8" style="width:110px; accent-color:var(--red);" />
               <span class="note" style="margin:0; min-width:42px;" id="micZoomVal">8 ms</span>
-              <span class="leg" style="margin-left:auto;">each color = one active mic</span>
+              <span class="leg" style="margin-left:auto;">each colored line = one active frame mic</span>
             </div>
             <div class="canvas-wrap">
               <canvas id="micscope" width="1200" height="180"></canvas>
@@ -996,7 +996,7 @@
       // default desired audio: a local clip, fetched up front and decoded on first play
       let defaultClipBytes=null;
       fetch('the-sounds-of-silence.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{
-        defaultClipBytes=b; $('audioStatus').textContent='Loaded “The Sounds of Silence” — press ► Play, then toggle ANC.';
+        defaultClipBytes=b; $('audioStatus').textContent='Loaded “The Sound of Silence” — press ► Play, then toggle ANC.';
       }).catch(()=>{});
       function loadDefaultClip(){
         if(!defaultClipBytes || speechBuf) return;
