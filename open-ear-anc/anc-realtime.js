@@ -215,7 +215,6 @@
   }
 
   async function start() {
-    if (window.__ancPreStop) window.__ancPreStop();
     await loadCore();
     await buildRec();
     buildGraph();
@@ -234,7 +233,7 @@
     if (nodes) { try { nodes.gsrc.stop(); nodes.esrc.stop(); } catch (e) {} }
     if (ctx) { try { ctx.close(); } catch (e) {} }
     nodes = null; ctx = null;
-    const btn = g('rmLive'); if (btn && wasRunning) btn.textContent = '⚡ Run live in your browser';
+    const btn = g('rmLive'); if (btn && wasRunning) btn.textContent = '⚡ Run in real time';
   }
   window.__ancLiveStop = stop;
   window.__ancOnSceneChange = () => { if (running && source === 'sim') reseed(); };
@@ -242,9 +241,9 @@
   document.addEventListener('DOMContentLoaded', () => {
     const btn = g('rmLive'); if (!btn) return;
     btn.addEventListener('click', async () => {
-      if (running) { stop(); btn.textContent = '⚡ Run live in your browser'; setStatus('stopped'); return; }
+      if (running) { stop(); btn.textContent = '⚡ Run in real time'; setStatus('stopped'); return; }
       btn.disabled = true;
-      try { await start(); btn.textContent = '■ Stop live'; }
+      try { await start(); btn.textContent = '■ Stop'; }
       catch (e) { setStatus('error: ' + e.message); }
       finally { btn.disabled = false; }
     });
@@ -254,10 +253,15 @@
         b.classList.add('active');
         const wasRunning = running;
         source = b.dataset.rmsrc;
-        if (wasRunning) { stop(); btn.disabled = true; try { await start(); btn.textContent = '■ Stop live'; } finally { btn.disabled = false; } }
+        if (wasRunning) { stop(); btn.disabled = true; try { await start(); btn.textContent = '■ Stop'; } finally { btn.disabled = false; } }
       });
     });
     const anc = g('rmAnc');
-    if (anc) anc.addEventListener('click', () => { if (running) { ancOn = !ancOn; applyAB(); } });
+    if (anc) anc.addEventListener('click', () => {
+      if (!running) return;
+      ancOn = !ancOn; applyAB();
+      anc.textContent = 'ANC: ' + (ancOn ? 'ON' : 'OFF');
+      anc.classList.toggle('on', ancOn);
+    });
   });
 })();
