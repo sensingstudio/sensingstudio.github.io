@@ -528,6 +528,25 @@
       // tracks mics / angle / distance / latency, so the readout responds to every control.
       function effRedDb(){ return meanRedDb; }
       function effRedDbR(){ return meanRedDbR; }
+      // Live, MEASURED in-band (100–1000 Hz) reduction read from the noise analysis taps:
+      // total power of the raw noise (noiseSum) vs. the residual at the ear (ancOut). Unlike the
+      // model number, this fluctuates frame-to-frame with the actual signal, so the on-scene
+      // readout keeps ticking even while the source is parked. Returns null when audio isn't
+      // running (the caller then falls back to the static model value).
+      let liveRedShown=0;
+      function measureLiveRedDb(){
+        if(!noiseProcAnalyser || !audioPlaying || !state.ancOn) return null;
+        noiseRawAnalyser.getFloatFrequencyData(nFftRaw);
+        noiseProcAnalyser.getFloatFrequencyData(nFftProc);
+        const nyq=actx.sampleRate/2, bins=nFftRaw.length;
+        const lo=Math.max(1, Math.floor(100/nyq*bins)), hi=Math.min(bins-1, Math.ceil(1000/nyq*bins));
+        let pin=0, pout=0;
+        for(let i=lo;i<=hi;i++){ pin+=Math.pow(10, nFftRaw[i]/10); pout+=Math.pow(10, nFftProc[i]/10); }
+        if(!(pin>0)) return null;
+        const red=10*Math.log10(pin/Math.max(pout, pin*1e-6));   // floor 1e-6 ⇒ caps near 60 dB
+        liveRedShown += (Math.max(0,red)-liveRedShown)*0.2;       // light EMA: lively but legible
+        return liveRedShown;
+      }
 
       // ===================== DOM =====================
       const $ = id => document.getElementById(id);
@@ -678,9 +697,15 @@
           else sctx.fillRect(10,8,290,82);
           sctx.textAlign='left'; sctx.textBaseline='alphabetic';
           if(state.ancOn){ sctx.font='700 21px Roboto, sans-serif';
-            const lt='L −'+effRedDb().toFixed(1)+' dB    ';
+            // prefer the live measured reduction (ticks in real time); fall back to the model
+            // value when audio is stopped. The left ear is the canceller's target, so its measured
+            // number leads; the right ear keeps the model's left/right offset.
+            const live=measureLiveRedDb();
+            const lDb = live!=null ? live : effRedDb();
+            const rDb = live!=null ? Math.max(0, live + (effRedDbR()-effRedDb())) : effRedDbR();
+            const lt='L −'+lDb.toFixed(1)+' dB    ';
             sctx.fillStyle='#2ECC71'; sctx.fillText(lt, 22, 36);
-            sctx.fillStyle='#4FB3FF'; sctx.fillText('R −'+effRedDbR().toFixed(1)+' dB', 22+sctx.measureText(lt).width, 36); }
+            sctx.fillStyle='#4FB3FF'; sctx.fillText('R −'+rDb.toFixed(1)+' dB', 22+sctx.measureText(lt).width, 36); }
           else { sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='700 22px Roboto, sans-serif';
             sctx.fillText('ANC off', 22, 36); }
           sctx.font='600 11px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.5)';
