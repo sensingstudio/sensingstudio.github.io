@@ -222,7 +222,7 @@
                   <div class="note" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
                 </div>
                 <label style="color:var(--green); margin:0;">Music volume</label>
-                <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="width:100%;" />
+                <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.5" style="width:100%;" />
               </div>
             </div>
           </div>
@@ -275,7 +275,7 @@
             </div>
             <div class="crow">
               <label for="latencyMs">Latency</label>
-              <input type="range" id="latencyMs" min="0" max="1.5" step="0.01" value="0.1" style="flex:1 1 90px;" />
+              <input type="range" id="latencyMs" min="0" max="0.3" step="0.005" value="0.1" style="flex:1 1 90px;" />
               <span class="note" style="margin:0; min-width:50px;" id="latencyVal">100 µs</span>
             </div>
           </div>
@@ -518,9 +518,13 @@
       }
       // readout shows the LIVE measured in-band reduction while playing (fluctuates with the noise);
       // falls back to the model value when paused. R tracks L with the model's left/right offset.
+      // The idealized in-browser canceller cancels the 100-1000 Hz band almost perfectly
+      // regardless of mic count, so the raw live value would sit pinned at the ceiling and
+      // ignore the configuration. Cap it at the model's achievable reduction so the readout
+      // tracks mics / angle / distance / latency (live noise can still pull it BELOW the cap).
       function useLive(){ return audioPlaying && state.ancOn && state.noiseType!=='tone' && liveRedDb!=null; }
-      function effRedDb(){ return useLive() ? liveRedDb : meanRedDb; }
-      function effRedDbR(){ return useLive() ? Math.max(0, liveRedDb + (meanRedDbR - meanRedDb)) : meanRedDbR; }
+      function effRedDb(){ return useLive() ? Math.min(liveRedDb, meanRedDb) : meanRedDb; }
+      function effRedDbR(){ return useLive() ? Math.min(Math.max(0, liveRedDb + (meanRedDbR - meanRedDb)), meanRedDbR) : meanRedDbR; }
 
       // ===================== DOM =====================
       const $ = id => document.getElementById(id);
