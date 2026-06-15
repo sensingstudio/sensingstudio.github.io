@@ -205,7 +205,6 @@
     <script src="../nav.js" defer></script>
     <main class="dash-main">
       <h1>Virtual In-Ear Sensing</h1>
-      <p class="lead">ANC for open-ear glasses with <strong>no in-ear mic</strong>: an array of frame microphones estimates the sound at your ear from the fixed head geometry, and the speaker plays anti-noise to cancel it. This simulates <strong>one side &mdash; the left ear</strong> (the real system runs a mirror-image copy for the right); mic count is per side. Set parameters on the left; watch the scene, spectrum, and live stats on the right. <strong>Headphones recommended.</strong></p>
 
       <div class="dash">
         <aside class="sidebar">
@@ -216,7 +215,6 @@
               <span class="note" style="margin:0;">&larr; start here</span>
             </div>
             <button class="anc-toggle off" id="ancAudioBtn" style="width:100%; margin-top:2px;">ANC OFF</button>
-            <span class="note" style="margin:2px 0 0; text-align:center; display:block;">click the sign to toggle noise cancellation</span>
             <div class="crow" style="gap:12px;">
               <img id="albumArt" src="sounds-of-silence-cover.png" alt="Sounds of Silence album cover"
                    style="width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
@@ -227,7 +225,27 @@
               <label style="color:var(--green);">Music <span style="font-weight:400; text-transform:none; letter-spacing:0;">(signal to keep)</span></label>
               <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:1 1 120px;" />
             </div>
-            <p class="note" style="margin:6px 0 0; font-size:13px; line-height:1.5;">The <strong>music is the signal you want to hear</strong> &mdash; it always passes through untouched. ANC only removes the <strong style="color:var(--red);">background noise</strong> around it, so as you toggle ANC the music stays put while the noise drops.</p>
+          </div>
+
+          <div class="card2">
+            <h3>Noise source</h3>
+            <div class="crow">
+              <label>Type</label>
+              <div class="tools" role="group" aria-label="Noise type">
+                <button class="tool-btn active" data-noise="cafe">Café</button>
+                <button class="tool-btn" data-noise="baby">Baby crying</button>
+                <button class="tool-btn" data-noise="tone">Tone</button>
+              </div>
+            </div>
+            <div class="crow">
+              <label>Level</label>
+              <input type="range" id="noiseVol" min="0" max="4.0" step="0.01" value="2.0" style="flex:1 1 90px;" />
+            </div>
+            <div class="crow" id="toneRow" style="display:none;">
+              <label for="toneFreq">Tone</label>
+              <input type="range" id="toneFreq" min="50" max="4000" step="5" value="220" style="flex:1 1 90px;" />
+              <span class="note" style="margin:0; min-width:50px;" id="toneFreqVal">220 Hz</span>
+            </div>
           </div>
 
           <div class="card2">
@@ -245,43 +263,19 @@
               <input type="range" id="latencyMs" min="0.05" max="1.5" step="0.01" value="0.1" style="flex:1 1 90px;" />
               <span class="note" style="margin:0; min-width:50px;" id="latencyVal">100 µs</span>
             </div>
-            <div class="crow" style="display:block;">
-              <table class="lat-tbl">
-                <thead><tr><th>Tone</th><th>0 dB edge</th><th>~10 dB</th></tr></thead>
-                <tbody>
-                  <tr><td>500 Hz</td><td class="edge">330 µs</td><td class="good">100 µs</td></tr>
-                  <tr><td>1 kHz</td><td class="edge">170 µs</td><td class="good">50 µs</td></tr>
-                  <tr><td>2 kHz</td><td class="edge">85 µs</td><td class="good">25 µs</td></tr>
-                </tbody>
-              </table>
-              <span class="note" style="margin:6px 0 0; display:block; font-size:13px; line-height:1.5;">Max latency to cancel each tone. <span style="color:var(--grey-text);font-weight:700;">0 dB edge</span> = <code>1/(6·Δt)</code>, where it stops helping; stay under the <span style="color:var(--green);font-weight:700;">~10 dB</span> column for real cancellation.</span>
-            </div>
             <div class="crow">
               <label>Mobility</label>
               <button class="act" id="orbitBtn">Orbit noise</button>
-              <input type="range" id="orbitSpeed" min="0.1" max="3" step="0.1" value="0.6" title="orbit speed" style="flex:1 1 70px;" />
-            </div>
-          </div>
-
-          <div class="card2">
-            <h3>Noise source</h3>
-            <div class="crow">
-              <label>Type</label>
-              <div class="tools" role="group" aria-label="Noise type">
-                <button class="tool-btn active" data-noise="cafe">Café</button>
-                <button class="tool-btn" data-noise="street">Street</button>
-                <button class="tool-btn" data-noise="engine">Engine</button>
-                <button class="tool-btn" data-noise="tone">Tone</button>
-              </div>
             </div>
             <div class="crow">
-              <label>Level</label>
-              <input type="range" id="noiseVol" min="0" max="2.0" step="0.01" value="2.0" style="flex:1 1 90px;" />
+              <label for="orbitSpeed">Speed</label>
+              <input type="range" id="orbitSpeed" min="0.1" max="3" step="0.1" value="0.6" style="flex:1 1 90px;" />
+              <span class="note" style="margin:0; min-width:50px;" id="orbitSpeedVal">0.6&times;</span>
             </div>
-            <div class="crow" id="toneRow" style="display:none;">
-              <label for="toneFreq">Tone</label>
-              <input type="range" id="toneFreq" min="50" max="4000" step="5" value="220" style="flex:1 1 90px;" />
-              <span class="note" style="margin:0; min-width:50px;" id="toneFreqVal">220 Hz</span>
+            <div class="crow">
+              <label for="srcDist">Distance</label>
+              <input type="range" id="srcDist" min="0.3" max="3" step="0.05" value="1.5" style="flex:1 1 90px;" />
+              <span class="note" style="margin:0; min-width:50px;" id="srcDistVal">1.50 m</span>
             </div>
           </div>
         </aside>
@@ -309,6 +303,7 @@
               </div>
               <div class="legend" style="justify-content:center; padding:8px 4px 2px; gap:16px;">
                 <span><i class="swatch" style="background:#2ECC71;"></i> dB reduction at the left ear</span>
+                <span><i class="swatch" style="background:#4FB3FF;"></i> right ear (mirror)</span>
                 <span><i class="dot" style="background:var(--red);"></i> current noise direction</span>
               </div>
             </div>
@@ -486,9 +481,9 @@
       }
 
       // ===================== state =====================
-      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: true, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive', attract: true };
+      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: true, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive', attract: true, toneFreq: 220 };
       let W = fitWeights(state.nMics);
-      let meanRedDb = 0, liveRedDb = null;
+      let meanRedDb = 0, meanRedDbR = 0, liveRedDb = null;
       // shared parameters used by BOTH the displayed model and the audio engine
       const MODEL = {
         depth:  {1:0.95, 2:0.975, 4:0.99},   // anti-noise amplitude match, by mics/side
@@ -509,10 +504,23 @@
       function micCutoff(){ return MODEL.cutoff[state.nMics] ?? 900; }
       // irreducible sensing floor shrinks as mics are added (better ear prediction)
       function floorScale(){ return MODEL.floor[state.nMics] ?? 1.0; }
-      function compute(){
-        meanRedDb = state.ancOn ? modelRedDb(srcPos(state.theta, state.dist)) : 0;   // single model — also drives the polar
+      // Best-case cancellation of a single tone, limited by the secondary-path mismatch (speaker→ear
+      // amplitude error gS + group delay τs) and the processing latency. Its phase error grows with
+      // frequency, so high tones can't be cancelled no matter the geometry — matches the audio engine.
+      function toneCapDb(f){
+        const gS  = state.calibrated ? 0.97 : 0.86;
+        const tau = (state.calibrated ? 10e-6 : 40e-6) + state.latencyMs*1e-3;
+        const th  = 2*Math.PI*f*tau;
+        const resid = Math.hypot(1 - gS*Math.cos(th), gS*Math.sin(th));   // |1 − gS·e^{−jθ}|
+        return Math.max(0, -20*Math.log10(Math.max(resid, 1e-3)));
       }
-      function effRedDb(){ return meanRedDb; }   // model value — matches the polar curve exactly
+      function compute(){
+        const tone = state.noiseType==='tone' ? toneCapDb(state.toneFreq) : Infinity;   // cap reduction by tone freq
+        meanRedDb  = state.ancOn ? Math.min(modelRedDb(srcPos(state.theta, state.dist)), tone) : 0;    // left ear — drives the polar
+        meanRedDbR = state.ancOn ? Math.min(modelRedDb(srcPos(-state.theta, state.dist)), tone) : 0;   // right ear = left at mirrored angle
+      }
+      function effRedDb(){ return meanRedDb; }    // left-ear model value — matches the polar curve exactly
+      function effRedDbR(){ return meanRedDbR; }  // right-ear (mirror) value
 
       // ===================== DOM =====================
       const $ = id => document.getElementById(id);
@@ -659,13 +667,15 @@
         // can never obscure it
         { const a=((state.theta%360)+360)%360, aDisp=(a>180?a-360:a).toFixed(0);
           sctx.fillStyle='rgba(10,10,12,0.72)';
-          if(sctx.roundRect){ sctx.beginPath(); sctx.roundRect(10,8,252,98,8); sctx.fill(); }
-          else sctx.fillRect(10,8,252,98);
+          if(sctx.roundRect){ sctx.beginPath(); sctx.roundRect(10,8,290,98,8); sctx.fill(); }
+          else sctx.fillRect(10,8,290,98);
           sctx.textAlign='left'; sctx.textBaseline='alphabetic';
           sctx.font='600 11px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.5)';
           sctx.fillText('IN-BAND REDUCTION (100–1000 Hz)', 22, 30);
-          if(state.ancOn){ sctx.fillStyle='#2ECC71'; sctx.font='700 24px Roboto, sans-serif';
-            sctx.fillText('−'+effRedDb().toFixed(1)+' dB', 22, 56); }
+          if(state.ancOn){ sctx.font='700 21px Roboto, sans-serif';
+            const lt='L −'+effRedDb().toFixed(1)+' dB    ';
+            sctx.fillStyle='#2ECC71'; sctx.fillText(lt, 22, 56);
+            sctx.fillStyle='#4FB3FF'; sctx.fillText('R −'+effRedDbR().toFixed(1)+' dB', 22+sctx.measureText(lt).width, 56); }
           else { sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='700 22px Roboto, sans-serif';
             sctx.fillText('ANC off', 22, 56); }
           sctx.font='600 11px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.5)';
@@ -707,7 +717,8 @@
         return Math.max(0, -10*Math.log10(Math.max(rL/eL,1e-6)));
       }
       function computePolar(){
-        for(let i=0;i<NA_POL;i++){ polarL[i]=modelRedDb(srcPos(i/NA_POL*360, state.dist)); }
+        const tone = state.noiseType==='tone' ? toneCapDb(state.toneFreq) : Infinity;   // tone-freq ceiling
+        for(let i=0;i<NA_POL;i++){ polarL[i]=Math.min(modelRedDb(srcPos(i/NA_POL*360, state.dist)), tone); }
         // right ear = left-right mirror of the device, so its curve is polarL reflected about
         // the front–back axis (angle θ → −θ); the real system runs this mirror copy.
         for(let i=0;i<NA_POL;i++){ polarR[i]=polarValAt(polarL, -(i/NA_POL*360)); }
@@ -740,12 +751,11 @@
         polctx.lineWidth=2.6; polctx.setLineDash(state.ancOn?[]:[5,5]); polctx.beginPath();
         for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarL[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
         polctx.stroke(); polctx.setLineDash([]);
-        // noise-direction markers — left (red, = readout value) and right ear (blue, mirror)
-        const [rx2,ry2]=toXY(state.theta, polarValAt(polarR, state.theta));
-        polctx.fillStyle = state.ancOn ? '#4FB3FF' : 'rgba(79,179,255,0.5)'; polctx.strokeStyle='#fff'; polctx.lineWidth=1.6;
-        polctx.beginPath(); polctx.arc(rx2,ry2,5,0,2*Math.PI); polctx.fill(); polctx.stroke();
-        const [lx2,ly2]=toXY(state.theta, meanRedDb);
+        // noise-direction markers — a red dot on each ear's curve at the current noise angle
         polctx.fillStyle = state.ancOn ? '#bc122a' : 'rgba(188,18,42,0.5)'; polctx.strokeStyle='#fff'; polctx.lineWidth=1.6;
+        const [rx2,ry2]=toXY(state.theta, meanRedDbR);
+        polctx.beginPath(); polctx.arc(rx2,ry2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
+        const [lx2,ly2]=toXY(state.theta, meanRedDb);
         polctx.beginPath(); polctx.arc(lx2,ly2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
         if(!state.ancOn){ polctx.fillStyle='rgba(255,255,255,0.55)'; polctx.font='700 12px Roboto, sans-serif'; polctx.textAlign='center'; polctx.textBaseline='middle';
           polctx.fillText('ANC OFF', cx, cy); }
@@ -910,7 +920,8 @@
         const R=Math.hypot(dx,dy);
         let d=0.3 + (Math.max(RING_IN,Math.min(RING_IN+RING_SPAN,R))-RING_IN)/RING_SPAN*(3-0.3);
         d=Math.max(0.3,Math.min(3,d));
-        if(dragTarget==='sig'){ state.sigTheta=th; state.sigDist=d; } else { state.theta=th; state.dist=d; polarDirty=true; }
+        if(dragTarget==='sig'){ state.sigTheta=th; state.sigDist=d; } else { state.theta=th; state.dist=d; polarDirty=true;
+          $('srcDist').value=d; $('srcDistVal').textContent=d.toFixed(2)+' m'; }   // keep the Distance knob in sync
         renderStatic();
         micRefresh=8;   // source moved -> refresh the mic snapshot
       }
@@ -976,7 +987,7 @@
       let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancSenseLP=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
       let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
-      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, speechSrc=null;
+      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, speechSrc=null, babyNodes=[], babyBuf=null, babyBytes=null;
       let audioPlaying=false;
 
       function makeNoiseBuffer(ac){
@@ -1045,30 +1056,58 @@
         ancOut.connect(noiseFilter); noiseFilter.connect(noisePanner); noisePanner.connect(noiseDist); noiseDist.connect(master);
         speechGain.connect(sigFilter); sigFilter.connect(sigPanner); sigPanner.connect(sigDist); sigDist.connect(master);
         noiseBuf=makeNoiseBuffer(actx);
+        ensureBabyBuf();   // decode the baby-crying clip now that we have an AudioContext
         updateAncAudio();
       }
       function applyNoiseType(){
         if(!charFilter) return;
         const t=state.noiseType;
-        if(engineOsc){ try{engineOsc.stop();}catch(e){} engineOsc=null; engineGain=null; }
         if(toneOsc){ try{toneOsc.stop();}catch(e){} toneOsc=null; toneGain=null; }
-        const isTone = (t==='tone');
-        if(noiseBufGain) noiseBufGain.gain.value = isTone ? 0 : 1;   // mute broadband in pure-tone mode
+        babyNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); babyNodes=[];
+        const isTone = (t==='tone'), isBaby = (t==='baby');
+        if(noiseBufGain) noiseBufGain.gain.value = (isTone||isBaby) ? 0 : 1;   // mute broadband for synth voices
         if(t==='cafe'){ charFilter.type='lowpass'; charFilter.frequency.value=850; charFilter.Q.value=0.7; }
-        else if(t==='street'){ charFilter.type='bandpass'; charFilter.frequency.value=650; charFilter.Q.value=0.45; }
-        else if(t==='engine'){ charFilter.type='lowpass'; charFilter.frequency.value=480; charFilter.Q.value=0.7; }
-        if(t==='engine' && audioPlaying){
-          engineOsc=actx.createOscillator(); engineOsc.type='sawtooth'; engineOsc.frequency.value=112;
-          engineGain=actx.createGain(); engineGain.gain.value=0.10;
-          engineOsc.connect(engineGain); engineGain.connect(noiseSum);  // hum joins the noise, gets cancelled too
-          engineOsc.start();
-        }
         if(isTone && audioPlaying){
           toneOsc=actx.createOscillator(); toneOsc.type='sine'; toneOsc.frequency.value=parseFloat($('toneFreq').value);
           toneGain=actx.createGain(); toneGain.gain.value=0.18;
           toneOsc.connect(toneGain); toneGain.connect(noiseSum);
           toneOsc.start();
         }
+        if(isBaby && audioPlaying) startBabyCry();
+      }
+      // real baby-crying recording (looped); falls back to the synth below until it decodes
+      function ensureBabyBuf(){
+        if(babyBuf || !babyBytes || !actx) return;
+        const bytes=babyBytes; babyBytes=null;
+        actx.decodeAudioData(bytes.slice(0)).then(b=>{ babyBuf=b;
+          if(state.noiseType==='baby' && audioPlaying){ babyNodes.forEach(n=>{try{n.stop&&n.stop();}catch(e){}}); babyNodes=[]; playBabyBuffer(); }
+        }).catch(()=>{ babyBytes=bytes; });
+      }
+      function playBabyBuffer(){
+        babySrc=actx.createBufferSource(); babySrc.buffer=babyBuf; babySrc.loop=true;
+        const g=actx.createGain(); g.gain.value=1.0;
+        babySrc.connect(g); g.connect(noiseSum); babySrc.start();
+        babyNodes=[babySrc];
+      }
+      let babySrc=null;
+      function startBabyCry(){
+        ensureBabyBuf();
+        if(babyBuf){ playBabyBuffer(); return; }   // real clip
+        // synthesized fallback: a harmonic-rich voice (~450 Hz) with vibrato, a wailing pitch
+        // contour, a vowel formant, and on/off cry bursts (used only until the clip decodes)
+        const osc=actx.createOscillator(); osc.type='sawtooth'; osc.frequency.value=450;
+        const vib=actx.createOscillator(); vib.type='sine'; vib.frequency.value=6;          // vibrato
+        const vibG=actx.createGain(); vibG.gain.value=28; vib.connect(vibG); vibG.connect(osc.frequency);
+        const wail=actx.createOscillator(); wail.type='triangle'; wail.frequency.value=0.55; // slow wail contour
+        const wailG=actx.createGain(); wailG.gain.value=110; wail.connect(wailG); wailG.connect(osc.frequency);
+        const form=actx.createBiquadFilter(); form.type='bandpass'; form.frequency.value=1100; form.Q.value=4; // vowel-ish
+        const amp=actx.createGain(); amp.gain.value=0.0;
+        const burst=actx.createOscillator(); burst.type='sine'; burst.frequency.value=0.85;   // cry on/off bursts
+        const burstG=actx.createGain(); burstG.gain.value=0.14; burst.connect(burstG); burstG.connect(amp.gain);
+        amp.gain.value=0.15;                                                                    // base level + burst swing
+        osc.connect(form); form.connect(amp); amp.connect(noiseSum);
+        [osc,vib,wail,burst].forEach(n=>n.start());
+        babyNodes=[osc,vib,wail,burst];
       }
       function updateAncAudio(){
         if(!ancOut) return;
@@ -1078,7 +1117,7 @@
         ancInvGain.gain.setTargetAtTime(-ancGain(), t, 0.02);                             // cancellation depth
         // push live scene/params to the adaptive worklet (no-op for the ScriptProcessor fallback)
         if(adaptiveProc && adaptiveProc.port)
-          adaptiveProc.port.postMessage({algo:state.algo, ancOn:state.ancOn, latencyMs:state.latencyMs, theta:state.theta, dist:state.dist, nMics:state.nMics});
+          adaptiveProc.port.postMessage({algo:state.algo, ancOn:state.ancOn, latencyMs:state.latencyMs, theta:state.theta, dist:state.dist, nMics:state.nMics, calibrated:state.calibrated});
       }
       function setAlgo(){
         if(!modelSel) return;
@@ -1151,15 +1190,16 @@
         if(speechBuf){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
       }
       function stopSources(){
-        [noiseSrc,speechSrc,engineOsc,toneOsc].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
-        noiseSrc=speechSrc=engineOsc=toneOsc=null;
-        engineGain=toneGain=null;
+        [noiseSrc,speechSrc,toneOsc,...babyNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
+        noiseSrc=speechSrc=toneOsc=null; babyNodes=[];
+        toneGain=null;
       }
       // default desired audio: a local clip, fetched up front and decoded on first play
       let defaultClipBytes=null;
       fetch('the-sounds-of-silence.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{
         defaultClipBytes=b; $('audioStatus').textContent='Loaded “The Sound of Silence” — press ► Play, then toggle ANC.';
       }).catch(()=>{});
+      fetch('baby-crying.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ babyBytes=b; ensureBabyBuf(); }).catch(()=>{});
       function loadDefaultClip(){
         if(!defaultClipBytes || speechBuf) return;
         actx.decodeAudioData(defaultClipBytes.slice(0)).then(buf=>{
@@ -1202,7 +1242,8 @@
       const frozen={fft:false, ear:false, mic:false};
       function wirePause(btnId,key){ const b=$(btnId); b.addEventListener('click',()=>{ frozen[key]=!frozen[key]; b.textContent=frozen[key]?'▶':'⏸'; b.classList.toggle('on',frozen[key]); }); }
       wirePause('fftPause','fft'); wirePause('earPause','ear'); wirePause('micPause','mic');
-      $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); });
+      $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); $('orbitSpeedVal').textContent=state.orbitSpeed.toFixed(1)+'×'; });
+      $('srcDist').addEventListener('input', ()=>{ state.dist=parseFloat($('srcDist').value); $('srcDistVal').textContent=state.dist.toFixed(2)+' m'; polarDirty=true; renderStatic(); });
       $('micZoom').addEventListener('input', ()=>{ micWinSec=parseFloat($('micZoom').value)/1000; $('micZoomVal').textContent=$('micZoom').value+' ms'; micRefresh=8; });
       document.querySelectorAll('[data-noise]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
@@ -1211,12 +1252,15 @@
           state.noiseType=btn.dataset.noise;
           $('toneRow').style.display = state.noiseType==='tone' ? '' : 'none';
           applyNoiseType();
+          polarDirty=true; renderStatic();   // tone mode caps the curve/readout by frequency
           micRefresh=8;   // noise source changed -> refresh mic snapshot
         });
       });
       $('toneFreq').addEventListener('input', ()=>{
-        $('toneFreqVal').textContent = $('toneFreq').value+' Hz';
-        if(toneOsc) toneOsc.frequency.setTargetAtTime(parseFloat($('toneFreq').value), actx.currentTime, 0.01);
+        state.toneFreq=parseFloat($('toneFreq').value);
+        $('toneFreqVal').textContent = state.toneFreq+' Hz';
+        if(toneOsc) toneOsc.frequency.setTargetAtTime(state.toneFreq, actx.currentTime, 0.01);
+        polarDirty=true; renderStatic();   // higher tone → worse cancellation (readout + polar)
         micRefresh=8;   // tone pitch changed -> refresh mic snapshot
       });
       // ===== hook for the real-time engine's "Simulation" input source =====

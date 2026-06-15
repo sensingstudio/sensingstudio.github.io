@@ -39,7 +39,11 @@ class AdaptiveAncProcessor extends AudioWorkletProcessor {
     this.xpos = 0; this.mpos = 0; this.ypos = 0; this.curN = -1;
     // scene/params, updated from the main thread
     this.algo = 'adaptive'; this.ancOn = false; this.latencyMs = 0.1;
-    this.theta = 40; this.dist = 1.5; this.nMics = 4;
+    this.theta = 40; this.dist = 1.5; this.nMics = 4; this.calibrated = false;
+    // secondary path (speaker->ear) mismatch: amplitude error gS + a small irreducible group
+    // delay tauSamp. The delay's phase error grows with frequency, so high tones (≳2 kHz) can't
+    // be cancelled no matter how low the processing latency is. Calibration shrinks both.
+    this.gS = 0.86; this.tauSamp = 0;
     // preallocated geometry caches (filled by updateGeom on parameter change — never in process)
     this.idx = new Int32Array(this.NMAX);
     this.di0 = new Int32Array(this.NMAX);
@@ -52,6 +56,8 @@ class AdaptiveAncProcessor extends AudioWorkletProcessor {
   // Recompute mic/ear delays for the current scene — called only on parameter change.
   updateGeom() {
     const SR = sampleRate, perSide = this.nMics;
+    this.gS = this.calibrated ? 0.97 : 0.86;                       // secondary-path amplitude match
+    this.tauSamp = (this.calibrated ? 10e-6 : 40e-6) * SR;         // irreducible secondary-path group delay
     const th = this.theta * Math.PI / 180, Px = this.dist * Math.sin(th), Py = this.dist * Math.cos(th);
     this.latSamp = Math.min(this.Mx - 1, Math.round(Math.max(0, this.latencyMs * 1e-3) * SR));
     // active mic indices (left then right, nearest-ear first)
@@ -83,6 +89,7 @@ class AdaptiveAncProcessor extends AudioWorkletProcessor {
     const T = this.T, Mx = this.Mx, Mm = this.Mm, w = this.w, xbuf = this.xbuf, mbuf = this.mbuf, Yh = this.Yh;
     const MU = this.MU, LEAK = this.LEAK, SIG = this.SIG;
     const N = this.N, di0 = this.di0, dif = this.dif, tg0 = this.tg0, tgf = this.tgf, latSamp = this.latSamp;
+    const gS = this.gS, tauSamp = this.tauSamp;
     let xpos = this.xpos, mpos = this.mpos, ypos = this.ypos;
 
     for (let n = 0; n < Nn; n++) {
@@ -100,7 +107,14 @@ class AdaptiveAncProcessor extends AudioWorkletProcessor {
       for (let i = 0; i < N; i++) { const b = i * Mm;
         for (let k = 0; k < T; k++) { const mv = mbuf[b + ((mpos - k + Mm) % Mm)]; yhat += w[i * T + k] * mv; energy += mv * mv; } }
       Yh[ypos] = yhat;
-      const yDel = en ? Yh[(ypos - latSamp + Mx) % Mx] : 0;   // anti-noise reaches the ear late by the latency
+      // anti-noise reaches the ear late by the processing latency AND the secondary-path group
+      // delay, scaled by the secondary-path amplitude match (fractional read, linear interp)
+      let yDel = 0;
+      if (en) {
+        const fp = ypos - latSamp - tauSamp, i0 = Math.floor(fp), fr = fp - i0;
+        const ya = Yh[((i0 % Mx) + Mx) % Mx], yb = Yh[(((i0 + 1) % Mx) + Mx) % Mx];
+        yDel = gS * (ya + (yb - ya) * fr);
+      }
       const e = en ? (ear - yDel) : ear;
       out[n] = e < -2 ? -2 : (e > 2 ? 2 : e);
       if (en) {
