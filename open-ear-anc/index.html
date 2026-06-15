@@ -472,7 +472,7 @@
       // ===================== state =====================
       const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: true, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive', attract: true, toneFreq: 220 };
       let W = fitWeights(state.nMics);
-      let meanRedDb = 0, meanRedDbR = 0, liveRedDb = null;
+      let meanRedDb = 0, meanRedDbR = 0;
       // shared parameters used by BOTH the displayed model and the audio engine
       const MODEL = {
         depth:  {1:0.95, 2:0.975, 4:0.99},   // anti-noise amplitude match, by mics/side
@@ -516,15 +516,12 @@
         meanRedDb  = state.ancOn ? Math.min(modelRedDb(srcPos(state.theta, state.dist)), tone) : 0;    // left ear — drives the polar
         meanRedDbR = state.ancOn ? Math.min(modelRedDb(srcPos(-state.theta, state.dist)), tone) : 0;   // right ear = left at mirrored angle
       }
-      // readout shows the LIVE measured in-band reduction while playing (fluctuates with the noise);
-      // falls back to the model value when paused. R tracks L with the model's left/right offset.
-      // The idealized in-browser canceller cancels the 100-1000 Hz band almost perfectly
-      // regardless of mic count, so the raw live value would sit pinned at the ceiling and
-      // ignore the configuration. Cap it at the model's achievable reduction so the readout
-      // tracks mics / angle / distance / latency (live noise can still pull it BELOW the cap).
-      function useLive(){ return audioPlaying && state.ancOn && state.noiseType!=='tone' && liveRedDb!=null; }
-      function effRedDb(){ return useLive() ? Math.min(liveRedDb, meanRedDb) : meanRedDb; }
-      function effRedDbR(){ return useLive() ? Math.min(Math.max(0, liveRedDb + (meanRedDbR - meanRedDb)), meanRedDbR) : meanRedDbR; }
+      // SINGLE displayed value for both ears: the model's achievable reduction. The polar
+      // curves, the polar markers, and the headline dB readout all read from these, so the
+      // dot always sits on the curve and the number always matches it. The model already
+      // tracks mics / angle / distance / latency, so the readout responds to every control.
+      function effRedDb(){ return meanRedDb; }
+      function effRedDbR(){ return meanRedDbR; }
 
       // ===================== DOM =====================
       const $ = id => document.getElementById(id);
@@ -921,19 +918,6 @@
       function updateReadouts(){
         // angle/distance are now folded into the scene; latency shows by its slider.
       }
-      // measure the actual in-band reduction from the noise-only analysers (pre vs post ANC)
-      function measureLiveReduction(){
-        if(!noiseRawAnalyser) return;
-        noiseRawAnalyser.getFloatFrequencyData(nFftRaw);
-        noiseProcAnalyser.getFloatFrequencyData(nFftProc);
-        const nyq=actx.sampleRate/2, bins=nFftRaw.length;
-        const lo=Math.max(1,Math.floor(100/nyq*bins)), hi=Math.min(bins-1,Math.ceil(1000/nyq*bins));
-        let pr=0,pp=0;
-        for(let i=lo;i<=hi;i++){ pr+=Math.pow(10,nFftRaw[i]/10); pp+=Math.pow(10,nFftProc[i]/10); }
-        if(pr<1e-9) return;                       // not enough in-band noise to measure
-        let db=10*Math.log10(pr/Math.max(pp,1e-20)); db=Math.max(0,Math.min(40,db));
-        liveRedDb = (liveRedDb==null)? db : liveRedDb*0.85 + db*0.15;   // smooth
-      }
       function spatialize(thetaDeg, dist, panner, filter, distGain, t){
         const a=thetaDeg*Math.PI/180;
         panner.pan.setTargetAtTime(Math.max(-1,Math.min(1,Math.sin(a))), t, 0.03);          // left/right
@@ -1014,7 +998,6 @@
       // ===================== animation loop =====================
       function frame(ts){
         animTime = ts||0;
-        if(audioPlaying) measureLiveReduction();
         if(state.orbit){ state.theta=(state.theta+state.orbitSpeed); if(state.theta>180) state.theta-=360; micRefresh=8; }   // orbit moves the noise -> keep snapshot live
         if(state.orbit || audioPlaying || state.attract) renderStatic();
         if(!frozen.fft) drawLiveFFT();
@@ -1277,7 +1260,7 @@
         await ensureAudio();
         loadDefaultClip();
         if(actx.state==='suspended') await actx.resume();
-        if(audioPlaying){ stopSources(); audioPlaying=false; liveRedDb=null; $('playBtn').textContent='► Play'; renderStatic(); }
+        if(audioPlaying){ stopSources(); audioPlaying=false; $('playBtn').textContent='► Play'; renderStatic(); }
         else { audioPlaying=true; startSources(); $('playBtn').textContent='■ Stop'; micRefresh=10; }
       });
       function syncAncBtn(){
