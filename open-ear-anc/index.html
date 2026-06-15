@@ -206,6 +206,12 @@
     <main class="dash-main">
       <h1>Active Noise Cancellation on Glasses</h1>
 
+      <figure style="margin:0 auto 18px; text-align:center; max-width:1000px;">
+        <img src="concept-overview.png" alt="Open-ear ANC glasses: environmental noise is captured by frame microphones and cancelled by anti-noise from open-ear speakers near each ear, leaving the wearer in silence."
+             style="width:100%; height:auto; border-radius:12px; border:1px solid var(--grey-line);"
+             onerror="this.closest('figure').style.display='none'" />
+      </figure>
+
       <div class="dash">
         <aside class="sidebar">
           <div class="card2">
@@ -239,7 +245,7 @@
               </div>
             </div>
             <div class="crow">
-              <label>Level</label>
+              <label>Volume</label>
               <input type="range" id="noiseVol" min="0" max="8.0" step="0.01" value="8.0" style="flex:1 1 90px;" />
             </div>
             <div class="crow" id="toneRow" style="display:none;">
@@ -282,12 +288,6 @@
         </aside>
 
         <div class="views">
-          <figure style="margin:0 0 12px; text-align:center;">
-            <img src="concept-overview.png" alt="Open-ear ANC glasses: environmental noise is captured by frame microphones and cancelled by anti-noise from open-ear speakers near each ear, leaving the wearer in silence."
-                 style="width:100%; height:auto; border-radius:12px; border:1px solid var(--grey-line);"
-                 onerror="this.closest('figure').style.display='none'" />
-          </figure>
-
           <div class="toprow">
             <div class="card2 nopad">
               <div class="canvas-wrap" id="sceneWrap">
