@@ -1014,9 +1014,15 @@
           b0=0.99*b0+0.05*w; b1=0.963*b1+0.08*w; b2=0.57*b2+0.5*w; d[i]=(b0+b1+0.2*b2)*0.35; }
         return buf;
       }
-      function ensureAudio(){
+      async function ensureAudio(){
         if(actx) return;
         actx=new (window.AudioContext||window.webkitAudioContext)();
+        // load the AudioWorklet module (runs the NLMS off the main thread); fall back if unsupported
+        let useWorklet=false;
+        if(actx.audioWorklet){
+          try{ await actx.audioWorklet.addModule('anc-worklet.js'); useWorklet=true; }
+          catch(e){ console.warn('AudioWorklet unavailable, using ScriptProcessor fallback', e); }
+        }
         master=actx.createGain(); master.gain.value=0.85; master.connect(actx.destination);
         charFilter=actx.createBiquadFilter(); charFilter.type='lowpass'; charFilter.frequency.value=900;
         // delay-and-subtract canceller: ancOut = noiseSum − g·delay(noiseSum, Δt)  → 2·sin(πfΔt) response
@@ -1049,8 +1055,10 @@
         noiseSum.connect(combBus);
         noiseSum.connect(ancDelay); ancDelay.connect(ancSenseLP); ancSenseLP.connect(ancInvGain); ancInvGain.connect(combBus);
         combBus.connect(modelSel); modelSel.connect(ancOut);
-        // (B) adaptive FIR (NLMS) on the noise — a ScriptProcessor running a real adaptive filter
-        adaptiveProc = buildAdaptiveProc();
+        // (B) adaptive FIR (NLMS) on the noise — AudioWorklet (audio thread), ScriptProcessor fallback
+        adaptiveProc = useWorklet
+          ? new AudioWorkletNode(actx,'adaptive-anc',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1]})
+          : buildAdaptiveProc();
         noiseSum.connect(adaptiveProc); adaptiveProc.connect(adaptiveSel); adaptiveSel.connect(ancOut);
         setAlgo();
         // noise-only analysis taps (mono) for the live in-band reduction number
@@ -1096,6 +1104,9 @@
         ancDelay.delayTime.setTargetAtTime(Math.max(0, state.latencyMs*1e-3), t, 0.01);   // ANC latency
         ancSenseLP.frequency.setTargetAtTime(micCutoff(), t, 0.02);                       // sensing bandwidth (mics)
         ancInvGain.gain.setTargetAtTime(-ancGain(), t, 0.02);                             // cancellation depth
+        // push live scene/params to the adaptive worklet (no-op for the ScriptProcessor fallback)
+        if(adaptiveProc && adaptiveProc.port)
+          adaptiveProc.port.postMessage({algo:state.algo, ancOn:state.ancOn, latencyMs:state.latencyMs, theta:state.theta, dist:state.dist, nMics:state.nMics});
       }
       function setAlgo(){
         if(!modelSel) return;
@@ -1186,7 +1197,7 @@
 
       $('playBtn').addEventListener('click', async ()=>{
         $('playBtn').classList.remove('needs-click');
-        ensureAudio();
+        await ensureAudio();
         loadDefaultClip();
         if(actx.state==='suspended') await actx.resume();
         if(audioPlaying){ stopSources(); audioPlaying=false; liveRedDb=null; $('playBtn').textContent='► Play'; renderStatic(); }
