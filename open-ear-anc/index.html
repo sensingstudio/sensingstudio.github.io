@@ -330,12 +330,10 @@
             <div class="card2">
               <div class="canvas-wrap" style="margin-top:6px; background:#0c0c0e; flex:1; display:flex; align-items:center; justify-content:center;">
                 <canvas id="polar" width="460" height="440"></canvas>
-                <span class="tag">● = current noise</span>
               </div>
               <div class="legend" style="justify-content:center; padding:8px 4px 2px; gap:16px;">
                 <span><i class="swatch" style="background:#2ECC71;"></i> left ear reduction</span>
                 <span><i class="swatch" style="background:repeating-linear-gradient(90deg,#4FB3FF 0 5px,transparent 5px 9px);"></i> right ear (mirror)</span>
-                <span><i class="dot" style="background:var(--red);"></i> at current noise direction</span>
               </div>
             </div>
           </div>
@@ -858,17 +856,17 @@
         polctx.clearRect(0,0,W2,H2);
         const toXY=(thetaDeg,v)=>{ const r=Math.max(0,Math.min(polarMax,v))/polarMax*R, t=thetaDeg*Math.PI/180; return [cx+r*Math.sin(t), cy-r*Math.cos(t)]; };
         // rings + dB labels (up the top spoke)
-        polctx.lineWidth=1; polctx.font='11px Roboto, sans-serif'; polctx.textBaseline='middle';
+        polctx.lineWidth=1; polctx.font='600 14px Roboto, sans-serif'; polctx.textBaseline='middle';
         const RINGS=Math.max(3, Math.min(7, Math.round(polarMax/2)));
         for(let k=1;k<=RINGS;k++){ const rr=R*k/RINGS, db=polarMax*k/RINGS;
           polctx.strokeStyle='rgba(255,255,255,0.12)'; polctx.beginPath(); polctx.arc(cx,cy,rr,0,2*Math.PI); polctx.stroke();
-          polctx.fillStyle='rgba(255,255,255,0.4)'; polctx.textAlign='left'; polctx.fillText(db.toFixed(0), cx+4, cy-rr); }
-        polctx.fillStyle='rgba(255,255,255,0.5)'; polctx.fillText('dB reduction', cx+4, cy-R-12);
+          polctx.fillStyle='rgba(255,255,255,0.6)'; polctx.textAlign='left'; polctx.fillText(db.toFixed(0), cx+4, cy-rr); }
+        polctx.font='700 14px Roboto, sans-serif'; polctx.fillStyle='rgba(255,255,255,0.7)'; polctx.fillText('dB reduction', cx+4, cy-R-14);
         // spokes + angle labels
-        polctx.strokeStyle='rgba(255,255,255,0.10)'; polctx.fillStyle='rgba(255,255,255,0.55)'; polctx.textAlign='center';
+        polctx.strokeStyle='rgba(255,255,255,0.10)'; polctx.fillStyle='rgba(255,255,255,0.7)'; polctx.textAlign='center'; polctx.font='700 15px Roboto, sans-serif';
         for(let a=0;a<360;a+=45){ const t=a*Math.PI/180;
           polctx.beginPath(); polctx.moveTo(cx,cy); polctx.lineTo(cx+R*Math.sin(t), cy-R*Math.cos(t)); polctx.stroke();
-          polctx.fillText(a+'°', cx+(R+15)*Math.sin(t), cy-(R+15)*Math.cos(t)); }
+          polctx.fillText(a+'°', cx+(R+18)*Math.sin(t), cy-(R+18)*Math.cos(t)); }
         // faint model-prediction reference (full loop, both ears) so the plot is never empty and
         // the live trace has something to build onto after a reset.
         polctx.lineWidth=1.3; polctx.setLineDash([3,5]);
@@ -901,7 +899,7 @@
         polctx.beginPath(); polctx.arc(rx2,ry2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
         const [lx2,ly2]=toXY(state.theta, effRedDb());
         polctx.beginPath(); polctx.arc(lx2,ly2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
-        if(!state.ancOn){ polctx.fillStyle='rgba(255,255,255,0.55)'; polctx.font='700 12px Roboto, sans-serif'; polctx.textAlign='center'; polctx.textBaseline='middle';
+        if(!state.ancOn){ polctx.fillStyle='rgba(255,255,255,0.6)'; polctx.font='700 16px Roboto, sans-serif'; polctx.textAlign='center'; polctx.textBaseline='middle';
           polctx.fillText('ANC OFF', cx, cy); }
       }
 
@@ -928,7 +926,9 @@
         pctx.textAlign='left'; pctx.textBaseline='middle'; pctx.font='600 19px Roboto, sans-serif';
         [-20,-40,-60,-80,-100].forEach(db=>{ const y=ydb(db);
           pctx.strokeStyle='rgba(255,255,255,0.08)'; pctx.beginPath(); pctx.moveTo(0,y); pctx.lineTo(W2,y); pctx.stroke();
-          pctx.fillStyle='rgba(255,255,255,0.75)'; pctx.fillText(db+' dB', 6, Math.max(12,Math.min(H2-12,y+12))); });
+          const ly=y+12;
+          if(ly>H2-24) return;   // skip labels that would collide with the x-axis (frequency) labels
+          pctx.fillStyle='rgba(255,255,255,0.75)'; pctx.fillText(db+' dB', 6, Math.max(12,ly)); });
         pctx.textAlign='center'; pctx.textBaseline='alphabetic';
 
         if(!procAnalyser || !audioPlaying){
@@ -1060,7 +1060,7 @@
       function sgDrawAxes(W2,H2){
         const la=Math.log10(FA), lb=Math.log10(FB);
         // frequency gridlines + labels
-        gctx.font='700 15px Roboto, sans-serif'; gctx.textAlign='left'; gctx.textBaseline='middle';
+        gctx.font='700 17px Roboto, sans-serif'; gctx.textAlign='left'; gctx.textBaseline='middle';
         [100,300,1000,3000].forEach(ft=>{ if(ft<FA||ft>FB) return;
           const y=(lb-Math.log10(ft))/(lb-la)*H2;                // top = FB, bottom = FA
           const lbl=ft>=1000?(ft/1000)+' kHz':ft+' Hz';
@@ -1072,13 +1072,19 @@
         // time axis along the bottom: right edge = now, scrolling left = older. Scroll is SG_SH
         // px/frame at ~60fps → SG_SH*60 px/s, so each tick marks how many seconds ago that column is.
         const pxPerSec=SG_SH*60;
-        gctx.font='700 15px Roboto, sans-serif'; gctx.textBaseline='bottom';
+        gctx.font='700 17px Roboto, sans-serif'; gctx.textBaseline='bottom';
         for(let sec=0; sec*pxPerSec<=W2; sec+=2){
           const x=W2-sec*pxPerSec, lbl=sec===0?'now':'-'+sec+'s';
           gctx.strokeStyle='rgba(255,255,255,0.10)'; gctx.beginPath(); gctx.moveTo(x,0); gctx.lineTo(x,H2); gctx.stroke();
-          gctx.textAlign = sec===0?'right':'center';
-          const tw=gctx.measureText(lbl).width, lx=sec===0?x-3:x;
-          gctx.fillStyle='rgba(12,12,14,0.78)'; gctx.fillRect(lx-(sec===0?tw:tw/2)-4, H2-22, tw+8, 20);
+          const tw=gctx.measureText(lbl).width;
+          // keep edge labels on-canvas: right-align "now", left-align the far-left tick, else center
+          const atRight=sec===0, atLeft=x-tw/2<2;
+          let lx, bx;
+          if(atRight){ lx=x-3; bx=lx-tw-4; }
+          else if(atLeft){ lx=3; bx=lx-1; }
+          else { lx=x; bx=x-tw/2-4; }
+          gctx.textAlign = atRight?'right':(atLeft?'left':'center');
+          gctx.fillStyle='rgba(12,12,14,0.78)'; gctx.fillRect(bx, H2-22, tw+8, 20);
           gctx.fillStyle='rgba(255,255,255,0.95)'; gctx.fillText(lbl, lx, H2-4);
         }
         gctx.textAlign='center'; gctx.textBaseline='alphabetic';
