@@ -478,7 +478,10 @@
       // ===================== state =====================
       const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: true, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive', attract: true, toneFreq: 220 };
       let W = fitWeights(state.nMics);
-      let meanRedDb = 0, meanRedDbR = 0;
+      let meanRedDb = 0, meanRedDbR = 0;     // pure model reduction (no live wiggle)
+      let curRedL = 0, curRedR = 0;          // the LIVE displayed value: model + live wiggle.
+                                             // Drives the readout, the polar markers, AND the
+                                             // value logged into the polar history each frame.
       // shared parameters used by BOTH the displayed model and the audio engine
       const MODEL = {
         depth:  {1:0.95, 2:0.975, 4:0.99},   // anti-noise amplitude match, by mics/side
@@ -519,23 +522,31 @@
       }
       function compute(){
         const tone = state.noiseType==='tone' ? toneCapDb(state.toneFreq) : Infinity;   // cap reduction by tone freq
-        meanRedDb  = state.ancOn ? Math.min(modelRedDb(srcPos(state.theta, state.dist)), tone) : 0;    // left ear — drives the polar
+        meanRedDb  = state.ancOn ? Math.min(modelRedDb(srcPos(state.theta, state.dist)), tone) : 0;    // left ear
         meanRedDbR = state.ancOn ? Math.min(modelRedDb(srcPos(-state.theta, state.dist)), tone) : 0;   // right ear = left at mirrored angle
+        // the LIVE displayed value = model baseline (tracks mics/angle/distance/latency) + the
+        // measured frame-to-frame wiggle, so it both responds to every control and keeps ticking.
+        const jit = measureLiveRedDb();
+        curRedL = Math.max(0, meanRedDb  + (jit||0));
+        curRedR = Math.max(0, meanRedDbR + (jit||0));
+        if(state.ancOn) recordPolar();        // log this live reading into the polar history trace
       }
-      // SINGLE displayed value for both ears: the model's achievable reduction. The polar
-      // curves, the polar markers, and the headline dB readout all read from these, so the
-      // dot always sits on the curve and the number always matches it. The model already
-      // tracks mics / angle / distance / latency, so the readout responds to every control.
-      function effRedDb(){ return meanRedDb; }
-      function effRedDbR(){ return meanRedDbR; }
+      // SINGLE displayed value for both ears (model + live wiggle). The polar markers, the polar
+      // history trace, and the headline dB readout all read from these, so the dot always sits on
+      // the curve and the number always matches it — and both stay live as the source moves.
+      function effRedDb(){ return curRedL; }
+      function effRedDbR(){ return curRedR; }
       // Live, MEASURED in-band (100–1000 Hz) reduction read from the noise analysis taps:
-      // total power of the raw noise (noiseSum) vs. the residual at the ear (ancOut). Unlike the
-      // model number, this fluctuates frame-to-frame with the actual signal, so the on-scene
-      // readout keeps ticking even while the source is parked. Returns null when audio isn't
-      // running (the caller then falls back to the static model value).
-      let liveRedShown=0;
+      // total power of the raw noise (noiseSum) vs. the residual at the ear (ancOut). The audio
+      // engine cancels a single coherent source nearly perfectly regardless of mic count, so the
+      // raw measured value barely tracks the controls — using it directly made the readout ignore
+      // the mic selector even though the polar curve (the model) moved. Instead we return only the
+      // frame-to-frame WIGGLE (instantaneous minus a slow baseline): the caller adds it to the
+      // model value, so the number both tracks every control AND stays alive. Returns null when
+      // audio isn't running, and re-primes on the next play so the wiggle never spikes.
+      let liveInst=0, liveSlow=0, livePrimed=false;
       function measureLiveRedDb(){
-        if(!noiseProcAnalyser || !audioPlaying || !state.ancOn) return null;
+        if(!noiseProcAnalyser || !audioPlaying || !state.ancOn){ livePrimed=false; return null; }
         noiseRawAnalyser.getFloatFrequencyData(nFftRaw);
         noiseProcAnalyser.getFloatFrequencyData(nFftProc);
         const nyq=actx.sampleRate/2, bins=nFftRaw.length;
@@ -543,9 +554,11 @@
         let pin=0, pout=0;
         for(let i=lo;i<=hi;i++){ pin+=Math.pow(10, nFftRaw[i]/10); pout+=Math.pow(10, nFftProc[i]/10); }
         if(!(pin>0)) return null;
-        const red=10*Math.log10(pin/Math.max(pout, pin*1e-6));   // floor 1e-6 ⇒ caps near 60 dB
-        liveRedShown += (Math.max(0,red)-liveRedShown)*0.2;       // light EMA: lively but legible
-        return liveRedShown;
+        const red=Math.max(0, 10*Math.log10(pin/Math.max(pout, pin*1e-6)));   // floor 1e-6 ⇒ caps near 60 dB
+        if(!livePrimed){ liveInst=red; liveSlow=red; livePrimed=true; }
+        liveInst += (red-liveInst)*0.4;        // fast EMA: the instantaneous reading
+        liveSlow += (liveInst-liveSlow)*0.03;  // slow EMA: the baseline we subtract off
+        return liveInst-liveSlow;              // zero-mean wiggle (a few tenths of a dB)
       }
 
       // ===================== DOM =====================
@@ -697,12 +710,10 @@
           else sctx.fillRect(10,8,290,82);
           sctx.textAlign='left'; sctx.textBaseline='alphabetic';
           if(state.ancOn){ sctx.font='700 21px Roboto, sans-serif';
-            // prefer the live measured reduction (ticks in real time); fall back to the model
-            // value when audio is stopped. The left ear is the canceller's target, so its measured
-            // number leads; the right ear keeps the model's left/right offset.
-            const live=measureLiveRedDb();
-            const lDb = live!=null ? live : effRedDb();
-            const rDb = live!=null ? Math.max(0, live + (effRedDbR()-effRedDb())) : effRedDbR();
+            // the live displayed value (computed once per frame in compute()); the polar marker and
+            // the freshly-logged point of the polar history trace read from the exact same numbers.
+            const lDb = effRedDb();
+            const rDb = effRedDbR();
             const lt='L −'+lDb.toFixed(1)+' dB    ';
             sctx.fillStyle='#2ECC71'; sctx.fillText(lt, 22, 36);
             sctx.fillStyle='#4FB3FF'; sctx.fillText('R −'+rDb.toFixed(1)+' dB', 22+sctx.measureText(lt).width, 36); }
@@ -715,13 +726,16 @@
       }
 
       // ===================== directivity (polar) plot =====================
-      // Reduction vs. noise direction at the left ear (right ear = mirror). The curve is the
-      // model's achievable reduction at each angle for the current distance / mics / latency;
-      // a marker tracks the live noise angle as it orbits. Curve depends on distance/mics/
-      // latency/calibration (recomputed on change) — NOT on the current angle, so orbiting
-      // only sweeps the marker.
+      // Reduction vs. noise direction, drawn as a LIVE HISTORY TRACE: every frame we log the
+      // current displayed reduction (curRedL/curRedR — the same numbers as the headline readout)
+      // into the angle bin the source occupies right now. As the source orbits or is dragged, the
+      // trace fills in and keeps updating, so the curve is a running history of the readout rather
+      // than an instantaneous model sweep. Angles the source hasn't visited yet are seeded once
+      // from the model so the plot is never empty; the marker tracks the live source angle.
       const NA_POL=72;
       let polarL=new Float32Array(NA_POL), polarR=new Float32Array(NA_POL), polarMax=20, polarDirty=true;
+      const polarSeen=new Uint8Array(NA_POL);    // 1 once the source has visited (live-logged) a bin
+      let lastPolarBin=-1, lastRedL=0, lastRedR=0;   // for gap-filling the trace across jumps
       const EAR_AZ=Math.atan2(EAR0[0],EAR0[1]);    // azimuth of the (left) target ear, ~270°
       // ===== SINGLE SOURCE OF TRUTH for displayed reduction (readout + polar) =====
       // Per-frequency residual = k · (geometry reconstruction error) · (latency comb) · (head shadow).
@@ -746,15 +760,33 @@
         // floor 1e-6 ⇒ caps near 60 dB (effectively perfect) at zero latency
         return Math.max(0, -10*Math.log10(Math.max(rL/eL,1e-6)));
       }
+      function angBin(thetaDeg){ return Math.round((((thetaDeg%360)+360)%360)/360*NA_POL)%NA_POL; }
+      // Seed only the angle bins the source hasn't visited yet with the model's reduction, so the
+      // plot has a sensible starting shape; live history (recordPolar) owns every visited bin.
       function computePolar(){
         const tone = state.noiseType==='tone' ? toneCapDb(state.toneFreq) : Infinity;   // tone-freq ceiling
-        for(let i=0;i<NA_POL;i++){ polarL[i]=Math.min(modelRedDb(srcPos(i/NA_POL*360, state.dist)), tone); }
-        // right ear = left-right mirror of the device, so its curve is polarL reflected about
-        // the front–back axis (angle θ → −θ); the real system runs this mirror copy.
-        for(let i=0;i<NA_POL;i++){ polarR[i]=polarValAt(polarL, -(i/NA_POL*360)); }
+        for(let i=0;i<NA_POL;i++){ if(polarSeen[i]) continue; const ang=i/NA_POL*360;
+          polarL[i]=Math.min(modelRedDb(srcPos( ang, state.dist)), tone);   // left ear at this source angle
+          polarR[i]=Math.min(modelRedDb(srcPos(-ang, state.dist)), tone);   // right ear = mirrored angle
+        }
         polarMax=20;   // fixed 20 dB full-scale
       }
-      function polarValAt(arr,thetaDeg){ const a=((thetaDeg%360)+360)%360, x=a/360*NA_POL, i=Math.floor(x)%NA_POL, fr=x-Math.floor(x), j=(i+1)%NA_POL; return arr[i]+(arr[j]-arr[i])*fr; }
+      // Log the live displayed reduction (curRedL/curRedR) into the source's current angle bin,
+      // filling any bins skipped since the last frame so drags leave a continuous trail.
+      function recordPolar(){
+        const bin=angBin(state.theta);
+        if(lastPolarBin<0){ lastPolarBin=bin; lastRedL=curRedL; lastRedR=curRedR; }
+        let diff=bin-lastPolarBin;                       // shortest signed arc, in bins
+        if(diff> NA_POL/2) diff-=NA_POL; if(diff<-NA_POL/2) diff+=NA_POL;
+        const steps=Math.abs(diff), dir=Math.sign(diff);
+        for(let s=1;s<=Math.max(1,steps);s++){
+          const b=((lastPolarBin+dir*s)%NA_POL+NA_POL)%NA_POL, t=steps?s/steps:1;
+          polarL[b]=lastRedL+(curRedL-lastRedL)*t;
+          polarR[b]=lastRedR+(curRedR-lastRedR)*t;
+          polarSeen[b]=1;
+        }
+        lastPolarBin=bin; lastRedL=curRedL; lastRedR=curRedR;
+      }
       function drawPolar(){
         const W2=polar.width, H2=polar.height, cx=W2/2, cy=H2*0.54, R=Math.min(W2,H2)*0.40;
         polctx.clearRect(0,0,W2,H2);
@@ -771,19 +803,19 @@
         for(let a=0;a<360;a+=45){ const t=a*Math.PI/180;
           polctx.beginPath(); polctx.moveTo(cx,cy); polctx.lineTo(cx+R*Math.sin(t), cy-R*Math.cos(t)); polctx.stroke();
           polctx.fillText(a+'°', cx+(R+15)*Math.sin(t), cy-(R+15)*Math.cos(t)); }
-        // right-ear reduction curve (mirror); blue + dashed so it reads distinctly from the left
+        // right-ear reduction history trace; blue + dashed so it reads distinctly from the left
         polctx.strokeStyle = state.ancOn ? '#4FB3FF' : 'rgba(79,179,255,0.28)';
         polctx.lineWidth=2.2; polctx.setLineDash([6,5]); polctx.beginPath();
         for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarR[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
         polctx.stroke(); polctx.setLineDash([]);
-        // left-ear reduction curve (closed loop); dimmed+dashed when ANC is off (potential)
+        // left-ear reduction history trace (closed loop); dimmed+dashed when ANC is off
         polctx.strokeStyle = state.ancOn ? '#2ECC71' : 'rgba(46,204,113,0.30)';
         polctx.lineWidth=2.6; polctx.setLineDash(state.ancOn?[]:[5,5]); polctx.beginPath();
         for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarL[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
         polctx.stroke(); polctx.setLineDash([]);
-        // noise-direction markers — a red dot on each ear at the current noise angle.
-        // Sit them on the SAME displayed value as the headline dB readout (effRedDb*), so the
-        // dot and the number always agree; the curves stay the model envelope behind them.
+        // noise-direction markers — a red dot on each ear at the current noise angle. They sit on
+        // curRedL/curRedR, the SAME live value as the headline readout and as the point just logged
+        // into the history trace, so the dot, the number, and the freshly-drawn trace all agree.
         polctx.fillStyle = state.ancOn ? '#bc122a' : 'rgba(188,18,42,0.5)'; polctx.strokeStyle='#fff'; polctx.lineWidth=1.6;
         const [rx2,ry2]=toXY(state.theta, effRedDbR());
         polctx.beginPath(); polctx.arc(rx2,ry2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
@@ -878,10 +910,9 @@
       // music + noise + ANC + levels. Gold (at the ear) sits inside red (incoming).
       let timeRaw=null, timeProc=null, envIn=null, envEar=null;
       // time-detail (slider): shorter RMS window + faster scroll = finer/more responsive
-      let scopeWin=4096, scopeSh=3;
+      let scopeWin=4096, scopeSh=6;   // ~3s window across the canvas (W/(scopeSh*60fps)); larger scopeSh = smaller window
       function setScopeWindow(sec){ scopeSh=Math.max(1, Math.round(earscope.width/(sec*60))); }   // window = time span only; detail stays full
       function rmsOf(arr, win){ const n=Math.min(win||arr.length, arr.length), s0=arr.length-n; let s=0; for(let i=s0;i<arr.length;i++) s+=arr[i]*arr[i]; return Math.sqrt(s/n); }
-      function peakOf(arr, win){ const n=Math.min(win||arr.length, arr.length), s0=arr.length-n; let p=0; for(let i=s0;i<arr.length;i++){ const a=Math.abs(arr[i]); if(a>p)p=a; } return p; }
       function drawEarscope(){
         const W2=earscope.width, H2=earscope.height, mid=H2/2; ectx.clearRect(0,0,W2,H2);
         ectx.strokeStyle='rgba(255,255,255,0.10)'; ectx.lineWidth=1;
@@ -894,9 +925,15 @@
         if(!envIn || envIn.length!==W2){ envIn=new Float32Array(W2); envEar=new Float32Array(W2); }
         rawAnalyser.getFloatTimeDomainData(timeRaw);
         procAnalyser.getFloatTimeDomainData(timeProc);
-        const aIn=peakOf(timeRaw,512), aEar=peakOf(timeProc,512), SH=scopeSh;   // full-detail peak per frame
+        const SH=scopeSh;
         envIn.copyWithin(0,SH); envEar.copyWithin(0,SH);
-        for(let k=W2-SH;k<W2;k++){ envIn[k]=aIn; envEar[k]=aEar; }
+        // give each of the SH new columns its own peak (from one frame's worth of audio split SH ways) so detail doesn't drop as the window shrinks
+        const span=Math.min(timeRaw.length, Math.round(actx.sampleRate/60)), s0=timeRaw.length-span;
+        for(let j=0;j<SH;j++){
+          const a=s0+Math.floor(j*span/SH), b=s0+Math.floor((j+1)*span/SH);
+          let pI=0,pE=0; for(let i=a;i<b;i++){ const vi=Math.abs(timeRaw[i]); if(vi>pI)pI=vi; const ve=Math.abs(timeProc[i]); if(ve>pE)pE=ve; }
+          envIn[W2-SH+j]=pI; envEar[W2-SH+j]=pE;
+        }
         const gain=H2*0.5, cap=H2*0.46;
         const amp=v=>cap*Math.tanh(v*gain/cap);   // soft knee -> compresses smoothly, never flat-clips
         const band=(env,color)=>{ ectx.fillStyle=color; ectx.beginPath();
@@ -909,6 +946,7 @@
 
       // ----- what each active mic sees: the noise delayed + scaled per its geometry -----
       let micTime=null, micScopePk=0, micWinSec=0.008, micRefresh=8;   // micscope is a snapshot: redraws only while micRefresh>0 (bumped when the source moves)
+      let lastMicDraw=0; const MIC_FPS=11;   // throttle the mic scope so it's readable instead of a 60fps blur
       function micColor(k,n){ const h=(205 + k*(300/Math.max(1,n)))%360; return 'hsl('+h.toFixed(0)+',78%,62%)'; }
       function micTaps(SR){
         const P=srcPos(state.theta,state.dist);
@@ -1033,7 +1071,7 @@
         if(state.orbit || audioPlaying || state.attract) renderStatic();
         if(!frozen.fft) drawLiveFFT();
         if(!frozen.ear) drawEarscope();
-        if(micRefresh>0 && !frozen.mic){ drawMicScope(); micRefresh--; }   // snapshot: only refreshes after the source position changes
+        if(!frozen.mic && (audioPlaying || micRefresh>0) && (animTime-lastMicDraw >= 1000/MIC_FPS)){ drawMicScope(); lastMicDraw=animTime; if(micRefresh>0) micRefresh--; }   // live while playing (throttled); otherwise a snapshot that refreshes after the source moves
         requestAnimationFrame(frame);
       }
 
