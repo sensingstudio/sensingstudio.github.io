@@ -192,6 +192,8 @@
       .vhead { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 6px 10px; }
       .vhead > span:first-child { font-size:11px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase; color:var(--grey-text); }
       .leg { display:flex; gap:14px; font-size:12px; color:var(--grey-text); margin-left:auto; }
+      .leg i.sg-ramp { display:inline-block; width:70px; height:9px; border-radius:2px; align-self:center;
+        background:linear-gradient(90deg,#000004,#420a68,#932667,#dd513a,#fca50a,#fcffa4); }
       .leg > span { display:inline-flex; align-items:center; gap:6px; }
       @media (max-width: 1000px) {
         .dash { grid-template-columns:1fr; }
@@ -348,6 +350,21 @@
             </div>
             <div class="canvas-wrap">
               <canvas id="spectrum" width="1200" height="300"></canvas>
+            </div>
+          </div>
+
+          <div class="card2 nopad">
+            <div class="vhead">
+              <span>Spectrogram over time (left ear)</span>
+              <span class="leg">
+                <span style="color:var(--grey-text);">energy</span>
+                <i class="sg-ramp"></i>
+                <span style="color:var(--after);">loud</span>
+              </span>
+              <button id="sgramPause" class="pausebtn" style="margin-left:auto;">&#10073;&#10073; Pause</button>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="sgram" width="1200" height="320"></canvas>
             </div>
           </div>
 
@@ -606,6 +623,7 @@
       const spectrum = $('spectrum'), pctx = spectrum.getContext('2d');
       const earscope = $('earscope'), ectx = earscope.getContext('2d');
       const micscope = $('micscope'), mctx = micscope.getContext('2d');
+      const sgram = $('sgram'), gctx = sgram.getContext('2d');
       const polar = $('polar'), polctx = polar.getContext('2d');
 
       // ----- scene drawing -----
@@ -774,6 +792,9 @@
       // from the model so the plot is never empty; the marker tracks the live source angle.
       const NA_POL=72;
       let polarL=new Float32Array(NA_POL), polarR=new Float32Array(NA_POL), polarMax=20, polarDirty=true;
+      // model-prediction reference (full loop, always drawn faintly); the bold trace is the LIVE
+      // history and only covers bins the source has swept since the last reset.
+      let polarModelL=new Float32Array(NA_POL), polarModelR=new Float32Array(NA_POL);
       const polarSeen=new Uint8Array(NA_POL);    // 1 once the source has visited (live-logged) a bin
       let lastPolarBin=-1, lastRedL=0, lastRedR=0;   // for gap-filling the trace across jumps
       // Wipe the live history trace and re-seed from the model. Call whenever a NOISE or ANC-system
@@ -805,14 +826,15 @@
         return Math.max(0, -10*Math.log10(Math.max(rL/eL,1e-6)));
       }
       function angBin(thetaDeg){ return Math.round((((thetaDeg%360)+360)%360)/360*NA_POL)%NA_POL; }
-      // Seed only the angle bins the source hasn't visited yet with the model's reduction, so the
-      // plot has a sensible starting shape; live history (recordPolar) owns every visited bin.
+      // Recompute the faint model-prediction reference for the CURRENT config (every angle). The
+      // bold live trace is owned entirely by recordPolar and is NOT seeded here, so a reset
+      // (which clears polarSeen) genuinely empties the bold trace until the source sweeps again.
       function computePolar(){
         const tone = state.noiseType==='tone' ? toneCapDb(state.toneFreq) : Infinity;   // tone-freq ceiling
         const cap = Math.min(tone, noiseCapDb());   // and by source stationarity (baby/click)
-        for(let i=0;i<NA_POL;i++){ if(polarSeen[i]) continue; const ang=i/NA_POL*360;
-          polarL[i]=Math.min(modelRedDb(srcPos( ang, state.dist)), cap);   // left ear at this source angle
-          polarR[i]=Math.min(modelRedDb(srcPos(-ang, state.dist)), cap);   // right ear = mirrored angle
+        for(let i=0;i<NA_POL;i++){ const ang=i/NA_POL*360;
+          polarModelL[i]=Math.min(modelRedDb(srcPos( ang, state.dist)), cap);   // left ear at this source angle
+          polarModelR[i]=Math.min(modelRedDb(srcPos(-ang, state.dist)), cap);   // right ear = mirrored angle
         }
         polarMax=20;   // fixed 20 dB full-scale
       }
@@ -848,16 +870,30 @@
         for(let a=0;a<360;a+=45){ const t=a*Math.PI/180;
           polctx.beginPath(); polctx.moveTo(cx,cy); polctx.lineTo(cx+R*Math.sin(t), cy-R*Math.cos(t)); polctx.stroke();
           polctx.fillText(a+'°', cx+(R+15)*Math.sin(t), cy-(R+15)*Math.cos(t)); }
-        // right-ear reduction history trace; blue + dashed so it reads distinctly from the left
-        polctx.strokeStyle = state.ancOn ? '#4FB3FF' : 'rgba(79,179,255,0.28)';
-        polctx.lineWidth=2.2; polctx.setLineDash([6,5]); polctx.beginPath();
-        for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarR[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
+        // faint model-prediction reference (full loop, both ears) so the plot is never empty and
+        // the live trace has something to build onto after a reset.
+        polctx.lineWidth=1.3; polctx.setLineDash([3,5]);
+        polctx.strokeStyle='rgba(79,179,255,0.16)'; polctx.beginPath();
+        for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarModelR[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
+        polctx.stroke();
+        polctx.strokeStyle='rgba(46,204,113,0.18)'; polctx.beginPath();
+        for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarModelL[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
         polctx.stroke(); polctx.setLineDash([]);
-        // left-ear reduction history trace (closed loop); dimmed+dashed when ANC is off
-        polctx.strokeStyle = state.ancOn ? '#2ECC71' : 'rgba(46,204,113,0.30)';
-        polctx.lineWidth=2.6; polctx.setLineDash(state.ancOn?[]:[5,5]); polctx.beginPath();
-        for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarL[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
-        polctx.stroke(); polctx.setLineDash([]);
+        // BOLD LIVE history trace — only the angles the source has actually swept since the last
+        // reset (broken at gaps). A config change calls resetPolarTrace(), clearing polarSeen, so
+        // the previous trace disappears and rebuilds live.
+        const liveTrace=(arr,col,dimCol,lw,dash)=>{
+          polctx.strokeStyle = state.ancOn ? col : dimCol; polctx.lineWidth=lw; polctx.setLineDash(dash);
+          polctx.beginPath(); let pen=false;
+          for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL;
+            if(polarSeen[idx]){ const ang=idx/NA_POL*360, [x,y]=toXY(ang, arr[idx]);
+              if(pen) polctx.lineTo(x,y); else { polctx.moveTo(x,y); pen=true; } }
+            else pen=false;
+          }
+          polctx.stroke(); polctx.setLineDash([]);
+        };
+        liveTrace(polarR,'#4FB3FF','rgba(79,179,255,0.28)',2.2,[6,5]);                 // right ear (blue dashed)
+        liveTrace(polarL,'#2ECC71','rgba(46,204,113,0.30)',2.6,state.ancOn?[]:[5,5]);  // left ear (green)
         // noise-direction markers — a red dot on each ear at the current noise angle. They sit on
         // curRedL/curRedR, the SAME live value as the headline readout and as the point just logged
         // into the history trace, so the dot, the number, and the freshly-drawn trace all agree.
@@ -973,6 +1009,84 @@
           pctx.fillStyle=red>=0?'#2ECC71':'#E74C3C'; pctx.font='700 12px Roboto, sans-serif'; pctx.fillText(rLbl, bx+8, by+25);
           pctx.textAlign='center'; pctx.textBaseline='alphabetic';
         }
+      }
+
+      // ----- scrolling spectrogram (time–frequency) of the left ear: before vs after ANC -----
+      // A stack of FFT columns laid side by side, newest at the right. Frequency runs up each
+      // panel (log, 40 Hz–3 kHz, matching the spectrum above); brightness = energy. Top panel is
+      // the incoming noise, bottom is the residual at the ear — so the ANC effect is the energy
+      // that's present up top and gone below. Same rawAnalyser/procAnalyser as every other view.
+      const sgC = document.createElement('canvas'); sgC.width=sgram.width; sgC.height=sgram.height;
+      const sgctx = sgC.getContext('2d');
+      const SG_SH = 2;                         // px scrolled per frame (~10 s window across the canvas)
+      const SG_DBT=-25, SG_DBB=-95;            // color ceiling/floor (dB)
+      let sgMap=null, sgMapBins=0, sgPanelH=0; // cached y -> fractional FFT bin (per panel)
+      let sgWasPlaying=false;
+      const sgStops=[[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]]; // inferno
+      function sgColor(t){
+        t=t<0?0:t>1?1:t; const s=t*(sgStops.length-1), i=s|0, f=s-i;
+        const a=sgStops[i], b=sgStops[Math.min(sgStops.length-1,i+1)];
+        return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
+      }
+      function sgBuildMap(bins, ph){
+        sgMap=new Float32Array(ph); const la=Math.log10(FA), lb=Math.log10(FB), nyq=actx.sampleRate/2;
+        for(let y=0;y<ph;y++){ const fr=Math.pow(10, lb-(y/(ph-1))*(lb-la)); sgMap[y]=Math.max(0,Math.min(bins-1.001, fr/nyq*bins)); }
+        sgMapBins=bins; sgPanelH=ph;
+      }
+      function drawSpectrogram(){
+        const W2=sgram.width, H2=sgram.height, ph=(H2/2)|0;
+        if(!procAnalyser || !audioPlaying){
+          gctx.fillStyle='#0c0c0e'; gctx.fillRect(0,0,W2,H2);
+          sgDrawAxes(W2,H2,ph);
+          gctx.fillStyle='rgba(255,255,255,0.5)'; gctx.font='13px Roboto, sans-serif'; gctx.textAlign='center';
+          gctx.fillText('press ► Play to watch the spectrum evolve over time', W2/2, H2/2);
+          sgWasPlaying=false; return;
+        }
+        if(!sgWasPlaying){ sgctx.fillStyle='#0c0c0e'; sgctx.fillRect(0,0,W2,H2); sgWasPlaying=true; }
+        rawAnalyser.getFloatFrequencyData(fftRaw);
+        procAnalyser.getFloatFrequencyData(fftProc);
+        const bins=fftProc.length;
+        if(sgMapBins!==bins || sgPanelH!==ph) sgBuildMap(bins, ph);
+        // scroll the buffer left, then paint SG_SH fresh columns at the right edge
+        sgctx.globalCompositeOperation='copy'; sgctx.drawImage(sgC,-SG_SH,0); sgctx.globalCompositeOperation='source-over';
+        const col=sgctx.createImageData(SG_SH, H2), d=col.data;
+        const sampleDb=(arr,b)=>{ const i=b|0; return arr[i]+(arr[i+1]-arr[i])*(b-i); };
+        const fill=(arr,yOff)=>{
+          for(let y=0;y<ph;y++){
+            const t=(sampleDb(arr,sgMap[y])-SG_DBB)/(SG_DBT-SG_DBB), c=sgColor(t), row=(yOff+y)*SG_SH*4;
+            for(let x=0;x<SG_SH;x++){ const o=row+x*4; d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=255; }
+          }
+        };
+        fill(fftRaw,0); fill(fftProc,ph);
+        sgctx.putImageData(col, W2-SG_SH, 0);
+        gctx.drawImage(sgC,0,0);
+        sgDrawAxes(W2,H2,ph);
+      }
+      function sgDrawAxes(W2,H2,ph){
+        const la=Math.log10(FA), lb=Math.log10(FB);
+        // frequency gridlines + labels (drawn in both panels)
+        gctx.font='600 12px Roboto, sans-serif'; gctx.textAlign='left'; gctx.textBaseline='middle';
+        [100,300,1000,3000].forEach(ft=>{ if(ft<FA||ft>FB) return;
+          const fr=(lb-Math.log10(ft))/(lb-la);                 // 0 at top (FB) .. 1 at bottom (FA)
+          const lbl=ft>=1000?(ft/1000)+'k':ft+'';
+          [0,ph].forEach(off=>{ const y=off+fr*ph;
+            gctx.strokeStyle='rgba(255,255,255,0.07)'; gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W2,y); gctx.stroke();
+            gctx.fillStyle='rgba(255,255,255,0.5)'; gctx.fillText(lbl, 4, Math.max(off+9,Math.min(off+ph-9,y))); });
+        });
+        // panel divider
+        gctx.strokeStyle='rgba(255,255,255,0.55)'; gctx.lineWidth=1.5;
+        gctx.beginPath(); gctx.moveTo(0,ph+0.5); gctx.lineTo(W2,ph+0.5); gctx.stroke();
+        // panel badges
+        gctx.font='700 12px Roboto, sans-serif'; gctx.textBaseline='top'; gctx.textAlign='left';
+        const badge=(txt,colr,y)=>{ const w=gctx.measureText(txt).width+12;
+          gctx.fillStyle='rgba(12,12,14,0.72)'; gctx.fillRect(W2-w-6,y+5,w,20);
+          gctx.fillStyle=colr; gctx.fillText(txt, W2-w, y+9); };
+        badge('BEFORE ANC', '#A7B0BE', 0);
+        badge('AFTER ANC', '#2ECC71', ph);
+        // time direction hint
+        gctx.fillStyle='rgba(255,255,255,0.4)'; gctx.font='11px Roboto, sans-serif'; gctx.textAlign='right'; gctx.textBaseline='bottom';
+        gctx.fillText('now →', W2-6, H2-4);
+        gctx.textAlign='center'; gctx.textBaseline='alphabetic';
       }
 
       // ----- ear scope: live time-domain from the same analysers (incoming vs residual) -----
@@ -1130,6 +1244,7 @@
         if(state.orbit && state.orbitSpeed>0){ state.theta=(state.theta+state.orbitSpeed*0.6); if(state.theta>180) state.theta-=360; micRefresh=8; }   // orbit moves the noise -> keep snapshot live
         if(state.orbit || audioPlaying) renderStatic();   // attract pulse only animates while playing
         if(!frozen.fft) drawLiveFFT();
+        if(!frozen.sgram) drawSpectrogram();
         if(!frozen.ear) drawEarscope();
         if(!frozen.mic && (audioPlaying || micRefresh>0) && (animTime-lastMicDraw >= 1000/MIC_FPS)){ drawMicScope(); lastMicDraw=animTime; if(micRefresh>0) micRefresh--; }   // live while playing (throttled); otherwise a snapshot that refreshes after the source moves
         requestAnimationFrame(frame);
@@ -1584,7 +1699,12 @@
           setSpeechRate(parseFloat(b.dataset.speed));   // live, pitch-preserved, no restart
         });
       });
-      const frozen={fft:false, ear:false, mic:false};
+      const frozen={fft:false, ear:false, mic:false, sgram:false};
+      $('sgramPause').addEventListener('click', ()=>{
+        frozen.sgram = !frozen.sgram;
+        const b=$('sgramPause'); b.classList.toggle('on', frozen.sgram);
+        b.innerHTML = frozen.sgram ? '&#9654; Resume' : '&#10073;&#10073; Pause';
+      });
       $('micPause').addEventListener('click', ()=>{
         frozen.mic = !frozen.mic;
         const b=$('micPause'); b.classList.toggle('on', frozen.mic);
