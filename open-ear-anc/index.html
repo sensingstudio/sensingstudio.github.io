@@ -521,7 +521,7 @@
         let est=[0,0];
         for(let i=0;i<idx.length;i++) est=cadd(est, cmul(w[i], H(MICS[idx[i]],P,f,USER.a)));
         const ear=H(USER.ear,P,f,USER.a);
-        const u = cmul([floorMag(f)*cabs(ear),0], FLOOR_NOISE[fi]);
+        const u = cmul([floorMag(f)*floorScale()*cabs(ear),0], FLOOR_NOISE[fi]);
         const res=cadd(csub(ear, cmul(est, Serr(f,calibrated))), u);
         return {ear, res};
       }
@@ -534,6 +534,7 @@
       const MODEL = {
         depth:  {1:0.95, 2:0.975, 4:0.99},   // anti-noise amplitude match, by mics/side
         cutoff: {1:900,  2:1200,  4:1800},   // sensing bandwidth (Hz), by mics/side
+        floor:  {1:1.0,  2:0.9,   4:0.66},   // irreducible sensing-floor scale: more mics predict the ear better
         k: 2.5,                              // overall residual scale (tunes the dB range)
         dir: 1.0                             // extra contralateral (head-shadow) degradation
       };
@@ -547,6 +548,8 @@
       }
       // sensing bandwidth: more mics resolve finer spatial detail -> cancel higher frequencies.
       function micCutoff(){ return MODEL.cutoff[state.nMics] ?? 900; }
+      // irreducible sensing floor shrinks as mics are added (better ear prediction)
+      function floorScale(){ return MODEL.floor[state.nMics] ?? 1.0; }
       function compute(){
         meanRedDb = state.ancOn ? modelRedDb(srcPos(state.theta, state.dist)) : 0;   // single model — also drives the polar
       }
