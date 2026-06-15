@@ -168,7 +168,9 @@
       .dash { display:grid; grid-template-columns: 322px minmax(0,1fr); gap:18px; align-items:start; margin-bottom:20px; }
       .sidebar { position:sticky; top:14px; display:flex; flex-direction:column; gap:14px; }
       .views { display:flex; flex-direction:column; gap:16px; min-width:0; }
-      .toprow { display:grid; grid-template-columns: minmax(0,1.15fr) minmax(0,0.85fr); gap:16px; align-items:start; }
+      .toprow { display:grid; grid-template-columns: minmax(0,1.15fr) minmax(0,0.85fr); gap:16px; align-items:stretch; }
+      .toprow > .card2 { display:flex; flex-direction:column; }
+      .toprow .statgrid { flex:1; grid-auto-rows:1fr; }
       .card2 { background:#fff; border:1px solid var(--grey-line); border-radius:10px; padding:16px; }
       .card2.nopad { padding:10px; }
       .card2 > h3 { margin:0 0 12px; font-size:11px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase; color:var(--grey-text); }
@@ -288,7 +290,7 @@
           <div class="toprow">
             <div class="card2 nopad">
               <div class="canvas-wrap" id="sceneWrap">
-                <canvas id="scene" width="760" height="520"></canvas>
+                <canvas id="scene" width="500" height="500"></canvas>
                 <span class="tag">drag noise (red) &amp; music signal (green)</span>
               </div>
               <div class="legend" style="padding:8px 4px 2px; gap:12px;">
@@ -300,41 +302,15 @@
               </div>
             </div>
             <div class="card2">
-              <h3>Noise reduction at the left ear</h3>
-              <div class="statgrid">
-                <div class="readout">
-                  <div class="k">In-band reduction</div>
-                  <div class="v good" id="roRed">— dB</div>
-                  <div class="u">100&ndash;1000 Hz, live</div>
-                </div>
-                <div class="readout">
-                  <div class="k">Noise angle</div>
-                  <div class="v" id="roAng">—</div>
-                  <div class="u">0° = ahead</div>
-                </div>
-                <div class="readout">
-                  <div class="k">Noise distance</div>
-                  <div class="v" id="roDist">—</div>
-                  <div class="u">drag in / out</div>
-                </div>
-                <div class="readout">
-                  <div class="k">ANC latency</div>
-                  <div class="v" id="roLat">—</div>
-                  <div class="u">processing delay</div>
-                </div>
+              <h3>Reduction vs. noise direction <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--grey-text);">&mdash; left ear</span></h3>
+              <div class="canvas-wrap" style="margin-top:6px; background:#0c0c0e; flex:1; display:flex; align-items:center; justify-content:center;">
+                <canvas id="polar" width="460" height="440"></canvas>
+                <span class="tag">● = current noise</span>
               </div>
-            </div>
-          </div>
-
-          <div class="card2">
-            <h3>Reduction vs. noise direction <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--grey-text);">&mdash; left ear, updates as the noise moves</span></h3>
-            <div class="canvas-wrap" style="max-width:460px; margin:6px auto 0; background:#0c0c0e;">
-              <canvas id="polar" width="460" height="430"></canvas>
-              <span class="tag">● = current noise</span>
-            </div>
-            <div class="legend" style="justify-content:center; padding:8px 4px 2px; gap:16px;">
-              <span><i class="swatch" style="background:#2ECC71;"></i> dB reduction at the left ear</span>
-              <span><i class="dot" style="background:var(--red);"></i> current noise direction</span>
+              <div class="legend" style="justify-content:center; padding:8px 4px 2px; gap:16px;">
+                <span><i class="swatch" style="background:#2ECC71;"></i> dB reduction at the left ear</span>
+                <span><i class="dot" style="background:var(--red);"></i> current noise direction</span>
+              </div>
             </div>
           </div>
 
@@ -574,18 +550,11 @@
         let nE=0,nR=0;
         FREQS.forEach((f,fi)=>{ if(!inBand(f)) return; const {ear,res}=perFreq[fi];
           const pink=1/f; nE+=pink*(ear[0]*ear[0]+ear[1]*ear[1]); nR+=pink*(res[0]*res[0]+res[1]*res[1]); });
-        geomRedDb = 10*Math.log10(nE/Math.max(nR,1e-20));     // geometry quality (drives the depth penalty)
-        const g = ancGain();                                  // cancellation depth
-        const dt = state.latencyMs*1e-3;
-        let eL=0,rL=0;
-        FREQS.forEach(f=>{ if(!inBand(f)) return; const w=1/f;
-          const ge=g*sensingQ(f);                                        // depth × sensing bandwidth
-          const combRes=2*ge*Math.abs(Math.sin(Math.PI*f*dt));           // delay-and-subtract residual: 0 at Δt=0 (perfect), →2·sin(πfΔt) at full depth
-          eL+=w; rL+=w*combRes*combRes; });
-        // floor at 1e-6 => caps the readout near 60 dB (effectively perfect) at zero latency
-        meanRedDb = state.ancOn ? -10*Math.log10(Math.max(rL/eL,1e-6)) : 0;
+        geomRedDb = 10*Math.log10(nE/Math.max(nR,1e-20));     // geometry quality (drives the audio depth)
+        // readout uses the SAME model as the polar curve, so the number matches the marker
+        meanRedDb = state.ancOn ? dirRedDb(P) : 0;
       }
-      function effRedDb(){ return (audioPlaying && liveRedDb!=null) ? liveRedDb : meanRedDb; }
+      function effRedDb(){ return meanRedDb; }   // model value — matches the polar curve exactly
 
       // ===================== DOM =====================
       const $ = id => document.getElementById(id);
@@ -597,10 +566,10 @@
 
       // ----- scene drawing -----
       const SCL = 620;                  // px per meter for the head/array
-      function headCenter(){ return [scene.width*0.5, scene.height*0.56]; }
+      function headCenter(){ return [scene.width*0.5, scene.height*0.5]; }
       function mToPx(p){ const [cx,cy]=headCenter(); return [cx + p[0]*SCL, cy - p[1]*SCL]; }
       // source shown on a compressed ring so both head and far source are visible
-      const RING_IN=140, RING_SPAN=70;
+      const RING_IN=130, RING_SPAN=90;
       function dispRadius(d){ return RING_IN + (Math.min(3,Math.max(0.3,d))-0.3)/(3-0.3)*RING_SPAN; }
       function srcDisplayPx(thetaDeg, dist){
         const [cx,cy]=headCenter(); const th=thetaDeg*Math.PI/180; const R=dispRadius(dist);
@@ -723,17 +692,28 @@
           sctx.fillText('drag me', gx, gy+28);
         }
 
-        // reduction label near ear
+        // mark the target ear (the reduction number lives in the top-left readout)
         sctx.textAlign='right';
-        if(state.ancOn){
-          sctx.fillStyle='#E8B923'; sctx.font='700 22px Roboto, sans-serif';
-          sctx.fillText('−'+effRedDb().toFixed(1)+' dB', exL-14, eyL-6);
-          sctx.fillStyle='rgba(255,255,255,0.55)'; sctx.font='600 12px Roboto, sans-serif';
-          sctx.fillText('at left ear', exL-14, eyL+10);
-        } else {
-          sctx.fillStyle='rgba(255,255,255,0.6)'; sctx.font='700 18px Roboto, sans-serif';
-          sctx.fillText('ANC off', exL-14, eyL-4);
-        }
+        sctx.fillStyle='rgba(255,255,255,0.55)'; sctx.font='600 12px Roboto, sans-serif';
+        sctx.fillText('left ear', exL-14, eyL+4);
+
+        // folded-in readout (top-left), drawn LAST on a backing chip so a dragged source
+        // can never obscure it
+        { const a=((state.theta%360)+360)%360, aDisp=(a>180?a-360:a).toFixed(0);
+          sctx.fillStyle='rgba(10,10,12,0.72)';
+          if(sctx.roundRect){ sctx.beginPath(); sctx.roundRect(10,8,252,98,8); sctx.fill(); }
+          else sctx.fillRect(10,8,252,98);
+          sctx.textAlign='left'; sctx.textBaseline='alphabetic';
+          sctx.font='600 11px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.5)';
+          sctx.fillText('IN-BAND REDUCTION (100–1000 Hz)', 22, 30);
+          if(state.ancOn){ sctx.fillStyle='#2ECC71'; sctx.font='700 24px Roboto, sans-serif';
+            sctx.fillText('−'+effRedDb().toFixed(1)+' dB', 22, 56); }
+          else { sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='700 22px Roboto, sans-serif';
+            sctx.fillText('ANC off', 22, 56); }
+          sctx.font='600 11px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.5)';
+          sctx.fillText('NOISE DIRECTION', 22, 80);
+          sctx.font='700 17px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.95)';
+          sctx.fillText(aDisp+'°   ·   '+state.dist.toFixed(2)+' m', 22, 100); }
       }
 
       // ===================== directivity (polar) plot =====================
@@ -744,20 +724,22 @@
       // only sweeps the marker.
       const NA_POL=72;
       let polarL=new Float32Array(NA_POL), polarMax=14, polarDirty=true;
+      const EAR_AZ=Math.atan2(EAR0[0],EAR0[1]);    // azimuth of the (left) target ear, ~270°
       function dirRedDb(P){                        // band reduction (dB) for a noise source at position P
-        const dt=state.latencyMs*1e-3, cal=state.calibrated;
-        let eS=0,rS=0;
+        const dt=state.latencyMs*1e-3;
+        const depth = {1:0.95, 2:0.975, 4:0.99}[state.nMics] ?? 0.97;
+        // head shadow: the LEFT ear is occluded for noise from the opposite (right) side, so
+        // the timing error costs more there. At Δt=0 the residual is 0 regardless -> perfect.
+        const contra = (1 - Math.cos(Math.atan2(P[0],P[1]) - EAR_AZ))/2;   // 0 on the ear side, 1 contralateral
+        const dirPen = 1 + 1.6*contra;             // contralateral degrades faster with latency
+        let eL=0,rL=0;
         for(let fi=0;fi<FREQS.length;fi++){ const f=FREQS[fi]; if(!inBand(f)) continue;
-          const {idx,w}=W[fi]; let est=[0,0];
-          for(let i=0;i<idx.length;i++) est=cadd(est, cmul(w[i], H(MICS[idx[i]],P,f,USER.a)));
-          const ear=H(USER.ear,P,f,USER.a);
-          const u=cmul([floorMag(f)*cabs(ear),0], FLOOR_NOISE[fi]);
-          const lat=cexpj(-2*Math.PI*f*dt);         // anti-noise reaches the ear late by the latency
-          const res=cadd(csub(ear, cmul(cmul(est, Serr(f,cal)), lat)), u);
-          const pink=1/f;
-          eS+=pink*(ear[0]*ear[0]+ear[1]*ear[1]);
-          rS+=pink*(res[0]*res[0]+res[1]*res[1]); }
-        return Math.max(0, 10*Math.log10(eS/Math.max(rS,1e-20)));
+          const ge=depth*sensingQ(f);              // depth × sensing bandwidth (more mics → higher f)
+          const comb=2*Math.abs(Math.sin(Math.PI*f*dt));   // delay-and-subtract residual: 0 at Δt=0
+          const resFrac=ge*comb*dirPen;
+          const w=1/f; eL+=w; rL+=w*resFrac*resFrac; }
+        // floor 1e-6 ⇒ caps near 60 dB (effectively perfect) at zero latency
+        return Math.max(0, -10*Math.log10(Math.max(rL/eL,1e-6)));
       }
       function computePolar(){
         let mx=2;
@@ -781,14 +763,17 @@
         for(let a=0;a<360;a+=45){ const t=a*Math.PI/180;
           polctx.beginPath(); polctx.moveTo(cx,cy); polctx.lineTo(cx+R*Math.sin(t), cy-R*Math.cos(t)); polctx.stroke();
           polctx.fillText(a+'°', cx+(R+15)*Math.sin(t), cy-(R+15)*Math.cos(t)); }
-        // left-ear reduction curve (closed loop)
-        polctx.strokeStyle='#2ECC71'; polctx.lineWidth=2.6; polctx.beginPath();
+        // left-ear reduction curve (closed loop); dimmed+dashed when ANC is off (potential)
+        polctx.strokeStyle = state.ancOn ? '#2ECC71' : 'rgba(46,204,113,0.30)';
+        polctx.lineWidth=2.6; polctx.setLineDash(state.ancOn?[]:[5,5]); polctx.beginPath();
         for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarL[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
-        polctx.stroke();
-        // live noise-direction marker
-        const [lx2,ly2]=toXY(state.theta, polarValAt(polarL, state.theta));
-        polctx.fillStyle='#bc122a'; polctx.strokeStyle='#fff'; polctx.lineWidth=1.6;
+        polctx.stroke(); polctx.setLineDash([]);
+        // noise-direction marker — radius is meanRedDb, the SAME value as the readout
+        const [lx2,ly2]=toXY(state.theta, meanRedDb);
+        polctx.fillStyle = state.ancOn ? '#bc122a' : 'rgba(188,18,42,0.5)'; polctx.strokeStyle='#fff'; polctx.lineWidth=1.6;
         polctx.beginPath(); polctx.arc(lx2,ly2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
+        if(!state.ancOn){ polctx.fillStyle='rgba(255,255,255,0.55)'; polctx.font='700 12px Roboto, sans-serif'; polctx.textAlign='center'; polctx.textBaseline='middle';
+          polctx.fillText('ANC OFF', cx, cy); }
       }
 
       // ----- live FFT of the noise (incoming vs residual after ANC) -----
@@ -906,11 +891,7 @@
 
       // ===================== render + readouts =====================
       function updateReadouts(){
-        $('roRed').textContent = state.ancOn ? ('−'+effRedDb().toFixed(1)+' dB') : 'ANC off';
-        $('roRed').className = 'v' + (state.ancOn ? ' good' : '');
-        const a=((state.theta%360)+360)%360; $('roAng').textContent = (a>180?a-360:a).toFixed(0)+'°';
-        $('roDist').textContent = state.dist.toFixed(2)+' m';
-        $('roLat').textContent = Math.round(state.latencyMs*1000)+' µs';
+        // angle/distance are now folded into the scene; latency shows by its slider.
       }
       // measure the actual in-band reduction from the noise-only analysers (pre vs post ANC)
       function measureLiveReduction(){
@@ -1223,6 +1204,7 @@
       $('latencyMs').addEventListener('input', ()=>{
         state.latencyMs=parseFloat($('latencyMs').value);
         $('latencyVal').textContent = Math.round(state.latencyMs*1000)+' µs';
+        polarDirty=true;
         renderStatic();
       });
       $('noiseVol').addEventListener('input', ()=>{ if(noiseSum) noiseSum.gain.value=parseFloat($('noiseVol').value); micRefresh=8; });
