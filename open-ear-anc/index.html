@@ -738,7 +738,8 @@
           const {ear,res}=earAndResidual(W, fi, P, cal);
           const gErr=Math.sqrt((res[0]*res[0]+res[1]*res[1])/Math.max(ear[0]*ear[0]+ear[1]*ear[1],1e-20));
           const comb=2*Math.abs(Math.sin(Math.PI*f*dt));                 // 0 at Δt=0 → perfect
-          const resFrac=MODEL.k*gErr*comb*dirPen;
+          const bw=Math.max(0.3, 1/Math.sqrt(1+Math.pow(f/micCutoff(),4)));   // sensing bandwidth: more mics → wider → less residual
+          const resFrac=MODEL.k*gErr*comb*dirPen/bw;
           const w=1/f; eL+=w; rL+=w*resFrac*resFrac; }
         // floor 1e-6 ⇒ caps near 60 dB (effectively perfect) at zero latency
         return Math.max(0, -10*Math.log10(Math.max(rL/eL,1e-6)));
