@@ -224,12 +224,21 @@
                    onerror="this.style.display='none'" />
               <div style="flex:1 1 auto; display:flex; flex-direction:column; gap:6px; min-width:0;">
                 <div style="min-width:0;">
-                  <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">The Sound of Silence</div>
-                  <div class="note" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
+                  <div id="trackTitle" style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">The Sound of Silence</div>
+                  <div class="note" id="trackArtist" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
                 </div>
                 <label style="color:var(--green); margin:0;">Music volume</label>
                 <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.5" style="width:100%;" />
               </div>
+            </div>
+            <div style="margin-top:12px;">
+              <label style="color:var(--green); margin:0;">Or load from YouTube</label>
+              <div style="display:flex; gap:6px; margin-top:4px;">
+                <input type="text" id="ytUrl" placeholder="Paste a YouTube link…"
+                       style="flex:1 1 auto; min-width:0; padding:6px 8px; border-radius:8px; border:1px solid var(--grey-line); background:transparent; color:inherit;" />
+                <button class="act" id="ytLoadBtn" style="flex:0 0 auto;">Load</button>
+              </div>
+              <div class="note" id="ytStatus" style="margin:4px 0 0; min-height:1em;"></div>
             </div>
           </div>
 
@@ -316,29 +325,27 @@
 
           <div class="card2 nopad">
             <div class="vhead">
-              <span>Live spectrum — noise at the left ear</span>
+              <span>Live spectrum (left ear)</span>
               <span class="leg">
-                <span style="color:var(--before);"><i class="swatch" style="background:var(--before);"></i> noise before ANC</span>
-                <span style="color:var(--after);"><i class="swatch" style="background:var(--after);height:4px;"></i> what you hear (after ANC)</span>
+                <span style="color:var(--before);"><i class="swatch" style="background:var(--before);"></i> Before ANC</span>
+                <span style="color:var(--after);"><i class="swatch" style="background:var(--after);height:4px;"></i> After ANC</span>
               </span>
             </div>
             <div class="canvas-wrap">
               <canvas id="spectrum" width="1200" height="300"></canvas>
-              <span class="tag">live FFT &middot; 100–1000 Hz band shaded</span>
             </div>
           </div>
 
           <div class="card2 nopad">
             <div class="vhead">
-              <span>Sound at the left ear</span>
+              <span>Time domain (left ear)</span>
               <span class="leg">
-                <span style="color:var(--before);"><i class="swatch" style="background:var(--before);"></i> noise before ANC</span>
-                <span style="color:var(--after);"><i class="swatch" style="background:var(--after);height:4px;"></i> what you hear (after ANC)</span>
+                <span style="color:var(--before);"><i class="swatch" style="background:var(--before);"></i> Before ANC</span>
+                <span style="color:var(--after);"><i class="swatch" style="background:var(--after);height:4px;"></i> After ANC</span>
               </span>
             </div>
             <div class="canvas-wrap">
               <canvas id="earscope" width="1200" height="150"></canvas>
-              <span class="tag">level over time</span>
             </div>
           </div>
 
@@ -834,11 +841,8 @@
       function lx(f,W2){ const a=Math.log10(FA),b=Math.log10(FB); return (Math.log10(f)-a)/(b-a)*W2; }
       function drawLiveFFT(){
         const W2=spectrum.width, H2=spectrum.height; pctx.clearRect(0,0,W2,H2);
-        // operating band + grid
-        const x1=lx(100,W2), x2=lx(1000,W2);
-        pctx.fillStyle='rgba(255,255,255,0.05)'; pctx.fillRect(x1,0,x2-x1,H2);
-        pctx.fillStyle='rgba(255,255,255,0.55)'; pctx.font='700 17px Roboto, sans-serif'; pctx.textAlign='center';
-        pctx.fillText('operating band 100–1000 Hz', (x1+x2)/2, 18);
+        // frequency grid
+        pctx.textAlign='center';
         pctx.strokeStyle='rgba(255,255,255,0.08)'; pctx.lineWidth=1;
         pctx.font='600 19px Roboto, sans-serif';
         [40,100,200,500,1000,2000,3000].forEach(ft=>{ const x=lx(ft,W2);
@@ -1349,6 +1353,41 @@
           if(audioPlaying && !speechSrc){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
         }).catch(()=>{});
       }
+
+      // ===================== desired audio from a YouTube link =====================
+      // yt-audio.php (server-side yt-dlp) extracts the track to a cached mp3; we fetch
+      // those bytes and decode them into speechBuf so the clip flows through the SAME
+      // graph as the bundled song — panned, distance-attenuated, mixed into the FFT
+      // and waveform analysers. Swapping live restarts only the music source.
+      function swapSpeechBuffer(buf){
+        speechBuf=buf;
+        if(speechSrc){ try{speechSrc.stop();}catch(e){} try{speechSrc.disconnect();}catch(e){} speechSrc=null; }
+        if(audioPlaying){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
+      }
+      async function loadYouTube(){
+        const url=$('ytUrl').value.trim();
+        const status=$('ytStatus');
+        if(!url){ status.textContent='Paste a YouTube link first.'; return; }
+        const btn=$('ytLoadBtn'); btn.disabled=true; status.style.color=''; status.textContent='Fetching audio…';
+        try{
+          await ensureAudio();
+          const meta=await fetch('yt-audio.php?url='+encodeURIComponent(url)).then(r=>r.json());
+          if(!meta.ok) throw new Error(meta.error||'extraction failed');
+          status.textContent='Decoding…';
+          const bytes=await fetch(meta.audio).then(r=>r.arrayBuffer());
+          const buf=await actx.decodeAudioData(bytes);
+          swapSpeechBuffer(buf);
+          $('trackTitle').textContent=meta.title||'YouTube audio';
+          $('trackArtist').textContent=meta.uploader||'';
+          const art=$('albumArt'); if(art && meta.thumb){ art.style.display=''; art.src=meta.thumb; }
+          status.textContent=audioPlaying ? 'Now playing.' : 'Loaded — press Play.';
+        }catch(err){
+          status.style.color='var(--before)';
+          status.textContent='Could not load: '+(err && err.message ? err.message : err);
+        }finally{ btn.disabled=false; }
+      }
+      $('ytLoadBtn').addEventListener('click', loadYouTube);
+      $('ytUrl').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); loadYouTube(); } });
 
       $('playBtn').addEventListener('click', async ()=>{
         $('playBtn').classList.remove('needs-click');
