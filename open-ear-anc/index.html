@@ -282,7 +282,6 @@
             <div class="card2 nopad">
               <div class="canvas-wrap" id="sceneWrap">
                 <canvas id="scene" width="500" height="500"></canvas>
-                <span class="tag">drag noise (red) &amp; music signal (green)</span>
               </div>
               <div class="legend" style="padding:8px 4px 2px; gap:14px; flex-wrap:nowrap; white-space:nowrap; overflow-x:auto;">
                 <span><i class="dot" style="background:var(--red);"></i> Noise</span>
@@ -293,7 +292,6 @@
               </div>
             </div>
             <div class="card2">
-              <h3>Reduction vs. noise direction <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--grey-text);">&mdash; both ears</span></h3>
               <div class="canvas-wrap" style="margin-top:6px; background:#0c0c0e; flex:1; display:flex; align-items:center; justify-content:center;">
                 <canvas id="polar" width="460" height="440"></canvas>
                 <span class="tag">● = current noise</span>
@@ -667,21 +665,19 @@
         // can never obscure it
         { const a=((state.theta%360)+360)%360, aDisp=(a>180?a-360:a).toFixed(0);
           sctx.fillStyle='rgba(10,10,12,0.72)';
-          if(sctx.roundRect){ sctx.beginPath(); sctx.roundRect(10,8,290,98,8); sctx.fill(); }
-          else sctx.fillRect(10,8,290,98);
+          if(sctx.roundRect){ sctx.beginPath(); sctx.roundRect(10,8,290,82,8); sctx.fill(); }
+          else sctx.fillRect(10,8,290,82);
           sctx.textAlign='left'; sctx.textBaseline='alphabetic';
-          sctx.font='600 11px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.5)';
-          sctx.fillText('IN-BAND REDUCTION (100–1000 Hz)', 22, 30);
           if(state.ancOn){ sctx.font='700 21px Roboto, sans-serif';
             const lt='L −'+effRedDb().toFixed(1)+' dB    ';
-            sctx.fillStyle='#2ECC71'; sctx.fillText(lt, 22, 56);
-            sctx.fillStyle='#4FB3FF'; sctx.fillText('R −'+effRedDbR().toFixed(1)+' dB', 22+sctx.measureText(lt).width, 56); }
+            sctx.fillStyle='#2ECC71'; sctx.fillText(lt, 22, 36);
+            sctx.fillStyle='#4FB3FF'; sctx.fillText('R −'+effRedDbR().toFixed(1)+' dB', 22+sctx.measureText(lt).width, 36); }
           else { sctx.fillStyle='rgba(255,255,255,0.85)'; sctx.font='700 22px Roboto, sans-serif';
-            sctx.fillText('ANC off', 22, 56); }
+            sctx.fillText('ANC off', 22, 36); }
           sctx.font='600 11px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.5)';
-          sctx.fillText('NOISE DIRECTION', 22, 80);
+          sctx.fillText('NOISE DIRECTION', 22, 60);
           sctx.font='700 17px Roboto, sans-serif'; sctx.fillStyle='rgba(255,255,255,0.95)';
-          sctx.fillText(aDisp+'°   ·   '+state.dist.toFixed(2)+' m', 22, 100); }
+          sctx.fillText(aDisp+'°   ·   '+state.dist.toFixed(2)+' m', 22, 80); }
       }
 
       // ===================== directivity (polar) plot =====================
