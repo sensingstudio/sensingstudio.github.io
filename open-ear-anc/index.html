@@ -105,6 +105,11 @@
       .tool-btn:last-child { border-right: none; }
       .tool-btn.active { background: var(--black); color: #fff; }
       .tool-btn.lc { text-transform: none; }
+      /* 2x2 segmented control for groups that don't fit one row */
+      .tools.grid2 { display: grid; grid-template-columns: 1fr 1fr; flex-wrap: nowrap; }
+      .tools.grid2 .tool-btn { border-right: 1px solid var(--grey-line); border-bottom: 1px solid var(--grey-line); text-align: center; }
+      .tools.grid2 .tool-btn:nth-child(2n) { border-right: none; }
+      .tools.grid2 .tool-btn:nth-child(n+3) { border-bottom: none; }
       button.act {
         font-family: inherit; font-weight: 700; font-size: 12px; letter-spacing: 0.6px;
         text-transform: uppercase; padding: 9px 16px; border: 1px solid var(--black);
@@ -216,7 +221,7 @@
       <div class="dash">
         <aside class="sidebar">
           <div class="card2">
-            <h3>Playback</h3>
+            <h3>Signal</h3>
             <button class="act play-cta needs-click" id="playBtn" style="width:100%;">► Play the demo</button>
             <button class="anc-toggle off" id="ancAudioBtn" style="width:100%; margin-top:8px;">ANC OFF</button>
             <div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
@@ -243,8 +248,7 @@
           <div class="card2">
             <h3>Noise source</h3>
             <div class="crow">
-              <label>Type</label>
-              <div class="tools" role="group" aria-label="Noise type">
+              <div class="tools grid2" role="group" aria-label="Noise type">
                 <button class="tool-btn active" data-noise="cafe">Café</button>
                 <button class="tool-btn" data-noise="baby">Baby crying</button>
                 <button class="tool-btn" data-noise="tone">Tone</button>
