@@ -338,6 +338,7 @@
             <div class="vhead">
               <span>What the active mics see</span>
               <span class="leg" style="margin-left:auto;">each colored line = one active frame mic</span>
+              <button id="micPause" class="pausebtn" style="margin-left:10px;">&#10073;&#10073; Pause</button>
             </div>
             <div class="canvas-wrap">
               <canvas id="micscope" width="1200" height="180"></canvas>
@@ -762,7 +763,10 @@
 
       // ----- live FFT of the noise (incoming vs residual after ANC) -----
       const FA=40, FB=3000;                       // display range, log Hz
-      let fftRaw=null, fftProc=null;
+      let fftRaw=null, fftProc=null, fftCursor=null;   // fftCursor = hover x in canvas px, or null
+      spectrum.addEventListener('pointermove', ev=>{ const r=spectrum.getBoundingClientRect(); fftCursor=(ev.clientX-r.left)*(spectrum.width/r.width); });
+      spectrum.addEventListener('pointerleave', ()=>{ fftCursor=null; });
+      spectrum.style.cursor='crosshair';
       function lx(f,W2){ const a=Math.log10(FA),b=Math.log10(FB); return (Math.log10(f)-a)/(b-a)*W2; }
       function drawLiveFFT(){
         const W2=spectrum.width, H2=spectrum.height; pctx.clearRect(0,0,W2,H2);
@@ -775,6 +779,13 @@
         [40,100,200,500,1000,2000,3000].forEach(ft=>{ const x=lx(ft,W2);
           pctx.beginPath(); pctx.moveTo(x,0); pctx.lineTo(x,H2); pctx.stroke();
           pctx.fillStyle='rgba(255,255,255,0.45)'; pctx.fillText(ft>=1000?(ft/1000)+'k':''+ft, x, H2-6); });
+        // dB grid + y-axis labels (top -20 dB .. bottom -100 dB; 20 dB per division)
+        const ydb=db=>Math.max(0,Math.min(1,(-20-db)/(-20-(-100))))*H2;
+        pctx.textAlign='left'; pctx.textBaseline='middle';
+        [-20,-40,-60,-80,-100].forEach(db=>{ const y=ydb(db);
+          pctx.strokeStyle='rgba(255,255,255,0.08)'; pctx.beginPath(); pctx.moveTo(0,y); pctx.lineTo(W2,y); pctx.stroke();
+          pctx.fillStyle='rgba(255,255,255,0.45)'; pctx.fillText(db+' dB', 4, Math.max(8,Math.min(H2-8,y+8))); });
+        pctx.textAlign='center'; pctx.textBaseline='alphabetic';
 
         if(!procAnalyser || !audioPlaying){
           pctx.fillStyle='rgba(255,255,255,0.5)'; pctx.font='13px Roboto, sans-serif'; pctx.textAlign='center';
@@ -799,6 +810,35 @@
         pctx.strokeStyle='rgba(122,134,153,0.75)'; pctx.lineWidth=1.6; curve(fftRaw); pctx.stroke();
         // residual outline: bold green
         pctx.strokeStyle='#2ECC71'; pctx.lineWidth=2.2; curve(fftProc); pctx.stroke();
+
+        // hover readout: reduction at the cursor frequency
+        if(fftCursor!=null){
+          const px=Math.max(0,Math.min(W2,fftCursor));
+          const f=Math.pow(10, la+px/W2*(lb-la));
+          const dIn=sampleDb(fftRaw,f), dEar=sampleDb(fftProc,f);
+          const red=dIn-dEar;                              // dB knocked down by ANC
+          const yIn=yf(dIn), yEar=yf(dEar);
+          // vertical guide
+          pctx.strokeStyle='rgba(255,255,255,0.35)'; pctx.lineWidth=1; pctx.setLineDash([4,4]);
+          pctx.beginPath(); pctx.moveTo(px,0); pctx.lineTo(px,H2); pctx.stroke(); pctx.setLineDash([]);
+          // markers on each curve
+          pctx.fillStyle='rgba(122,134,153,0.95)'; pctx.beginPath(); pctx.arc(px,yIn,3,0,7); pctx.fill();
+          pctx.fillStyle='#2ECC71'; pctx.beginPath(); pctx.arc(px,yEar,3,0,7); pctx.fill();
+          // label box
+          const fLbl = f>=1000 ? (f/1000).toFixed(2)+' kHz' : Math.round(f)+' Hz';
+          const rLbl = Math.abs(red).toFixed(1) + ' dB ' + (red>=0?'reduction':'increase');
+          pctx.font='12px Roboto, sans-serif'; pctx.textBaseline='middle';
+          const lines=[fLbl, rLbl];
+          const bw=Math.max(...lines.map(t=>pctx.measureText(t).width))+16, bh=36;
+          let bx=px+10; if(bx+bw>W2) bx=px-10-bw;
+          let by=Math.min(yIn,yEar)-bh-6; if(by<2) by=Math.max(yIn,yEar)+6; if(by+bh>H2) by=H2-bh-2;
+          pctx.fillStyle='rgba(20,22,26,0.9)'; pctx.strokeStyle='rgba(255,255,255,0.18)';
+          pctx.beginPath(); pctx.rect(bx,by,bw,bh); pctx.fill(); pctx.stroke();
+          pctx.textAlign='left';
+          pctx.fillStyle='rgba(255,255,255,0.7)'; pctx.fillText(fLbl, bx+8, by+11);
+          pctx.fillStyle=red>=0?'#2ECC71':'#E74C3C'; pctx.font='700 12px Roboto, sans-serif'; pctx.fillText(rLbl, bx+8, by+25);
+          pctx.textAlign='center'; pctx.textBaseline='alphabetic';
+        }
       }
 
       // ----- ear scope: live time-domain from the same analysers (incoming vs residual) -----
@@ -1258,7 +1298,13 @@
       $('speechVol').addEventListener('input', ()=>{
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
       });
-      const frozen={fft:false, ear:false, mic:false};   // plots always live (pause buttons removed)
+      const frozen={fft:false, ear:false, mic:false};
+      $('micPause').addEventListener('click', ()=>{
+        frozen.mic = !frozen.mic;
+        const b=$('micPause'); b.classList.toggle('on', frozen.mic);
+        b.innerHTML = frozen.mic ? '&#9654; Resume' : '&#10073;&#10073; Pause';
+        if(!frozen.mic) micRefresh=8;   // resumed -> redraw the snapshot
+      });
       $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); $('orbitSpeedVal').textContent=state.orbitSpeed.toFixed(1)+'×'; });
       $('srcDist').addEventListener('input', ()=>{ state.dist=parseFloat($('srcDist').value); $('srcDistVal').textContent=state.dist.toFixed(2)+' m'; polarDirty=true; renderStatic(); });
       document.querySelectorAll('[data-noise]').forEach(btn=>{
