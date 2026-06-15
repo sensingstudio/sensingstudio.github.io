@@ -533,7 +533,7 @@
       // shared parameters used by BOTH the displayed model and the audio engine
       const MODEL = {
         depth:  {1:0.95, 2:0.975, 4:0.99},   // anti-noise amplitude match, by mics/side
-        cutoff: {1:450,  2:900,   4:1800},   // sensing bandwidth (Hz), by mics/side
+        cutoff: {1:900,  2:1200,  4:1800},   // sensing bandwidth (Hz), by mics/side
         k: 2.5,                              // overall residual scale (tunes the dB range)
         dir: 1.0                             // extra contralateral (head-shadow) degradation
       };
