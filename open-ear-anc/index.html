@@ -260,6 +260,8 @@
                 <button class="tool-btn" data-noise="vacuum">Vacuum</button>
                 <button class="tool-btn" data-noise="chatter">Chatter</button>
                 <button class="tool-btn" data-noise="speech">Speech</button>
+                <button class="tool-btn" data-noise="washer">Washer</button>
+                <button class="tool-btn" data-noise="car">Car</button>
               </div>
             </div>
             <div class="crow">
@@ -1141,7 +1143,7 @@
       let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
       let speechRate=1, speechNode=null, tempoWorkletOK=false;   // tempo factor + live time-stretch node
-      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, babyNodes=[], babyBuf=null, babyBytes=null, clickBuf=null, clickSrc=null, fanNodes=[], fanBuf=null, fanBytes=null, vacNodes=[], vacBuf=null, vacBytes=null, chatNodes=[], chatBuf=null, chatBytes=null, spchNodes=[], spchBuf=null, spchBytes=null;
+      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, babyNodes=[], babyBuf=null, babyBytes=null, clickBuf=null, clickSrc=null, fanNodes=[], fanBuf=null, fanBytes=null, vacNodes=[], vacBuf=null, vacBytes=null, chatNodes=[], chatBuf=null, chatBytes=null, spchNodes=[], spchBuf=null, spchBytes=null, washNodes=[], washBuf=null, washBytes=null, carNodes=[], carBuf=null, carBytes=null;
       let audioPlaying=false;
 
       function makeNoiseBuffer(ac){
@@ -1217,6 +1219,8 @@
         ensureVacBuf();    // and the vacuum clip
         ensureChatBuf();   // and the chatter clip
         ensureSpchBuf();   // and the speech clip
+        ensureWashBuf();   // and the washer clip
+        ensureCarBuf();    // and the car clip
         updateAncAudio();
       }
       function applyNoiseType(){
@@ -1229,8 +1233,10 @@
         vacNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); vacNodes=[];
         chatNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); chatNodes=[];
         spchNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); spchNodes=[];
-        const isTone = (t==='tone'), isBaby = (t==='baby'), isClick = (t==='click'), isFan = (t==='fan'), isVac = (t==='vacuum'), isChat = (t==='chatter'), isSpch = (t==='speech');
-        if(noiseBufGain) noiseBufGain.gain.value = (isTone||isBaby||isClick||isFan||isVac||isChat||isSpch) ? 0 : 1;   // mute broadband for synth/clip voices
+        washNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); washNodes=[];
+        carNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); carNodes=[];
+        const isTone = (t==='tone'), isBaby = (t==='baby'), isClick = (t==='click'), isFan = (t==='fan'), isVac = (t==='vacuum'), isChat = (t==='chatter'), isSpch = (t==='speech'), isWash = (t==='washer'), isCar = (t==='car');
+        if(noiseBufGain) noiseBufGain.gain.value = (isTone||isBaby||isClick||isFan||isVac||isChat||isSpch||isWash||isCar) ? 0 : 1;   // mute broadband for synth/clip voices
         if(t==='cafe'){ charFilter.type='lowpass'; charFilter.frequency.value=850; charFilter.Q.value=0.7; }
         if(isTone && audioPlaying){
           toneOsc=actx.createOscillator(); toneOsc.type='sine'; toneOsc.frequency.value=parseFloat($('toneFreq').value);
@@ -1249,7 +1255,41 @@
         if(isVac && audioPlaying) startVacuum();
         if(isChat && audioPlaying) startChatter();
         if(isSpch && audioPlaying) startSpeechNoise();
+        if(isWash && audioPlaying) startWasher();
+        if(isCar && audioPlaying) startCar();
       }
+      // real car-interior recording (looped); steady low-frequency road/engine noise, cancels very well
+      function ensureCarBuf(){
+        if(carBuf || !carBytes || !actx) return;
+        const bytes=carBytes; carBytes=null;
+        actx.decodeAudioData(bytes.slice(0)).then(b=>{ carBuf=b;
+          if(state.noiseType==='car' && audioPlaying){ carNodes.forEach(n=>{try{n.stop&&n.stop();}catch(e){}}); carNodes=[]; playCarBuffer(); }
+        }).catch(()=>{ carBytes=bytes; });
+      }
+      let carSrc=null;
+      function playCarBuffer(){
+        carSrc=actx.createBufferSource(); carSrc.buffer=carBuf; carSrc.loop=true;
+        const g=actx.createGain(); g.gain.value=1.1;
+        carSrc.connect(g); g.connect(noiseSum); carSrc.start();
+        carNodes=[carSrc];
+      }
+      function startCar(){ ensureCarBuf(); if(carBuf) playCarBuffer(); }
+      // real washing-machine recording (looped); steady broadband/rhythmic, so it cancels well
+      function ensureWashBuf(){
+        if(washBuf || !washBytes || !actx) return;
+        const bytes=washBytes; washBytes=null;
+        actx.decodeAudioData(bytes.slice(0)).then(b=>{ washBuf=b;
+          if(state.noiseType==='washer' && audioPlaying){ washNodes.forEach(n=>{try{n.stop&&n.stop();}catch(e){}}); washNodes=[]; playWashBuffer(); }
+        }).catch(()=>{ washBytes=bytes; });
+      }
+      let washSrc=null;
+      function playWashBuffer(){
+        washSrc=actx.createBufferSource(); washSrc.buffer=washBuf; washSrc.loop=true;
+        const g=actx.createGain(); g.gain.value=1.1;
+        washSrc.connect(g); g.connect(noiseSum); washSrc.start();
+        washNodes=[washSrc];
+      }
+      function startWasher(){ ensureWashBuf(); if(washBuf) playWashBuffer(); }
       // real single-talker speech recording (looped) used as a NOISE source; non-stationary, caps low
       function ensureSpchBuf(){
         if(spchBuf || !spchBytes || !actx) return;
@@ -1443,8 +1483,8 @@
         startSpeech();
       }
       function stopSources(){
-        [noiseSrc,toneOsc,clickSrc,...babyNodes,...fanNodes,...vacNodes,...chatNodes,...spchNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
-        noiseSrc=toneOsc=clickSrc=null; babyNodes=[]; fanNodes=[]; vacNodes=[]; chatNodes=[]; spchNodes=[];
+        [noiseSrc,toneOsc,clickSrc,...babyNodes,...fanNodes,...vacNodes,...chatNodes,...spchNodes,...washNodes,...carNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
+        noiseSrc=toneOsc=clickSrc=null; babyNodes=[]; fanNodes=[]; vacNodes=[]; chatNodes=[]; spchNodes=[]; washNodes=[]; carNodes=[];
         toneGain=null;
         stopSpeechNode();
       }
@@ -1458,6 +1498,8 @@
       fetch('vacuum.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ vacBytes=b; ensureVacBuf(); }).catch(()=>{});
       fetch('chatter.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ chatBytes=b; ensureChatBuf(); }).catch(()=>{});
       fetch('speech.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ spchBytes=b; ensureSpchBuf(); }).catch(()=>{});
+      fetch('washer.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ washBytes=b; ensureWashBuf(); }).catch(()=>{});
+      fetch('car.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ carBytes=b; ensureCarBuf(); }).catch(()=>{});
       function loadDefaultClip(){
         if(!defaultClipBytes || speechBuf) return;
         actx.decodeAudioData(defaultClipBytes.slice(0)).then(buf=>{ swapSpeechBuffer(buf); }).catch(()=>{});
