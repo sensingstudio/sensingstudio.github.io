@@ -104,6 +104,7 @@
       }
       .tool-btn:last-child { border-right: none; }
       .tool-btn.active { background: var(--black); color: #fff; }
+      .tool-btn.lc { text-transform: none; }
       button.act {
         font-family: inherit; font-weight: 700; font-size: 12px; letter-spacing: 0.6px;
         text-transform: uppercase; padding: 9px 16px; border: 1px solid var(--black);
@@ -224,21 +225,18 @@
                    onerror="this.style.display='none'" />
               <div style="flex:1 1 auto; display:flex; flex-direction:column; gap:6px; min-width:0;">
                 <div style="min-width:0;">
-                  <div id="trackTitle" style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">The Sound of Silence</div>
-                  <div class="note" id="trackArtist" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
+                  <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">The Sound of Silence</div>
+                  <div class="note" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
                 </div>
                 <label style="color:var(--green); margin:0;">Music volume</label>
                 <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.5" style="width:100%;" />
+                <label style="color:var(--green); margin:0;">Speed</label>
+                <div class="tools" role="group" aria-label="Playback speed" style="margin-top:2px; align-self:flex-start;">
+                  <button class="tool-btn" data-speed="0.5">0.5×</button>
+                  <button class="tool-btn active" data-speed="1">1×</button>
+                  <button class="tool-btn" data-speed="2">2×</button>
+                </div>
               </div>
-            </div>
-            <div style="margin-top:12px;">
-              <label style="color:var(--green); margin:0;">Or load from YouTube</label>
-              <div style="display:flex; gap:6px; margin-top:4px;">
-                <input type="text" id="ytUrl" placeholder="Paste a YouTube link…"
-                       style="flex:1 1 auto; min-width:0; padding:6px 8px; border-radius:8px; border:1px solid var(--grey-line); background:transparent; color:inherit;" />
-                <button class="act" id="ytLoadBtn" style="flex:0 0 auto;">Load</button>
-              </div>
-              <div class="note" id="ytStatus" style="margin:4px 0 0; min-height:1em;"></div>
             </div>
           </div>
 
@@ -264,17 +262,21 @@
             </div>
             <div class="crow">
               <label>Mobility</label>
-              <button class="act" id="orbitBtn">Orbit noise</button>
+              <div class="tools" role="group" aria-label="Noise source orbit speed">
+                <button class="tool-btn" data-orbit="0">0&times;</button>
+                <button class="tool-btn active" data-orbit="1">1&times;</button>
+                <button class="tool-btn" data-orbit="2">2&times;</button>
+                <button class="tool-btn" data-orbit="3">3&times;</button>
+              </div>
             </div>
             <div class="crow">
-              <label for="orbitSpeed">Speed</label>
-              <input type="range" id="orbitSpeed" min="0.1" max="3" step="0.1" value="0.6" style="flex:1 1 90px;" />
-              <span class="note" style="margin:0; min-width:50px;" id="orbitSpeedVal">0.6&times;</span>
-            </div>
-            <div class="crow">
-              <label for="srcDist">Distance</label>
-              <input type="range" id="srcDist" min="0.3" max="3" step="0.05" value="1.5" style="flex:1 1 90px;" />
-              <span class="note" style="margin:0; min-width:50px;" id="srcDistVal">1.50 m</span>
+              <label>Distance</label>
+              <div class="tools" role="group" aria-label="Noise source distance">
+                <button class="tool-btn lc" data-dist="0.5">0.5 m</button>
+                <button class="tool-btn lc active" data-dist="1">1 m</button>
+                <button class="tool-btn lc" data-dist="2">2 m</button>
+                <button class="tool-btn lc" data-dist="3">3 m</button>
+              </div>
             </div>
           </div>
 
@@ -483,7 +485,7 @@
       }
 
       // ===================== state =====================
-      const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: true, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive', attract: true, toneFreq: 220 };
+      const state = { theta: 40, dist: 1, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: true, orbitSpeed: 1, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive', attract: true, toneFreq: 220 };
       let W = fitWeights(state.nMics);
       let meanRedDb = 0, meanRedDbR = 0;     // pure model reduction (no live wiggle)
       let curRedL = 0, curRedR = 0;          // the LIVE displayed value: model + live wiggle.
@@ -847,7 +849,9 @@
         pctx.font='600 19px Roboto, sans-serif';
         [40,100,200,500,1000,2000,3000].forEach(ft=>{ const x=lx(ft,W2);
           pctx.beginPath(); pctx.moveTo(x,0); pctx.lineTo(x,H2); pctx.stroke();
-          pctx.fillStyle='rgba(255,255,255,0.75)'; pctx.fillText(ft>=1000?(ft/1000)+'k':''+ft, x, H2-8); });
+          const lbl=ft>=1000?(ft/1000)+' kHz':ft+' Hz';
+          const lw=pctx.measureText(lbl).width, tx=Math.max(lw/2+2, Math.min(W2-lw/2-2, x));   // keep edge labels on-canvas
+          pctx.fillStyle='rgba(255,255,255,0.75)'; pctx.fillText(lbl, tx, H2-8); });
         // dB grid + y-axis labels (top -20 dB .. bottom -100 dB; 20 dB per division)
         const ydb=db=>Math.max(0,Math.min(1,(-20-db)/(-20-(-100))))*H2;
         pctx.textAlign='left'; pctx.textBaseline='middle'; pctx.font='600 19px Roboto, sans-serif';
@@ -1046,14 +1050,14 @@
         const R=Math.hypot(dx,dy);
         let d=0.3 + (Math.max(RING_IN,Math.min(RING_IN+RING_SPAN,R))-RING_IN)/RING_SPAN*(3-0.3);
         d=Math.max(0.3,Math.min(3,d));
-        if(dragTarget==='sig'){ state.sigTheta=th; state.sigDist=d; } else { state.theta=th; state.dist=d; polarDirty=true;
-          $('srcDist').value=d; $('srcDistVal').textContent=d.toFixed(2)+' m'; }   // keep the Distance knob in sync
+        if(dragTarget==='sig'){ state.sigTheta=th; state.sigDist=d; } else { state.theta=th; state.dist=snapDist(d); polarDirty=true;
+          syncDistBtns(); }   // dragging the noise snaps to the nearest discrete distance
         renderStatic();
         micRefresh=8;   // source moved -> refresh the mic snapshot
       }
       sceneWrap.addEventListener('pointerdown', ev=>{
         dragging=true; sceneWrap.classList.add('drag'); scene.setPointerCapture?.(ev.pointerId);
-        if(state.attract){ state.attract=false; state.orbit=false; syncOrbitBtn(); }   // first grab = user takes over
+        if(state.attract){ state.attract=false; state.orbit=false; }   // first grab = user takes over
 
         const [px,py]=pointerPx(ev);
         const [sx,sy]=srcDisplayPx(state.theta,state.dist), [gx,gy]=srcDisplayPx(state.sigTheta,state.sigDist);
@@ -1083,21 +1087,10 @@
           renderStatic();
         });
       });
-      function syncOrbitBtn(){
-        $('orbitBtn').classList.toggle('on', state.orbit);
-        $('orbitBtn').textContent = state.orbit? 'Stop orbit' : 'Orbit noise';
-      }
-      $('orbitBtn').addEventListener('click', ()=>{
-        state.orbit=!state.orbit;
-        state.attract=false;   // user took control of the motion
-        syncOrbitBtn();
-      });
-      syncOrbitBtn();   // orbit starts on as an attract cue
-
       // ===================== animation loop =====================
       function frame(ts){
         animTime = ts||0;
-        if(state.orbit){ state.theta=(state.theta+state.orbitSpeed); if(state.theta>180) state.theta-=360; micRefresh=8; }   // orbit moves the noise -> keep snapshot live
+        if(state.orbit && state.orbitSpeed>0){ state.theta=(state.theta+state.orbitSpeed*0.6); if(state.theta>180) state.theta-=360; micRefresh=8; }   // orbit moves the noise -> keep snapshot live
         if(state.orbit || audioPlaying || state.attract) renderStatic();
         if(!frozen.fft) drawLiveFFT();
         if(!frozen.ear) drawEarscope();
@@ -1112,7 +1105,8 @@
       let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancSenseLP=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
       let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
-      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, speechSrc=null, babyNodes=[], babyBuf=null, babyBytes=null, clickBuf=null, clickSrc=null;
+      let speechRate=1, speechNode=null, tempoWorkletOK=false;   // tempo factor + live time-stretch node
+      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, babyNodes=[], babyBuf=null, babyBytes=null, clickBuf=null, clickSrc=null;
       let audioPlaying=false;
 
       function makeNoiseBuffer(ac){
@@ -1130,6 +1124,8 @@
         if(actx.audioWorklet){
           try{ await actx.audioWorklet.addModule('anc-worklet.js'); useWorklet=true; }
           catch(e){ console.warn('AudioWorklet unavailable, using ScriptProcessor fallback', e); }
+          try{ await actx.audioWorklet.addModule('tempo-worklet.js'); tempoWorkletOK=true; }
+          catch(e){ console.warn('tempo worklet unavailable; speed control disabled', e); }
         }
         master=actx.createGain(); master.gain.value=0.85; master.connect(actx.destination);
         charFilter=actx.createBiquadFilter(); charFilter.type='lowpass'; charFilter.frequency.value=900;
@@ -1333,12 +1329,13 @@
         noiseSrc=actx.createBufferSource(); noiseSrc.buffer=noiseBuf; noiseSrc.loop=true;
         noiseSrc.connect(charFilter); noiseSrc.start();
         applyNoiseType();
-        if(speechBuf){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
+        startSpeech();
       }
       function stopSources(){
-        [noiseSrc,speechSrc,toneOsc,clickSrc,...babyNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
-        noiseSrc=speechSrc=toneOsc=clickSrc=null; babyNodes=[];
+        [noiseSrc,toneOsc,clickSrc,...babyNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
+        noiseSrc=toneOsc=clickSrc=null; babyNodes=[];
         toneGain=null;
+        stopSpeechNode();
       }
       // default desired audio: a local clip, fetched up front and decoded on first play
       let defaultClipBytes=null;
@@ -1348,46 +1345,50 @@
       fetch('baby-crying.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ babyBytes=b; ensureBabyBuf(); }).catch(()=>{});
       function loadDefaultClip(){
         if(!defaultClipBytes || speechBuf) return;
-        actx.decodeAudioData(defaultClipBytes.slice(0)).then(buf=>{
-          speechBuf=buf;
-          if(audioPlaying && !speechSrc){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
-        }).catch(()=>{});
+        actx.decodeAudioData(defaultClipBytes.slice(0)).then(buf=>{ swapSpeechBuffer(buf); }).catch(()=>{});
       }
 
-      // ===================== desired audio from a YouTube link =====================
-      // yt-audio.php (server-side yt-dlp) extracts the track to a cached mp3; we fetch
-      // those bytes and decode them into speechBuf so the clip flows through the SAME
-      // graph as the bundled song — panned, distance-attenuated, mixed into the FFT
-      // and waveform analysers. Swapping live restarts only the music source.
+      // ---- pitch-preserving tempo (real-time WSOLA in tempo-worklet.js) --------
+      // The worklet streams a time-stretched copy of speechBuf and exposes 'speed'
+      // as a live param, so changing tempo never restarts the track or stalls the
+      // page. Without AudioWorklet support we fall back to a plain looping source at
+      // 1x (the speed buttons then have no effect).
+      function makeSpeechNode(){
+        if(!speechBuf) return null;
+        if(tempoWorkletOK){
+          const ch=speechBuf.numberOfChannels;
+          const node=new AudioWorkletNode(actx,'tempo-stretch',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[ch]});
+          node.parameters.get('speed').value=speechRate;
+          const channels=[]; for(let c=0;c<ch;c++) channels.push(speechBuf.getChannelData(c).slice(0));
+          node.port.postMessage({channels, length:speechBuf.length}, channels.map(a=>a.buffer));
+          node.connect(speechGain);
+          node._tempo=true;
+          return node;
+        }
+        const node=actx.createBufferSource(); node.buffer=speechBuf; node.loop=true;
+        node.connect(speechGain); node.start();
+        return node;
+      }
+      function stopSpeechNode(){
+        if(!speechNode) return;
+        try{ speechNode.stop&&speechNode.stop(); }catch(e){}
+        try{ speechNode.disconnect(); }catch(e){}
+        speechNode=null;
+      }
+      function startSpeech(){
+        stopSpeechNode();
+        if(audioPlaying && speechBuf) speechNode=makeSpeechNode();
+      }
+      // install a decoded clip as the desired audio and (re)start the music source.
       function swapSpeechBuffer(buf){
         speechBuf=buf;
-        if(speechSrc){ try{speechSrc.stop();}catch(e){} try{speechSrc.disconnect();}catch(e){} speechSrc=null; }
-        if(audioPlaying){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
+        startSpeech();
       }
-      async function loadYouTube(){
-        const url=$('ytUrl').value.trim();
-        const status=$('ytStatus');
-        if(!url){ status.textContent='Paste a YouTube link first.'; return; }
-        const btn=$('ytLoadBtn'); btn.disabled=true; status.style.color=''; status.textContent='Fetching audio…';
-        try{
-          await ensureAudio();
-          const meta=await fetch('yt-audio.php?url='+encodeURIComponent(url)).then(r=>r.json());
-          if(!meta.ok) throw new Error(meta.error||'extraction failed');
-          status.textContent='Decoding…';
-          const bytes=await fetch(meta.audio).then(r=>r.arrayBuffer());
-          const buf=await actx.decodeAudioData(bytes);
-          swapSpeechBuffer(buf);
-          $('trackTitle').textContent=meta.title||'YouTube audio';
-          $('trackArtist').textContent=meta.uploader||'';
-          const art=$('albumArt'); if(art && meta.thumb){ art.style.display=''; art.src=meta.thumb; }
-          status.textContent=audioPlaying ? 'Now playing.' : 'Loaded — press Play.';
-        }catch(err){
-          status.style.color='var(--before)';
-          status.textContent='Could not load: '+(err && err.message ? err.message : err);
-        }finally{ btn.disabled=false; }
+      // change tempo live, without restarting the track (worklet path only)
+      function setSpeechRate(r){
+        speechRate=r;
+        if(speechNode && speechNode._tempo) speechNode.parameters.get('speed').value=r;
       }
-      $('ytLoadBtn').addEventListener('click', loadYouTube);
-      $('ytUrl').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); loadYouTube(); } });
 
       $('playBtn').addEventListener('click', async ()=>{
         $('playBtn').classList.remove('needs-click');
@@ -1419,6 +1420,13 @@
       $('speechVol').addEventListener('input', ()=>{
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
       });
+      document.querySelectorAll('[data-speed]').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          document.querySelectorAll('[data-speed]').forEach(x=>x.classList.remove('active'));
+          b.classList.add('active');
+          setSpeechRate(parseFloat(b.dataset.speed));   // live, pitch-preserved, no restart
+        });
+      });
       const frozen={fft:false, ear:false, mic:false};
       $('micPause').addEventListener('click', ()=>{
         frozen.mic = !frozen.mic;
@@ -1426,8 +1434,19 @@
         b.innerHTML = frozen.mic ? '&#9654; Resume' : '&#10073;&#10073; Pause';
         if(!frozen.mic) micRefresh=8;   // resumed -> redraw the snapshot
       });
-      $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); $('orbitSpeedVal').textContent=state.orbitSpeed.toFixed(1)+'×'; });
-      $('srcDist').addEventListener('input', ()=>{ state.dist=parseFloat($('srcDist').value); $('srcDistVal').textContent=state.dist.toFixed(2)+' m'; polarDirty=true; renderStatic(); });
+      document.querySelectorAll('[data-orbit]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('[data-orbit]').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          state.orbitSpeed=parseInt(btn.dataset.orbit,10); state.orbit=state.orbitSpeed>0; state.attract=false;
+        });
+      });
+      const DIST_OPTS=[0.5,1,2,3];
+      function snapDist(d){ return DIST_OPTS.reduce((a,b)=>Math.abs(b-d)<Math.abs(a-d)?b:a); }
+      function syncDistBtns(){ document.querySelectorAll('[data-dist]').forEach(b=>b.classList.toggle('active', parseFloat(b.dataset.dist)===state.dist)); }
+      document.querySelectorAll('[data-dist]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{ state.dist=parseFloat(btn.dataset.dist); syncDistBtns(); polarDirty=true; renderStatic(); });
+      });
       document.querySelectorAll('[data-noise]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           document.querySelectorAll('[data-noise]').forEach(b=>b.classList.remove('active'));
