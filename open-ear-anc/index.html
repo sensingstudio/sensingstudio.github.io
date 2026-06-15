@@ -229,16 +229,23 @@
             <h3>Signal</h3>
             <button class="act play-cta needs-click" id="playBtn" style="width:100%;">► Play the demo</button>
             <button class="anc-toggle off" id="ancAudioBtn" style="width:100%; margin-top:8px;">ANC OFF</button>
+            <div class="crow" style="margin-top:12px;">
+              <label>Source</label>
+              <div class="tools" role="group" aria-label="Desired signal source">
+                <button class="tool-btn active" data-signal="music">Music</button>
+                <button class="tool-btn" data-signal="speech">Speech</button>
+              </div>
+            </div>
             <div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
               <img id="albumArt" src="sounds-of-silence-cover.png" alt="The Sound of Silence album cover"
                    style="width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
                    onerror="this.style.display='none'" />
               <div style="flex:1 1 auto; display:flex; flex-direction:column; gap:6px; min-width:0;">
                 <div style="min-width:0;">
-                  <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">The Sound of Silence</div>
-                  <div class="note" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
+                  <div id="trackTitle" style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">The Sound of Silence</div>
+                  <div id="trackArtist" class="note" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
                 </div>
-                <label style="color:var(--green); margin:0;">Music volume</label>
+                <label style="color:var(--green); margin:0;">Signal volume</label>
                 <input type="range" id="speechVol" min="0" max="2.0" step="0.01" value="2.0" style="width:100%;" />
                 <label style="color:var(--green); margin:0;">Speed</label>
                 <div class="tools" role="group" aria-label="Playback speed" style="margin-top:2px; align-self:flex-start;">
@@ -1643,10 +1650,15 @@
         toneGain=null;
         stopSpeechNode();
       }
-      // default desired audio: a local clip, fetched up front and decoded on first play
-      let defaultClipBytes=null;
+      // desired audio: two selectable clips (music | narrated speech), fetched up front
+      // and decoded into speechBuf on demand. signalSource picks which one is the signal.
+      let signalSource='music';
+      let defaultClipBytes=null, narrationBytes=null;
       fetch('the-sounds-of-silence.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{
         defaultClipBytes=b;
+      }).catch(()=>{});
+      fetch('cat-in-the-hat.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{
+        narrationBytes=b;
       }).catch(()=>{});
       fetch('baby-crying.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ babyBytes=b; ensureBabyBuf(); }).catch(()=>{});
       fetch('fan.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ fanBytes=b; ensureFanBuf(); }).catch(()=>{});
@@ -1655,10 +1667,16 @@
       fetch('speech.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ spchBytes=b; ensureSpchBuf(); }).catch(()=>{});
       fetch('washer.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ washBytes=b; ensureWashBuf(); }).catch(()=>{});
       fetch('car.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ carBytes=b; ensureCarBuf(); }).catch(()=>{});
-      function loadDefaultClip(){
-        if(!defaultClipBytes || speechBuf) return;
-        actx.decodeAudioData(defaultClipBytes.slice(0)).then(buf=>{ swapSpeechBuffer(buf); }).catch(()=>{});
+      function bytesForSource(){ return signalSource==='speech' ? narrationBytes : defaultClipBytes; }
+      // decode the currently-selected signal into speechBuf. force=true re-decodes even if a
+      // clip is already loaded (used when switching source); otherwise it's a one-time load.
+      function loadSignal(force){
+        const bytes=bytesForSource();
+        if(!bytes) return;
+        if(speechBuf && !force) return;
+        actx.decodeAudioData(bytes.slice(0)).then(buf=>{ swapSpeechBuffer(buf); }).catch(()=>{});
       }
+      function loadDefaultClip(){ loadSignal(false); }   // back-compat alias used by the play handler
 
       // ---- pitch-preserving tempo (real-time WSOLA in tempo-worklet.js) --------
       // The worklet streams a time-stretched copy of speechBuf and exposes 'speed'
@@ -1731,6 +1749,22 @@
       $('noiseVol').addEventListener('input', ()=>{ if(noiseSum) noiseSum.gain.value=parseFloat($('noiseVol').value); micRefresh=8; });
       $('speechVol').addEventListener('input', ()=>{
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
+      });
+      function syncSignalUI(){
+        const speech = signalSource==='speech';
+        const t=$('trackTitle'), a=$('trackArtist'), art=$('albumArt');
+        if(t) t.textContent = speech ? 'The Cat in the Hat' : 'The Sound of Silence';
+        if(a) a.textContent = speech ? 'Dr. Seuss · read-along narration' : 'Simon & Garfunkel';
+        if(art){ art.src = speech ? 'cat-in-the-hat-cover.png' : 'sounds-of-silence-cover.png'; art.style.display=''; }
+        document.querySelectorAll('[data-signal]').forEach(b=>b.classList.toggle('active', b.dataset.signal===signalSource));
+      }
+      document.querySelectorAll('[data-signal]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          if(signalSource===btn.dataset.signal) return;
+          signalSource=btn.dataset.signal;
+          syncSignalUI();
+          if(actx) loadSignal(true);   // re-decode + restart with the newly selected clip
+        });
       });
       document.querySelectorAll('[data-speed]').forEach(b=>{
         b.addEventListener('click', ()=>{
