@@ -825,7 +825,7 @@
         const aIn=peakOf(timeRaw,512), aEar=peakOf(timeProc,512), SH=scopeSh;   // full-detail peak per frame
         envIn.copyWithin(0,SH); envEar.copyWithin(0,SH);
         for(let k=W2-SH;k<W2;k++){ envIn[k]=aIn; envEar[k]=aEar; }
-        const gain=H2*1.1, cap=H2*0.46;
+        const gain=H2*0.5, cap=H2*0.46;
         const amp=v=>cap*Math.tanh(v*gain/cap);   // soft knee -> compresses smoothly, never flat-clips
         const band=(env,color)=>{ ectx.fillStyle=color; ectx.beginPath();
           for(let x=0;x<W2;x++){ const a=amp(env[x]); x===0?ectx.moveTo(x,mid-a):ectx.lineTo(x,mid-a); }
