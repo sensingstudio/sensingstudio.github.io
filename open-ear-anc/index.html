@@ -239,7 +239,7 @@
                   <div class="note" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
                 </div>
                 <label style="color:var(--green); margin:0;">Music volume</label>
-                <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.5" style="width:100%;" />
+                <input type="range" id="speechVol" min="0" max="1.0" step="0.01" value="1.0" style="width:100%;" />
                 <label style="color:var(--green); margin:0;">Speed</label>
                 <div class="tools" role="group" aria-label="Playback speed" style="margin-top:2px; align-self:flex-start;">
                   <button class="tool-btn" data-speed="0.5">0.5×</button>
@@ -355,16 +355,15 @@
 
           <div class="card2 nopad">
             <div class="vhead">
-              <span>Spectrogram over time (left ear)</span>
-              <span class="leg">
+              <span>Spectrogram (left ear)</span>
+              <span class="leg" style="margin-left:auto;">
                 <span style="color:var(--grey-text);">energy</span>
                 <i class="sg-ramp"></i>
                 <span style="color:var(--after);">loud</span>
               </span>
-              <button id="sgramPause" class="pausebtn" style="margin-left:auto;">&#10073;&#10073; Pause</button>
             </div>
             <div class="canvas-wrap">
-              <canvas id="sgram" width="1200" height="320"></canvas>
+              <canvas id="sgram" width="1200" height="240"></canvas>
             </div>
           </div>
 
@@ -1011,16 +1010,16 @@
         }
       }
 
-      // ----- scrolling spectrogram (time–frequency) of the left ear: before vs after ANC -----
-      // A stack of FFT columns laid side by side, newest at the right. Frequency runs up each
-      // panel (log, 40 Hz–3 kHz, matching the spectrum above); brightness = energy. Top panel is
-      // the incoming noise, bottom is the residual at the ear — so the ANC effect is the energy
-      // that's present up top and gone below. Same rawAnalyser/procAnalyser as every other view.
+      // ----- scrolling spectrogram (time–frequency) of the left ear -----
+      // FFT columns laid side by side, newest at the right. Frequency runs up the panel
+      // (log, 40 Hz–3 kHz, matching the spectrum above); brightness = energy. It shows the
+      // residual at the ear (after ANC) — the same procAnalyser every other view uses — so
+      // toggling ANC visibly darkens the noise bands as they scroll past.
       const sgC = document.createElement('canvas'); sgC.width=sgram.width; sgC.height=sgram.height;
       const sgctx = sgC.getContext('2d');
       const SG_SH = 2;                         // px scrolled per frame (~10 s window across the canvas)
       const SG_DBT=-25, SG_DBB=-95;            // color ceiling/floor (dB)
-      let sgMap=null, sgMapBins=0, sgPanelH=0; // cached y -> fractional FFT bin (per panel)
+      let sgMap=null, sgMapBins=0, sgMapH=0;   // cached y -> fractional FFT bin
       let sgWasPlaying=false;
       const sgStops=[[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]]; // inferno
       function sgColor(t){
@@ -1028,61 +1027,46 @@
         const a=sgStops[i], b=sgStops[Math.min(sgStops.length-1,i+1)];
         return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
       }
-      function sgBuildMap(bins, ph){
-        sgMap=new Float32Array(ph); const la=Math.log10(FA), lb=Math.log10(FB), nyq=actx.sampleRate/2;
-        for(let y=0;y<ph;y++){ const fr=Math.pow(10, lb-(y/(ph-1))*(lb-la)); sgMap[y]=Math.max(0,Math.min(bins-1.001, fr/nyq*bins)); }
-        sgMapBins=bins; sgPanelH=ph;
+      function sgBuildMap(bins, H){
+        sgMap=new Float32Array(H); const la=Math.log10(FA), lb=Math.log10(FB), nyq=actx.sampleRate/2;
+        for(let y=0;y<H;y++){ const fr=Math.pow(10, lb-(y/(H-1))*(lb-la)); sgMap[y]=Math.max(0,Math.min(bins-1.001, fr/nyq*bins)); }
+        sgMapBins=bins; sgMapH=H;
       }
       function drawSpectrogram(){
-        const W2=sgram.width, H2=sgram.height, ph=(H2/2)|0;
+        const W2=sgram.width, H2=sgram.height;
         if(!procAnalyser || !audioPlaying){
           gctx.fillStyle='#0c0c0e'; gctx.fillRect(0,0,W2,H2);
-          sgDrawAxes(W2,H2,ph);
+          sgDrawAxes(W2,H2);
           gctx.fillStyle='rgba(255,255,255,0.5)'; gctx.font='13px Roboto, sans-serif'; gctx.textAlign='center';
           gctx.fillText('press ► Play to watch the spectrum evolve over time', W2/2, H2/2);
           sgWasPlaying=false; return;
         }
         if(!sgWasPlaying){ sgctx.fillStyle='#0c0c0e'; sgctx.fillRect(0,0,W2,H2); sgWasPlaying=true; }
-        rawAnalyser.getFloatFrequencyData(fftRaw);
         procAnalyser.getFloatFrequencyData(fftProc);
         const bins=fftProc.length;
-        if(sgMapBins!==bins || sgPanelH!==ph) sgBuildMap(bins, ph);
+        if(sgMapBins!==bins || sgMapH!==H2) sgBuildMap(bins, H2);
         // scroll the buffer left, then paint SG_SH fresh columns at the right edge
         sgctx.globalCompositeOperation='copy'; sgctx.drawImage(sgC,-SG_SH,0); sgctx.globalCompositeOperation='source-over';
         const col=sgctx.createImageData(SG_SH, H2), d=col.data;
         const sampleDb=(arr,b)=>{ const i=b|0; return arr[i]+(arr[i+1]-arr[i])*(b-i); };
-        const fill=(arr,yOff)=>{
-          for(let y=0;y<ph;y++){
-            const t=(sampleDb(arr,sgMap[y])-SG_DBB)/(SG_DBT-SG_DBB), c=sgColor(t), row=(yOff+y)*SG_SH*4;
-            for(let x=0;x<SG_SH;x++){ const o=row+x*4; d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=255; }
-          }
-        };
-        fill(fftRaw,0); fill(fftProc,ph);
+        for(let y=0;y<H2;y++){
+          const t=(sampleDb(fftProc,sgMap[y])-SG_DBB)/(SG_DBT-SG_DBB), c=sgColor(t), row=y*SG_SH*4;
+          for(let x=0;x<SG_SH;x++){ const o=row+x*4; d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=255; }
+        }
         sgctx.putImageData(col, W2-SG_SH, 0);
         gctx.drawImage(sgC,0,0);
-        sgDrawAxes(W2,H2,ph);
+        sgDrawAxes(W2,H2);
       }
-      function sgDrawAxes(W2,H2,ph){
+      function sgDrawAxes(W2,H2){
         const la=Math.log10(FA), lb=Math.log10(FB);
-        // frequency gridlines + labels (drawn in both panels)
+        // frequency gridlines + labels
         gctx.font='600 12px Roboto, sans-serif'; gctx.textAlign='left'; gctx.textBaseline='middle';
         [100,300,1000,3000].forEach(ft=>{ if(ft<FA||ft>FB) return;
-          const fr=(lb-Math.log10(ft))/(lb-la);                 // 0 at top (FB) .. 1 at bottom (FA)
+          const y=(lb-Math.log10(ft))/(lb-la)*H2;                // top = FB, bottom = FA
           const lbl=ft>=1000?(ft/1000)+'k':ft+'';
-          [0,ph].forEach(off=>{ const y=off+fr*ph;
-            gctx.strokeStyle='rgba(255,255,255,0.07)'; gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W2,y); gctx.stroke();
-            gctx.fillStyle='rgba(255,255,255,0.5)'; gctx.fillText(lbl, 4, Math.max(off+9,Math.min(off+ph-9,y))); });
+          gctx.strokeStyle='rgba(255,255,255,0.07)'; gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W2,y); gctx.stroke();
+          gctx.fillStyle='rgba(255,255,255,0.5)'; gctx.fillText(lbl, 4, Math.max(9,Math.min(H2-9,y)));
         });
-        // panel divider
-        gctx.strokeStyle='rgba(255,255,255,0.55)'; gctx.lineWidth=1.5;
-        gctx.beginPath(); gctx.moveTo(0,ph+0.5); gctx.lineTo(W2,ph+0.5); gctx.stroke();
-        // panel badges
-        gctx.font='700 12px Roboto, sans-serif'; gctx.textBaseline='top'; gctx.textAlign='left';
-        const badge=(txt,colr,y)=>{ const w=gctx.measureText(txt).width+12;
-          gctx.fillStyle='rgba(12,12,14,0.72)'; gctx.fillRect(W2-w-6,y+5,w,20);
-          gctx.fillStyle=colr; gctx.fillText(txt, W2-w, y+9); };
-        badge('BEFORE ANC', '#A7B0BE', 0);
-        badge('AFTER ANC', '#2ECC71', ph);
         // time direction hint
         gctx.fillStyle='rgba(255,255,255,0.4)'; gctx.font='11px Roboto, sans-serif'; gctx.textAlign='right'; gctx.textBaseline='bottom';
         gctx.fillText('now →', W2-6, H2-4);
@@ -1094,7 +1078,9 @@
       // music + noise + ANC + levels. Gold (at the ear) sits inside red (incoming).
       let timeRaw=null, timeProc=null, envIn=null, envEar=null;
       // time-detail (slider): shorter RMS window + faster scroll = finer/more responsive
-      let scopeWin=4096, scopeSh=6;   // ~3s window across the canvas (W/(scopeSh*60fps)); larger scopeSh = smaller window
+      // scroll the time-domain at the SAME px/frame as the spectrogram (both canvases are 1200px
+      // wide) so they share one time axis and move in lockstep. Keep scopeSh === SG_SH.
+      let scopeWin=4096, scopeSh=SG_SH;
       function setScopeWindow(sec){ scopeSh=Math.max(1, Math.round(earscope.width/(sec*60))); }   // window = time span only; detail stays full
       function rmsOf(arr, win){ const n=Math.min(win||arr.length, arr.length), s0=arr.length-n; let s=0; for(let i=s0;i<arr.length;i++) s+=arr[i]*arr[i]; return Math.sqrt(s/n); }
       function drawEarscope(){
@@ -1244,7 +1230,7 @@
         if(state.orbit && state.orbitSpeed>0){ state.theta=(state.theta+state.orbitSpeed*0.6); if(state.theta>180) state.theta-=360; micRefresh=8; }   // orbit moves the noise -> keep snapshot live
         if(state.orbit || audioPlaying) renderStatic();   // attract pulse only animates while playing
         if(!frozen.fft) drawLiveFFT();
-        if(!frozen.sgram) drawSpectrogram();
+        drawSpectrogram();
         if(!frozen.ear) drawEarscope();
         if(!frozen.mic && (audioPlaying || micRefresh>0) && (animTime-lastMicDraw >= 1000/MIC_FPS)){ drawMicScope(); lastMicDraw=animTime; if(micRefresh>0) micRefresh--; }   // live while playing (throttled); otherwise a snapshot that refreshes after the source moves
         requestAnimationFrame(frame);
@@ -1699,12 +1685,7 @@
           setSpeechRate(parseFloat(b.dataset.speed));   // live, pitch-preserved, no restart
         });
       });
-      const frozen={fft:false, ear:false, mic:false, sgram:false};
-      $('sgramPause').addEventListener('click', ()=>{
-        frozen.sgram = !frozen.sgram;
-        const b=$('sgramPause'); b.classList.toggle('on', frozen.sgram);
-        b.innerHTML = frozen.sgram ? '&#9654; Resume' : '&#10073;&#10073; Pause';
-      });
+      const frozen={fft:false, ear:false, mic:false};
       $('micPause').addEventListener('click', ()=>{
         frozen.mic = !frozen.mic;
         const b=$('micPause'); b.classList.toggle('on', frozen.mic);
