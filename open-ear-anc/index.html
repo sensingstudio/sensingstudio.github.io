@@ -235,6 +235,7 @@
                 <button class="tool-btn active" data-noise="cafe">Café</button>
                 <button class="tool-btn" data-noise="baby">Baby crying</button>
                 <button class="tool-btn" data-noise="tone">Tone</button>
+                <button class="tool-btn" data-noise="sweep">Sweep 100–1k</button>
               </div>
             </div>
             <div class="crow">
@@ -328,9 +329,6 @@
             <div class="vhead">
               <span>Sound at the left ear</span>
               <button class="pausebtn" id="earPause" title="freeze / snapshot">⏸</button>
-              <label for="scopeWindow" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Window</label>
-              <input type="range" id="scopeWindow" min="1" max="15" step="0.5" value="6" style="width:110px; accent-color:var(--red);" />
-              <span class="note" style="margin:0; min-width:42px;" id="scopeWindowVal">6.0 s</span>
               <span class="leg">
                 <span style="color:var(--before);"><i class="swatch" style="background:var(--before);"></i> noise before ANC</span>
                 <span style="color:var(--after);"><i class="swatch" style="background:var(--after);height:4px;"></i> what you hear (after ANC)</span>
@@ -346,9 +344,6 @@
             <div class="vhead">
               <span>What the active mics see</span>
               <button class="pausebtn" id="micPause" title="freeze / snapshot">⏸</button>
-              <label for="micZoom" style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:var(--grey-text); font-weight:600;">Window</label>
-              <input type="range" id="micZoom" min="2" max="40" step="1" value="8" style="width:110px; accent-color:var(--red);" />
-              <span class="note" style="margin:0; min-width:42px;" id="micZoomVal">8 ms</span>
               <span class="leg" style="margin-left:auto;">each colored line = one active frame mic</span>
             </div>
             <div class="canvas-wrap">
@@ -504,14 +499,22 @@
       function micCutoff(){ return MODEL.cutoff[state.nMics] ?? 900; }
       // irreducible sensing floor shrinks as mics are added (better ear prediction)
       function floorScale(){ return MODEL.floor[state.nMics] ?? 1.0; }
-      // Best-case cancellation of a single tone, limited by the secondary-path mismatch (speaker→ear
-      // amplitude error gS + group delay τs) and the processing latency. Its phase error grows with
-      // frequency, so high tones can't be cancelled no matter the geometry — matches the audio engine.
+      // Per-tone cancellation, fit to the paper's measured noise-reduction vs frequency curve.
+      // residual² = geometry floor² + secondary-path phase² + (latency comb)² + (sensing roll-off)²
+      //   • gGeom: population-average geometry cap (~10 dB), worse with fewer mics
+      //   • secondary path: amplitude error gS + group delay τs → irreducible phase error rising with f
+      //   • latency comb 2·sin(πfΔt): the processing-latency phase error
+      //   • sensing roll-off ∝ (f/1 kHz)^p: frame array can't predict the ear at high f
+      // Calibration shrinks the geometry, secondary-path, and sensing terms.
       function toneCapDb(f){
-        const gS  = state.calibrated ? 0.97 : 0.86;
-        const tau = (state.calibrated ? 10e-6 : 40e-6) + state.latencyMs*1e-3;
-        const th  = 2*Math.PI*f*tau;
-        const resid = Math.hypot(1 - gS*Math.cos(th), gS*Math.sin(th));   // |1 − gS·e^{−jθ}|
+        const cal = state.calibrated;
+        const gGeom = (cal ? {1:0.42,2:0.30,4:0.22} : {1:0.55,2:0.40,4:0.28})[state.nMics] ?? 0.28;
+        const gS  = cal ? 0.93 : 0.84;
+        const tau = cal ? 18e-6 : 60e-6;
+        const sens = cal ? 0.26 : 0.35, p = 1.5, kappa = 0.5;
+        const th = 2*Math.PI*f*tau, comb = 2*Math.abs(Math.sin(Math.PI*f*state.latencyMs*1e-3));
+        const sec = Math.hypot(1 - gS*Math.cos(th), gS*Math.sin(th));
+        const resid = Math.hypot(gGeom, sec, kappa*comb, sens*Math.pow(f/1000, p));
         return Math.max(0, -20*Math.log10(Math.max(resid, 1e-3)));
       }
       function compute(){
@@ -519,8 +522,10 @@
         meanRedDb  = state.ancOn ? Math.min(modelRedDb(srcPos(state.theta, state.dist)), tone) : 0;    // left ear — drives the polar
         meanRedDbR = state.ancOn ? Math.min(modelRedDb(srcPos(-state.theta, state.dist)), tone) : 0;   // right ear = left at mirrored angle
       }
-      function effRedDb(){ return meanRedDb; }    // left-ear model value — matches the polar curve exactly
-      function effRedDbR(){ return meanRedDbR; }  // right-ear (mirror) value
+      // readout shows the LIVE measured in-band reduction while playing (fluctuates with the noise);
+      // falls back to the model value when paused. R tracks L with the model's left/right offset.
+      function effRedDb(){ return (audioPlaying && state.ancOn && liveRedDb!=null) ? liveRedDb : meanRedDb; }
+      function effRedDbR(){ return (audioPlaying && state.ancOn && liveRedDb!=null) ? Math.max(0, liveRedDb + (meanRedDbR - meanRedDb)) : meanRedDbR; }
 
       // ===================== DOM =====================
       const $ = id => document.getElementById(id);
@@ -987,7 +992,7 @@
       let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancSenseLP=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
       let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
-      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, speechSrc=null, babyNodes=[], babyBuf=null, babyBytes=null;
+      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, speechSrc=null, babyNodes=[], babyBuf=null, babyBytes=null, sweepBuf=null, sweepSrc=null;
       let audioPlaying=false;
 
       function makeNoiseBuffer(ac){
@@ -1063,9 +1068,10 @@
         if(!charFilter) return;
         const t=state.noiseType;
         if(toneOsc){ try{toneOsc.stop();}catch(e){} toneOsc=null; toneGain=null; }
+        if(sweepSrc){ try{sweepSrc.stop();}catch(e){} sweepSrc=null; }
         babyNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); babyNodes=[];
-        const isTone = (t==='tone'), isBaby = (t==='baby');
-        if(noiseBufGain) noiseBufGain.gain.value = (isTone||isBaby) ? 0 : 1;   // mute broadband for synth voices
+        const isTone = (t==='tone'), isBaby = (t==='baby'), isSweep = (t==='sweep');
+        if(noiseBufGain) noiseBufGain.gain.value = (isTone||isBaby||isSweep) ? 0 : 1;   // mute broadband for synth/clip voices
         if(t==='cafe'){ charFilter.type='lowpass'; charFilter.frequency.value=850; charFilter.Q.value=0.7; }
         if(isTone && audioPlaying){
           toneOsc=actx.createOscillator(); toneOsc.type='sine'; toneOsc.frequency.value=parseFloat($('toneFreq').value);
@@ -1074,6 +1080,21 @@
           toneOsc.start();
         }
         if(isBaby && audioPlaying) startBabyCry();
+        if(isSweep && audioPlaying){
+          if(!sweepBuf) sweepBuf=makeSweepBuffer(actx);
+          sweepSrc=actx.createBufferSource(); sweepSrc.buffer=sweepBuf; sweepSrc.loop=true;
+          const g=actx.createGain(); g.gain.value=0.5;
+          sweepSrc.connect(g); g.connect(noiseSum); sweepSrc.start();
+        }
+      }
+      // repeating chirp: a sine swept 100→1000→100 Hz (triangle, so the loop joins seamlessly at 100 Hz)
+      function makeSweepBuffer(ac){
+        const dur=6, len=Math.floor(ac.sampleRate*dur), buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
+        const half=dur/2; let ph=0;
+        for(let i=0;i<len;i++){ const t=i/ac.sampleRate;
+          const f = t<half ? 100+900*(t/half) : 1000-900*((t-half)/half);
+          ph+=2*Math.PI*f/ac.sampleRate; d[i]=Math.sin(ph)*0.9; }
+        return buf;
       }
       // real baby-crying recording (looped); falls back to the synth below until it decodes
       function ensureBabyBuf(){
@@ -1190,8 +1211,8 @@
         if(speechBuf){ speechSrc=actx.createBufferSource(); speechSrc.buffer=speechBuf; speechSrc.loop=true; speechSrc.connect(speechGain); speechSrc.start(); }
       }
       function stopSources(){
-        [noiseSrc,speechSrc,toneOsc,...babyNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
-        noiseSrc=speechSrc=toneOsc=null; babyNodes=[];
+        [noiseSrc,speechSrc,toneOsc,sweepSrc,...babyNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
+        noiseSrc=speechSrc=toneOsc=sweepSrc=null; babyNodes=[];
         toneGain=null;
       }
       // default desired audio: a local clip, fetched up front and decoded on first play
@@ -1238,13 +1259,11 @@
       $('speechVol').addEventListener('input', ()=>{
         if(speechGain) speechGain.gain.value=parseFloat($('speechVol').value);
       });
-      $('scopeWindow').addEventListener('input', ()=>{ const s=parseFloat($('scopeWindow').value); setScopeWindow(s); $('scopeWindowVal').textContent=s.toFixed(1)+' s'; });
       const frozen={fft:false, ear:false, mic:false};
       function wirePause(btnId,key){ const b=$(btnId); b.addEventListener('click',()=>{ frozen[key]=!frozen[key]; b.textContent=frozen[key]?'▶':'⏸'; b.classList.toggle('on',frozen[key]); }); }
       wirePause('fftPause','fft'); wirePause('earPause','ear'); wirePause('micPause','mic');
       $('orbitSpeed').addEventListener('input', ()=>{ state.orbitSpeed=parseFloat($('orbitSpeed').value); $('orbitSpeedVal').textContent=state.orbitSpeed.toFixed(1)+'×'; });
       $('srcDist').addEventListener('input', ()=>{ state.dist=parseFloat($('srcDist').value); $('srcDistVal').textContent=state.dist.toFixed(2)+' m'; polarDirty=true; renderStatic(); });
-      $('micZoom').addEventListener('input', ()=>{ micWinSec=parseFloat($('micZoom').value)/1000; $('micZoomVal').textContent=$('micZoom').value+' ms'; micRefresh=8; });
       document.querySelectorAll('[data-noise]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           document.querySelectorAll('[data-noise]').forEach(b=>b.classList.remove('active'));
