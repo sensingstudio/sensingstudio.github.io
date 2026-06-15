@@ -242,7 +242,7 @@
             </div>
             <div class="crow">
               <label for="latencyMs">Latency</label>
-              <input type="range" id="latencyMs" min="0" max="1.5" step="0.01" value="0.1" style="flex:1 1 90px;" />
+              <input type="range" id="latencyMs" min="0.05" max="1.5" step="0.01" value="0.1" style="flex:1 1 90px;" />
               <span class="note" style="margin:0; min-width:50px;" id="latencyVal">100 µs</span>
             </div>
             <div class="crow" style="display:block;">
@@ -719,7 +719,7 @@
       // latency/calibration (recomputed on change) — NOT on the current angle, so orbiting
       // only sweeps the marker.
       const NA_POL=72;
-      let polarL=new Float32Array(NA_POL), polarMax=14, polarDirty=true;
+      let polarL=new Float32Array(NA_POL), polarMax=20, polarDirty=true;
       const EAR_AZ=Math.atan2(EAR0[0],EAR0[1]);    // azimuth of the (left) target ear, ~270°
       // ===== SINGLE SOURCE OF TRUTH for displayed reduction (readout + polar) =====
       // Per-frequency residual = k · (geometry reconstruction error) · (latency comb) · (head shadow).
@@ -745,9 +745,8 @@
         return Math.max(0, -10*Math.log10(Math.max(rL/eL,1e-6)));
       }
       function computePolar(){
-        let mx=2;
-        for(let i=0;i<NA_POL;i++){ const v=modelRedDb(srcPos(i/NA_POL*360, state.dist)); polarL[i]=v; if(v>mx)mx=v; }
-        polarMax=Math.max(6, Math.ceil(mx/2)*2);
+        for(let i=0;i<NA_POL;i++){ polarL[i]=modelRedDb(srcPos(i/NA_POL*360, state.dist)); }
+        polarMax=20;   // fixed 20 dB full-scale
       }
       function polarValAt(arr,thetaDeg){ const a=((thetaDeg%360)+360)%360, x=a/360*NA_POL, i=Math.floor(x)%NA_POL, fr=x-Math.floor(x), j=(i+1)%NA_POL; return arr[i]+(arr[j]-arr[i])*fr; }
       function drawPolar(){
