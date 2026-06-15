@@ -213,12 +213,12 @@
             <button class="act play-cta needs-click" id="playBtn" style="width:100%;">► Play the demo</button>
             <button class="anc-toggle off" id="ancAudioBtn" style="width:100%; margin-top:8px;">ANC OFF</button>
             <div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
-              <img id="albumArt" src="sounds-of-silence-cover.png" alt="Sounds of Silence album cover"
+              <img id="albumArt" src="sounds-of-silence-cover.png" alt="The Sound of Silence album cover"
                    style="width:84px; height:84px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
                    onerror="this.style.display='none'" />
               <div style="flex:1 1 auto; display:flex; flex-direction:column; gap:6px; min-width:0;">
                 <div style="min-width:0;">
-                  <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">The Sounds of Silence</div>
+                  <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">The Sound of Silence</div>
                   <div class="note" style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Simon &amp; Garfunkel</div>
                 </div>
                 <label style="color:var(--green); margin:0;">Music volume</label>
@@ -753,11 +753,13 @@
         polctx.lineWidth=2.6; polctx.setLineDash(state.ancOn?[]:[5,5]); polctx.beginPath();
         for(let i=0;i<=NA_POL;i++){ const idx=i%NA_POL, ang=idx/NA_POL*360; const [x,y]=toXY(ang, polarL[idx]); i===0?polctx.moveTo(x,y):polctx.lineTo(x,y); }
         polctx.stroke(); polctx.setLineDash([]);
-        // noise-direction markers — a red dot on each ear's curve at the current noise angle
+        // noise-direction markers — a red dot on each ear at the current noise angle.
+        // Sit them on the SAME displayed value as the headline dB readout (effRedDb*), so the
+        // dot and the number always agree; the curves stay the model envelope behind them.
         polctx.fillStyle = state.ancOn ? '#bc122a' : 'rgba(188,18,42,0.5)'; polctx.strokeStyle='#fff'; polctx.lineWidth=1.6;
-        const [rx2,ry2]=toXY(state.theta, meanRedDbR);
+        const [rx2,ry2]=toXY(state.theta, effRedDbR());
         polctx.beginPath(); polctx.arc(rx2,ry2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
-        const [lx2,ly2]=toXY(state.theta, meanRedDb);
+        const [lx2,ly2]=toXY(state.theta, effRedDb());
         polctx.beginPath(); polctx.arc(lx2,ly2,5.5,0,2*Math.PI); polctx.fill(); polctx.stroke();
         if(!state.ancOn){ polctx.fillStyle='rgba(255,255,255,0.55)'; polctx.font='700 12px Roboto, sans-serif'; polctx.textAlign='center'; polctx.textBaseline='middle';
           polctx.fillText('ANC OFF', cx, cy); }
