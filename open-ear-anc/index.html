@@ -1065,8 +1065,8 @@
           const y=(lb-Math.log10(ft))/(lb-la)*H2;                // top = FB, bottom = FA
           const lbl=ft>=1000?(ft/1000)+' kHz':ft+' Hz';
           gctx.strokeStyle='rgba(255,255,255,0.10)'; gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W2,y); gctx.stroke();
-          const ly=Math.max(11,Math.min(H2-11,y)), tw=gctx.measureText(lbl).width;
-          gctx.fillStyle='rgba(12,12,14,0.78)'; gctx.fillRect(2, ly-9, tw+8, 18);   // dark backing chip for legibility
+          const ly=Math.max(12,Math.min(H2-12,y)), tw=gctx.measureText(lbl).width;
+          gctx.fillStyle='rgba(12,12,14,0.78)'; gctx.fillRect(2, ly-11, tw+8, 22);   // dark backing chip for legibility
           gctx.fillStyle='rgba(255,255,255,0.95)'; gctx.fillText(lbl, 6, ly);
         });
         // time axis along the bottom: right edge = now, scrolling left = older. Scroll is SG_SH
