@@ -210,20 +210,16 @@
         <aside class="sidebar">
           <div class="card2">
             <h3>Playback</h3>
-            <div class="crow">
-              <button class="act play-cta needs-click" id="playBtn">► Play the demo</button>
-              <span class="note" style="margin:0;">&larr; start here</span>
-            </div>
-            <button class="anc-toggle off" id="ancAudioBtn" style="width:100%; margin-top:2px;">ANC OFF</button>
-            <div class="crow" style="gap:12px;">
+            <button class="act play-cta needs-click" id="playBtn" style="width:100%;">► Play the demo</button>
+            <button class="anc-toggle off" id="ancAudioBtn" style="width:100%; margin-top:8px;">ANC OFF</button>
+            <div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
               <img id="albumArt" src="sounds-of-silence-cover.png" alt="Sounds of Silence album cover"
-                   style="width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
+                   style="width:84px; height:84px; object-fit:cover; border-radius:8px; border:1px solid var(--grey-line); flex:0 0 auto;"
                    onerror="this.style.display='none'" />
-              <span class="note" style="margin:0; flex:1; min-width:90px;" id="audioStatus">loading clip…</span>
-            </div>
-            <div class="crow">
-              <label style="color:var(--green);">Music <span style="font-weight:400; text-transform:none; letter-spacing:0;">(signal to keep)</span></label>
-              <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="flex:1 1 120px;" />
+              <div style="flex:1 1 auto; display:flex; flex-direction:column; gap:6px; min-width:0;">
+                <label style="color:var(--green); margin:0;">Music <span style="font-weight:400; text-transform:none; letter-spacing:0;">(signal to keep)</span></label>
+                <input type="range" id="speechVol" min="0" max="1.5" step="0.01" value="1.0" style="width:100%;" />
+              </div>
             </div>
           </div>
 
@@ -240,7 +236,7 @@
             </div>
             <div class="crow">
               <label>Level</label>
-              <input type="range" id="noiseVol" min="0" max="8.0" step="0.01" value="2.0" style="flex:1 1 90px;" />
+              <input type="range" id="noiseVol" min="0" max="8.0" step="0.01" value="8.0" style="flex:1 1 90px;" />
             </div>
             <div class="crow" id="toneRow" style="display:none;">
               <label for="toneFreq">Tone</label>
@@ -1166,7 +1162,7 @@
         const w=new Float32Array(NMAX*T);         // per-mic FIR weights (flattened)
         const mbuf=new Float32Array(NMAX*Mm);     // each active mic's recent signal
         const Yh=new Float32Array(Mx);            // history of the anti-noise estimate (for the latency delay)
-        const MU=0.5, LEAK=1e-4, SIG=0.5;         // step, leakage, per-mic sensor-noise level
+        const MU=0.5, LEAK=1e-4, SIG=0.06;        // step, leakage, per-mic sensor-noise level
         let xpos=0, mpos=0, ypos=0, curN=-1;
         node.onaudioprocess=(ev)=>{
           const inp=ev.inputBuffer.getChannelData(0), out=ev.outputBuffer.getChannelData(0), Nn=inp.length;
@@ -1221,7 +1217,7 @@
       // default desired audio: a local clip, fetched up front and decoded on first play
       let defaultClipBytes=null;
       fetch('the-sounds-of-silence.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{
-        defaultClipBytes=b; $('audioStatus').textContent='Loaded “The Sound of Silence” — press ► Play, then toggle ANC.';
+        defaultClipBytes=b;
       }).catch(()=>{});
       fetch('baby-crying.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ babyBytes=b; ensureBabyBuf(); }).catch(()=>{});
       function loadDefaultClip(){

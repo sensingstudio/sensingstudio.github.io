@@ -35,7 +35,7 @@ class AdaptiveAncProcessor extends AudioWorkletProcessor {
     this.w = new Float32Array(this.NMAX * this.T);// per-mic FIR weights (flattened)
     this.mbuf = new Float32Array(this.NMAX * this.Mm); // each active mic's recent signal
     this.Yh = new Float32Array(this.Mx);          // anti-noise estimate history (for latency delay)
-    this.MU = 0.5; this.LEAK = 1e-4; this.SIG = 0.5;
+    this.MU = 0.5; this.LEAK = 1e-4; this.SIG = 0.06;
     this.xpos = 0; this.mpos = 0; this.ypos = 0; this.curN = -1;
     // scene/params, updated from the main thread
     this.algo = 'adaptive'; this.ancOn = false; this.latencyMs = 0.1;
@@ -57,7 +57,7 @@ class AdaptiveAncProcessor extends AudioWorkletProcessor {
   updateGeom() {
     const SR = sampleRate, perSide = this.nMics;
     this.gS = this.calibrated ? 0.97 : 0.86;                       // secondary-path amplitude match
-    this.tauSamp = (this.calibrated ? 10e-6 : 40e-6) * SR;         // irreducible secondary-path group delay
+    this.tauSamp = (this.calibrated ? 4e-6 : 10e-6) * SR;          // irreducible secondary-path group delay
     const th = this.theta * Math.PI / 180, Px = this.dist * Math.sin(th), Py = this.dist * Math.cos(th);
     this.latSamp = Math.min(this.Mx - 1, Math.round(Math.max(0, this.latencyMs * 1e-3) * SR));
     // active mic indices (left then right, nearest-ear first)
