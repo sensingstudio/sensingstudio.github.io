@@ -529,30 +529,26 @@
       // ===================== state =====================
       const state = { theta: 40, dist: 1.5, sigTheta: -42, sigDist: 1.1, nMics: 4, calibrated: false, orbit: true, orbitSpeed: 0.6, latencyMs: 0.1, noiseType: 'cafe', algo: 'adaptive', attract: true };
       let W = fitWeights(state.nMics);
-      let perFreq = [];          // {ear,res} per model freq for current noise source
-      let meanRedDb = 0, geomRedDb = 0, liveRedDb = null;
+      let meanRedDb = 0, liveRedDb = null;
+      // shared parameters used by BOTH the displayed model and the audio engine
+      const MODEL = {
+        depth:  {1:0.95, 2:0.975, 4:0.99},   // anti-noise amplitude match, by mics/side
+        cutoff: {1:450,  2:900,   4:1800},   // sensing bandwidth (Hz), by mics/side
+        k: 2.5,                              // overall residual scale (tunes the dB range)
+        dir: 1.0                             // extra contralateral (head-shadow) degradation
+      };
 
-      // anti-noise depth g (0..1): how completely the canceller matches the ear signal.
-      // near 1 in good conditions -> deep cancellation at low latency; latency limits it by frequency.
+      // audio anti-noise depth (closed-form "model" path) — shares MODEL params with the display
       function ancGain(){
         if(!state.ancOn) return 0;
-        const base = {1:0.95, 2:0.975, 4:0.99}[state.nMics] ?? 0.97;   // per-side mic count
+        const base = MODEL.depth[state.nMics] ?? 0.97;
         const cal = state.calibrated ? 0.006 : 0;
-        const pen = 0.02*Math.max(0,Math.min(1,(12-geomRedDb)/6));  // harder source geometry -> slightly shallower
-        return Math.max(0, Math.min(0.998, base+cal-pen));
+        return Math.max(0, Math.min(0.999, base+cal));
       }
       // sensing bandwidth: more mics resolve finer spatial detail -> cancel higher frequencies.
-      function micCutoff(){ return {1:450, 2:900, 4:1800}[state.nMics] ?? 900; }
-      const sensingQ = f => 1/Math.sqrt(1+Math.pow(f/micCutoff(),4));   // 2-pole lowpass magnitude
+      function micCutoff(){ return MODEL.cutoff[state.nMics] ?? 900; }
       function compute(){
-        const P = srcPos(state.theta, state.dist);
-        perFreq = FREQS.map((f,fi)=>earAndResidual(W, fi, P, state.calibrated));
-        let nE=0,nR=0;
-        FREQS.forEach((f,fi)=>{ if(!inBand(f)) return; const {ear,res}=perFreq[fi];
-          const pink=1/f; nE+=pink*(ear[0]*ear[0]+ear[1]*ear[1]); nR+=pink*(res[0]*res[0]+res[1]*res[1]); });
-        geomRedDb = 10*Math.log10(nE/Math.max(nR,1e-20));     // geometry quality (drives the audio depth)
-        // readout uses the SAME model as the polar curve, so the number matches the marker
-        meanRedDb = state.ancOn ? dirRedDb(P) : 0;
+        meanRedDb = state.ancOn ? modelRedDb(srcPos(state.theta, state.dist)) : 0;   // single model — also drives the polar
       }
       function effRedDb(){ return meanRedDb; }   // model value — matches the polar curve exactly
 
@@ -725,25 +721,31 @@
       const NA_POL=72;
       let polarL=new Float32Array(NA_POL), polarMax=14, polarDirty=true;
       const EAR_AZ=Math.atan2(EAR0[0],EAR0[1]);    // azimuth of the (left) target ear, ~270°
-      function dirRedDb(P){                        // band reduction (dB) for a noise source at position P
-        const dt=state.latencyMs*1e-3;
-        const depth = {1:0.95, 2:0.975, 4:0.99}[state.nMics] ?? 0.97;
-        // head shadow: the LEFT ear is occluded for noise from the opposite (right) side, so
-        // the timing error costs more there. At Δt=0 the residual is 0 regardless -> perfect.
-        const contra = (1 - Math.cos(Math.atan2(P[0],P[1]) - EAR_AZ))/2;   // 0 on the ear side, 1 contralateral
-        const dirPen = 1 + 1.6*contra;             // contralateral degrades faster with latency
+      // ===== SINGLE SOURCE OF TRUTH for displayed reduction (readout + polar) =====
+      // Per-frequency residual = k · (geometry reconstruction error) · (latency comb) · (head shadow).
+      //   • latency comb 2·sin(πfΔt) is 0 at Δt=0  ⇒  perfect cancellation, then degrades (high f first)
+      //   • geometry error = |ear − reconstructed ear|/|ear| from the least-squares virtual-sensing fit
+      //     (incl. head shadow, secondary-path mismatch, sensing floor); improves with mic count,
+      //     worsens with frequency and harder directions
+      //   • a mild contralateral term emphasizes the far-ear head shadow
+      // The audio engine shares the same MODEL params, so what you hear tracks this curve.
+      function modelRedDb(P){
+        const dt=state.latencyMs*1e-3, cal=state.calibrated;
+        const contra=(1 - Math.cos(Math.atan2(P[0],P[1]) - EAR_AZ))/2;   // 0 ipsilateral, 1 contralateral
+        const dirPen=1 + MODEL.dir*contra;
         let eL=0,rL=0;
         for(let fi=0;fi<FREQS.length;fi++){ const f=FREQS[fi]; if(!inBand(f)) continue;
-          const ge=depth*sensingQ(f);              // depth × sensing bandwidth (more mics → higher f)
-          const comb=2*Math.abs(Math.sin(Math.PI*f*dt));   // delay-and-subtract residual: 0 at Δt=0
-          const resFrac=ge*comb*dirPen;
+          const {ear,res}=earAndResidual(W, fi, P, cal);
+          const gErr=Math.sqrt((res[0]*res[0]+res[1]*res[1])/Math.max(ear[0]*ear[0]+ear[1]*ear[1],1e-20));
+          const comb=2*Math.abs(Math.sin(Math.PI*f*dt));                 // 0 at Δt=0 → perfect
+          const resFrac=MODEL.k*gErr*comb*dirPen;
           const w=1/f; eL+=w; rL+=w*resFrac*resFrac; }
         // floor 1e-6 ⇒ caps near 60 dB (effectively perfect) at zero latency
         return Math.max(0, -10*Math.log10(Math.max(rL/eL,1e-6)));
       }
       function computePolar(){
         let mx=2;
-        for(let i=0;i<NA_POL;i++){ const v=dirRedDb(srcPos(i/NA_POL*360, state.dist)); polarL[i]=v; if(v>mx)mx=v; }
+        for(let i=0;i<NA_POL;i++){ const v=modelRedDb(srcPos(i/NA_POL*360, state.dist)); polarL[i]=v; if(v>mx)mx=v; }
         polarMax=Math.max(6, Math.ceil(mx/2)*2);
       }
       function polarValAt(arr,thetaDeg){ const a=((thetaDeg%360)+360)%360, x=a/360*NA_POL, i=Math.floor(x)%NA_POL, fr=x-Math.floor(x), j=(i+1)%NA_POL; return arr[i]+(arr[j]-arr[i])*fr; }
