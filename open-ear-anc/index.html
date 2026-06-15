@@ -533,10 +533,25 @@
         const resid = Math.hypot(gGeom, sec, kappa*comb, sens*Math.pow(f/1000, p));
         return Math.max(0, -20*Math.log10(Math.max(resid, 1e-3)));
       }
+      // Stationarity ceiling: modelRedDb assumes a steady, coherent source. A real
+      // adaptive canceller can only knock down what it can predict, so non-stationary
+      // sources cap the achievable reduction regardless of geometry/mic count:
+      //   • café  — broadband but quasi-stationary → no extra cap
+      //   • baby  — sweeps in pitch with rapid transients → little coherent gain to grab
+      //   • click — impulsive/causality-limited → essentially uncancellable
+      //   • tone  — fully predictable, capped separately by toneCapDb
+      function noiseCapDb(){
+        switch(state.noiseType){
+          case 'baby':  return state.calibrated ? 3.0 : 2.0;
+          case 'click': return state.calibrated ? 2.0 : 1.0;
+          default:      return Infinity;
+        }
+      }
       function compute(){
         const tone = state.noiseType==='tone' ? toneCapDb(state.toneFreq) : Infinity;   // cap reduction by tone freq
-        meanRedDb  = state.ancOn ? Math.min(modelRedDb(srcPos(state.theta, state.dist)), tone) : 0;    // left ear
-        meanRedDbR = state.ancOn ? Math.min(modelRedDb(srcPos(-state.theta, state.dist)), tone) : 0;   // right ear = left at mirrored angle
+        const cap = Math.min(tone, noiseCapDb());   // and by source stationarity (baby/click)
+        meanRedDb  = state.ancOn ? Math.min(modelRedDb(srcPos(state.theta, state.dist)), cap) : 0;    // left ear
+        meanRedDbR = state.ancOn ? Math.min(modelRedDb(srcPos(-state.theta, state.dist)), cap) : 0;   // right ear = left at mirrored angle
         // the LIVE displayed value = model baseline (tracks mics/angle/distance/latency) + the
         // measured frame-to-frame wiggle, so it both responds to every control and keeps ticking.
         const jit = measureLiveRedDb();
@@ -778,9 +793,10 @@
       // plot has a sensible starting shape; live history (recordPolar) owns every visited bin.
       function computePolar(){
         const tone = state.noiseType==='tone' ? toneCapDb(state.toneFreq) : Infinity;   // tone-freq ceiling
+        const cap = Math.min(tone, noiseCapDb());   // and by source stationarity (baby/click)
         for(let i=0;i<NA_POL;i++){ if(polarSeen[i]) continue; const ang=i/NA_POL*360;
-          polarL[i]=Math.min(modelRedDb(srcPos( ang, state.dist)), tone);   // left ear at this source angle
-          polarR[i]=Math.min(modelRedDb(srcPos(-ang, state.dist)), tone);   // right ear = mirrored angle
+          polarL[i]=Math.min(modelRedDb(srcPos( ang, state.dist)), cap);   // left ear at this source angle
+          polarR[i]=Math.min(modelRedDb(srcPos(-ang, state.dist)), cap);   // right ear = mirrored angle
         }
         polarMax=20;   // fixed 20 dB full-scale
       }
@@ -1458,7 +1474,8 @@
           state.noiseType=btn.dataset.noise;
           $('toneRow').style.display = state.noiseType==='tone' ? '' : 'none';
           applyNoiseType();
-          polarDirty=true; renderStatic();   // tone mode caps the curve/readout by frequency
+          polarSeen.fill(0); lastPolarBin=-1;   // re-seed the whole curve from the new source's cap
+          polarDirty=true; renderStatic();   // tone/baby/click cap the curve & readout
           micRefresh=8;   // noise source changed -> refresh mic snapshot
         });
       });
