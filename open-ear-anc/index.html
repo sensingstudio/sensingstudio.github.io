@@ -1060,16 +1060,27 @@
       function sgDrawAxes(W2,H2){
         const la=Math.log10(FA), lb=Math.log10(FB);
         // frequency gridlines + labels
-        gctx.font='600 12px Roboto, sans-serif'; gctx.textAlign='left'; gctx.textBaseline='middle';
+        gctx.font='700 15px Roboto, sans-serif'; gctx.textAlign='left'; gctx.textBaseline='middle';
         [100,300,1000,3000].forEach(ft=>{ if(ft<FA||ft>FB) return;
           const y=(lb-Math.log10(ft))/(lb-la)*H2;                // top = FB, bottom = FA
-          const lbl=ft>=1000?(ft/1000)+'k':ft+'';
-          gctx.strokeStyle='rgba(255,255,255,0.07)'; gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W2,y); gctx.stroke();
-          gctx.fillStyle='rgba(255,255,255,0.5)'; gctx.fillText(lbl, 4, Math.max(9,Math.min(H2-9,y)));
+          const lbl=ft>=1000?(ft/1000)+' kHz':ft+' Hz';
+          gctx.strokeStyle='rgba(255,255,255,0.10)'; gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W2,y); gctx.stroke();
+          const ly=Math.max(11,Math.min(H2-11,y)), tw=gctx.measureText(lbl).width;
+          gctx.fillStyle='rgba(12,12,14,0.78)'; gctx.fillRect(2, ly-9, tw+8, 18);   // dark backing chip for legibility
+          gctx.fillStyle='rgba(255,255,255,0.95)'; gctx.fillText(lbl, 6, ly);
         });
-        // time direction hint
-        gctx.fillStyle='rgba(255,255,255,0.4)'; gctx.font='11px Roboto, sans-serif'; gctx.textAlign='right'; gctx.textBaseline='bottom';
-        gctx.fillText('now →', W2-6, H2-4);
+        // time axis along the bottom: right edge = now, scrolling left = older. Scroll is SG_SH
+        // px/frame at ~60fps → SG_SH*60 px/s, so each tick marks how many seconds ago that column is.
+        const pxPerSec=SG_SH*60;
+        gctx.font='700 15px Roboto, sans-serif'; gctx.textBaseline='bottom';
+        for(let sec=0; sec*pxPerSec<=W2; sec+=2){
+          const x=W2-sec*pxPerSec, lbl=sec===0?'now':'-'+sec+'s';
+          gctx.strokeStyle='rgba(255,255,255,0.10)'; gctx.beginPath(); gctx.moveTo(x,0); gctx.lineTo(x,H2); gctx.stroke();
+          gctx.textAlign = sec===0?'right':'center';
+          const tw=gctx.measureText(lbl).width, lx=sec===0?x-3:x;
+          gctx.fillStyle='rgba(12,12,14,0.78)'; gctx.fillRect(lx-(sec===0?tw:tw/2)-4, H2-22, tw+8, 20);
+          gctx.fillStyle='rgba(255,255,255,0.95)'; gctx.fillText(lbl, lx, H2-4);
+        }
         gctx.textAlign='center'; gctx.textBaseline='alphabetic';
       }
 
