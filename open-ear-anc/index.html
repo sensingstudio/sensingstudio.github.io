@@ -109,7 +109,10 @@
       .tools.grid2 { display: grid; grid-template-columns: 1fr 1fr; flex-wrap: nowrap; }
       .tools.grid2 .tool-btn { border-right: 1px solid var(--grey-line); border-bottom: 1px solid var(--grey-line); text-align: center; }
       .tools.grid2 .tool-btn:nth-child(2n) { border-right: none; }
-      .tools.grid2 .tool-btn:nth-child(n+3) { border-bottom: none; }
+      .tools.grid2 .tool-btn:last-child { border-bottom: none; }
+      /* even count: the bottom row is the last TWO buttons (only when there's no full-width odd one) */
+      .tools.grid2:not(:has(.span2)) .tool-btn:nth-last-child(2) { border-bottom: none; }
+      .tools.grid2 .tool-btn.span2 { grid-column: 1 / -1; border-right: none; }   /* odd one out → full width */
       button.act {
         font-family: inherit; font-weight: 700; font-size: 12px; letter-spacing: 0.6px;
         text-transform: uppercase; padding: 9px 16px; border: 1px solid var(--black);
@@ -253,6 +256,10 @@
                 <button class="tool-btn" data-noise="baby">Baby crying</button>
                 <button class="tool-btn" data-noise="tone">Tone</button>
                 <button class="tool-btn" data-noise="click">Click</button>
+                <button class="tool-btn" data-noise="fan">Fan</button>
+                <button class="tool-btn" data-noise="vacuum">Vacuum</button>
+                <button class="tool-btn" data-noise="chatter">Chatter</button>
+                <button class="tool-btn" data-noise="speech">Speech</button>
               </div>
             </div>
             <div class="crow">
@@ -542,9 +549,11 @@
       //   • tone  — fully predictable, capped separately by toneCapDb
       function noiseCapDb(){
         switch(state.noiseType){
-          case 'baby':  return state.calibrated ? 3.0 : 2.0;
-          case 'click': return state.calibrated ? 2.0 : 1.0;
-          default:      return Infinity;
+          case 'baby':    return state.calibrated ? 3.0 : 2.0;
+          case 'click':   return state.calibrated ? 2.0 : 1.0;
+          case 'chatter': return state.calibrated ? 4.5 : 3.5;   // non-stationary multi-talker babble
+          case 'speech':  return state.calibrated ? 4.0 : 3.0;   // non-stationary single-talker speech
+          default:        return Infinity;
         }
       }
       function compute(){
@@ -711,8 +720,9 @@
         sctx.fillStyle='rgba(255,255,255,0.92)'; sctx.font='700 16px Roboto, sans-serif'; sctx.textAlign='center';
         sctx.fillText('noise', sx, sy-19);
 
-        // attract cue: pulsing rings + "drag me" on both sources until the user grabs one
-        if(state.attract){
+        // attract cue: pulsing rings + "drag me" on both sources until the user grabs one.
+        // Only while the demo is playing — no blipping on a stopped/idle scene.
+        if(state.attract && audioPlaying){
           const ph=(animTime%1500)/1500;          // 0..1 expanding ring
           sctx.lineWidth=2.5;
           [[sx,sy,'#e5484d'],[gx,gy,'#2a8b2a']].forEach(([x,y,col])=>{
@@ -764,6 +774,10 @@
       let polarL=new Float32Array(NA_POL), polarR=new Float32Array(NA_POL), polarMax=20, polarDirty=true;
       const polarSeen=new Uint8Array(NA_POL);    // 1 once the source has visited (live-logged) a bin
       let lastPolarBin=-1, lastRedL=0, lastRedR=0;   // for gap-filling the trace across jumps
+      // Wipe the live history trace and re-seed from the model. Call whenever a NOISE or ANC-system
+      // characteristic changes (type/distance/mics/algo/latency/tone) — the old directivity curve is
+      // then stale. (Dragging/orbit only sweep the angle, so they keep accumulating, not reset.)
+      function resetPolarTrace(){ polarSeen.fill(0); lastPolarBin=-1; polarDirty=true; }
       const EAR_AZ=Math.atan2(EAR0[0],EAR0[1]);    // azimuth of the (left) target ear, ~270°
       // ===== SINGLE SOURCE OF TRUTH for displayed reduction (readout + polar) =====
       // Per-frequency residual = k · (geometry reconstruction error) · (latency comb) · (head shadow).
@@ -1093,7 +1107,7 @@
           btn.classList.add('active');
           state.nMics=parseInt(btn.dataset.mics,10);
           W=fitWeights(state.nMics);
-          polarDirty=true;
+          resetPolarTrace();   // mic count changes the reduction → erase stale trace
           renderStatic();
           micRefresh=8;   // active-mic set changed -> refresh snapshot
         });
@@ -1104,6 +1118,7 @@
           btn.classList.add('active');
           state.algo=btn.dataset.algo;
           setAlgo();
+          resetPolarTrace();   // different canceller → erase stale trace
           renderStatic();
         });
       });
@@ -1111,7 +1126,7 @@
       function frame(ts){
         animTime = ts||0;
         if(state.orbit && state.orbitSpeed>0){ state.theta=(state.theta+state.orbitSpeed*0.6); if(state.theta>180) state.theta-=360; micRefresh=8; }   // orbit moves the noise -> keep snapshot live
-        if(state.orbit || audioPlaying || state.attract) renderStatic();
+        if(state.orbit || audioPlaying) renderStatic();   // attract pulse only animates while playing
         if(!frozen.fft) drawLiveFFT();
         if(!frozen.ear) drawEarscope();
         if(!frozen.mic && (audioPlaying || micRefresh>0) && (animTime-lastMicDraw >= 1000/MIC_FPS)){ drawMicScope(); lastMicDraw=animTime; if(micRefresh>0) micRefresh--; }   // live while playing (throttled); otherwise a snapshot that refreshes after the source moves
@@ -1126,7 +1141,7 @@
       let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
       let speechRate=1, speechNode=null, tempoWorkletOK=false;   // tempo factor + live time-stretch node
-      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, babyNodes=[], babyBuf=null, babyBytes=null, clickBuf=null, clickSrc=null;
+      let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, babyNodes=[], babyBuf=null, babyBytes=null, clickBuf=null, clickSrc=null, fanNodes=[], fanBuf=null, fanBytes=null, vacNodes=[], vacBuf=null, vacBytes=null, chatNodes=[], chatBuf=null, chatBytes=null, spchNodes=[], spchBuf=null, spchBytes=null;
       let audioPlaying=false;
 
       function makeNoiseBuffer(ac){
@@ -1198,6 +1213,10 @@
         speechGain.connect(sigFilter); sigFilter.connect(sigPanner); sigPanner.connect(sigDist); sigDist.connect(master);
         noiseBuf=makeNoiseBuffer(actx);
         ensureBabyBuf();   // decode the baby-crying clip now that we have an AudioContext
+        ensureFanBuf();    // and the fan clip
+        ensureVacBuf();    // and the vacuum clip
+        ensureChatBuf();   // and the chatter clip
+        ensureSpchBuf();   // and the speech clip
         updateAncAudio();
       }
       function applyNoiseType(){
@@ -1206,8 +1225,12 @@
         if(toneOsc){ try{toneOsc.stop();}catch(e){} toneOsc=null; toneGain=null; }
         if(clickSrc){ try{clickSrc.stop();}catch(e){} clickSrc=null; }
         babyNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); babyNodes=[];
-        const isTone = (t==='tone'), isBaby = (t==='baby'), isClick = (t==='click');
-        if(noiseBufGain) noiseBufGain.gain.value = (isTone||isBaby||isClick) ? 0 : 1;   // mute broadband for synth/clip voices
+        fanNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); fanNodes=[];
+        vacNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); vacNodes=[];
+        chatNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); chatNodes=[];
+        spchNodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); spchNodes=[];
+        const isTone = (t==='tone'), isBaby = (t==='baby'), isClick = (t==='click'), isFan = (t==='fan'), isVac = (t==='vacuum'), isChat = (t==='chatter'), isSpch = (t==='speech');
+        if(noiseBufGain) noiseBufGain.gain.value = (isTone||isBaby||isClick||isFan||isVac||isChat||isSpch) ? 0 : 1;   // mute broadband for synth/clip voices
         if(t==='cafe'){ charFilter.type='lowpass'; charFilter.frequency.value=850; charFilter.Q.value=0.7; }
         if(isTone && audioPlaying){
           toneOsc=actx.createOscillator(); toneOsc.type='sine'; toneOsc.frequency.value=parseFloat($('toneFreq').value);
@@ -1222,7 +1245,75 @@
           const g=actx.createGain(); g.gain.value=0.8;
           clickSrc.connect(g); g.connect(noiseSum); clickSrc.start();
         }
+        if(isFan && audioPlaying) startFan();
+        if(isVac && audioPlaying) startVacuum();
+        if(isChat && audioPlaying) startChatter();
+        if(isSpch && audioPlaying) startSpeechNoise();
       }
+      // real single-talker speech recording (looped) used as a NOISE source; non-stationary, caps low
+      function ensureSpchBuf(){
+        if(spchBuf || !spchBytes || !actx) return;
+        const bytes=spchBytes; spchBytes=null;
+        actx.decodeAudioData(bytes.slice(0)).then(b=>{ spchBuf=b;
+          if(state.noiseType==='speech' && audioPlaying){ spchNodes.forEach(n=>{try{n.stop&&n.stop();}catch(e){}}); spchNodes=[]; playSpchBuffer(); }
+        }).catch(()=>{ spchBytes=bytes; });
+      }
+      let spchSrc=null;
+      function playSpchBuffer(){
+        spchSrc=actx.createBufferSource(); spchSrc.buffer=spchBuf; spchSrc.loop=true;
+        const g=actx.createGain(); g.gain.value=1.1;
+        spchSrc.connect(g); g.connect(noiseSum); spchSrc.start();
+        spchNodes=[spchSrc];
+      }
+      function startSpeechNoise(){ ensureSpchBuf(); if(spchBuf) playSpchBuffer(); }
+      // real vacuum recording (looped); steady broadband like the fan, so it cancels well
+      function ensureVacBuf(){
+        if(vacBuf || !vacBytes || !actx) return;
+        const bytes=vacBytes; vacBytes=null;
+        actx.decodeAudioData(bytes.slice(0)).then(b=>{ vacBuf=b;
+          if(state.noiseType==='vacuum' && audioPlaying){ vacNodes.forEach(n=>{try{n.stop&&n.stop();}catch(e){}}); vacNodes=[]; playVacBuffer(); }
+        }).catch(()=>{ vacBytes=bytes; });
+      }
+      let vacSrc=null;
+      function playVacBuffer(){
+        vacSrc=actx.createBufferSource(); vacSrc.buffer=vacBuf; vacSrc.loop=true;
+        const g=actx.createGain(); g.gain.value=1.1;
+        vacSrc.connect(g); g.connect(noiseSum); vacSrc.start();
+        vacNodes=[vacSrc];
+      }
+      function startVacuum(){ ensureVacBuf(); if(vacBuf) playVacBuffer(); }
+      // real chatter/babble recording (looped); non-stationary speech, so it cancels poorly like baby
+      function ensureChatBuf(){
+        if(chatBuf || !chatBytes || !actx) return;
+        const bytes=chatBytes; chatBytes=null;
+        actx.decodeAudioData(bytes.slice(0)).then(b=>{ chatBuf=b;
+          if(state.noiseType==='chatter' && audioPlaying){ chatNodes.forEach(n=>{try{n.stop&&n.stop();}catch(e){}}); chatNodes=[]; playChatBuffer(); }
+        }).catch(()=>{ chatBytes=bytes; });
+      }
+      let chatSrc=null;
+      function playChatBuffer(){
+        chatSrc=actx.createBufferSource(); chatSrc.buffer=chatBuf; chatSrc.loop=true;
+        const g=actx.createGain(); g.gain.value=1.1;
+        chatSrc.connect(g); g.connect(noiseSum); chatSrc.start();
+        chatNodes=[chatSrc];
+      }
+      function startChatter(){ ensureChatBuf(); if(chatBuf) playChatBuffer(); }
+      // real fan recording (looped); stationary broadband so it cancels well, unlike the baby clip
+      function ensureFanBuf(){
+        if(fanBuf || !fanBytes || !actx) return;
+        const bytes=fanBytes; fanBytes=null;
+        actx.decodeAudioData(bytes.slice(0)).then(b=>{ fanBuf=b;
+          if(state.noiseType==='fan' && audioPlaying){ fanNodes.forEach(n=>{try{n.stop&&n.stop();}catch(e){}}); fanNodes=[]; playFanBuffer(); }
+        }).catch(()=>{ fanBytes=bytes; });
+      }
+      let fanSrc=null;
+      function playFanBuffer(){
+        fanSrc=actx.createBufferSource(); fanSrc.buffer=fanBuf; fanSrc.loop=true;
+        const g=actx.createGain(); g.gain.value=1.1;
+        fanSrc.connect(g); g.connect(noiseSum); fanSrc.start();
+        fanNodes=[fanSrc];
+      }
+      function startFan(){ ensureFanBuf(); if(fanBuf) playFanBuffer(); }
       // band-limited click train: periodic impulses whose energy spans 100–1000 Hz all at once.
       // Each click is the ideal 100–1000 Hz band-pass impulse (difference of sincs), Hann-windowed.
       function makeClickBuffer(ac){
@@ -1352,8 +1443,8 @@
         startSpeech();
       }
       function stopSources(){
-        [noiseSrc,toneOsc,clickSrc,...babyNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
-        noiseSrc=toneOsc=clickSrc=null; babyNodes=[];
+        [noiseSrc,toneOsc,clickSrc,...babyNodes,...fanNodes,...vacNodes,...chatNodes,...spchNodes].forEach(n=>{ try{ n&&n.stop(); }catch(e){} });
+        noiseSrc=toneOsc=clickSrc=null; babyNodes=[]; fanNodes=[]; vacNodes=[]; chatNodes=[]; spchNodes=[];
         toneGain=null;
         stopSpeechNode();
       }
@@ -1363,6 +1454,10 @@
         defaultClipBytes=b;
       }).catch(()=>{});
       fetch('baby-crying.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ babyBytes=b; ensureBabyBuf(); }).catch(()=>{});
+      fetch('fan.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ fanBytes=b; ensureFanBuf(); }).catch(()=>{});
+      fetch('vacuum.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ vacBytes=b; ensureVacBuf(); }).catch(()=>{});
+      fetch('chatter.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ chatBytes=b; ensureChatBuf(); }).catch(()=>{});
+      fetch('speech.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{ spchBytes=b; ensureSpchBuf(); }).catch(()=>{});
       function loadDefaultClip(){
         if(!defaultClipBytes || speechBuf) return;
         actx.decodeAudioData(defaultClipBytes.slice(0)).then(buf=>{ swapSpeechBuffer(buf); }).catch(()=>{});
@@ -1433,7 +1528,7 @@
       $('latencyMs').addEventListener('input', ()=>{
         state.latencyMs=parseFloat($('latencyMs').value);
         $('latencyVal').textContent = Math.round(state.latencyMs*1000)+' µs';
-        polarDirty=true;
+        resetPolarTrace();   // latency changes the reduction → erase stale trace
         renderStatic();
       });
       $('noiseVol').addEventListener('input', ()=>{ if(noiseSum) noiseSum.gain.value=parseFloat($('noiseVol').value); micRefresh=8; });
@@ -1465,7 +1560,7 @@
       function snapDist(d){ return DIST_OPTS.reduce((a,b)=>Math.abs(b-d)<Math.abs(a-d)?b:a); }
       function syncDistBtns(){ document.querySelectorAll('[data-dist]').forEach(b=>b.classList.toggle('active', parseFloat(b.dataset.dist)===state.dist)); }
       document.querySelectorAll('[data-dist]').forEach(btn=>{
-        btn.addEventListener('click', ()=>{ state.dist=parseFloat(btn.dataset.dist); syncDistBtns(); polarDirty=true; renderStatic(); });
+        btn.addEventListener('click', ()=>{ state.dist=parseFloat(btn.dataset.dist); syncDistBtns(); resetPolarTrace(); renderStatic(); });
       });
       document.querySelectorAll('[data-noise]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
@@ -1474,8 +1569,8 @@
           state.noiseType=btn.dataset.noise;
           $('toneRow').style.display = state.noiseType==='tone' ? '' : 'none';
           applyNoiseType();
-          polarSeen.fill(0); lastPolarBin=-1;   // re-seed the whole curve from the new source's cap
-          polarDirty=true; renderStatic();   // tone/baby/click cap the curve & readout
+          resetPolarTrace();   // re-seed the whole curve from the new source's cap
+          renderStatic();   // tone/baby/click/chatter cap the curve & readout
           micRefresh=8;   // noise source changed -> refresh mic snapshot
         });
       });
@@ -1483,7 +1578,7 @@
         state.toneFreq=parseFloat($('toneFreq').value);
         $('toneFreqVal').textContent = state.toneFreq+' Hz';
         if(toneOsc) toneOsc.frequency.setTargetAtTime(state.toneFreq, actx.currentTime, 0.01);
-        polarDirty=true; renderStatic();   // higher tone → worse cancellation (readout + polar)
+        resetPolarTrace(); renderStatic();   // higher tone → worse cancellation (readout + polar)
         micRefresh=8;   // tone pitch changed -> refresh mic snapshot
       });
       // ===== hook for the real-time engine's "Simulation" input source =====
