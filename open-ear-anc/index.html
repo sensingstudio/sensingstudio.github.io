@@ -338,6 +338,21 @@
             </div>
           </div>
 
+          <div class="card2 nopad" id="sttCard">
+            <div class="vhead">
+              <span>Live speech-to-text (Whisper tiny.en, in-browser)</span>
+              <button id="sttBtn" class="pausebtn" style="margin-left:auto;">Start transcription</button>
+            </div>
+            <div style="padding:14px 16px;">
+              <div id="sttStatus" class="note" style="margin:0 0 12px;">Press Play and transcription starts automatically: a small Whisper model (~75&nbsp;MB, downloaded once) transcribes the at-the-ear signal live. Toggle ANC on/off and watch how many words it can recover.</div>
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span class="note" style="margin:0;">Latest window</span>
+                <span id="sttAncBadge"></span>
+              </div>
+              <div id="sttCurrent" style="min-height:48px; font-size:20px; line-height:1.45; color:var(--black); font-weight:600;"></div>
+            </div>
+          </div>
+
           <div class="card2 nopad">
             <div class="vhead">
               <span>Live spectrum (left ear)</span>
@@ -1260,6 +1275,7 @@
       let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancSenseLP=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
       let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
+      let sttTap=null, sttRing=null, sttRingLen=0, sttWrite=0;   // rolling capture of the at-the-ear signal for live STT
       let speechRate=1, speechNode=null, tempoWorkletOK=false;   // tempo factor + live time-stretch node
       let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, babyNodes=[], babyBuf=null, babyBytes=null, clickBuf=null, clickSrc=null, fanNodes=[], fanBuf=null, fanBytes=null, vacNodes=[], vacBuf=null, vacBytes=null, chatNodes=[], chatBuf=null, chatBytes=null, spchNodes=[], spchBuf=null, spchBytes=null, washNodes=[], washBuf=null, washBytes=null, carNodes=[], carBuf=null, carBytes=null;
       let audioPlaying=false;
@@ -1326,6 +1342,27 @@
         // visuals: incoming (red) = music + full noise ; at-the-ear (gold) = music + cancelled noise
         noiseSum.connect(rawMix); speechGain.connect(rawMix); rawMix.connect(rawAnalyser);
         ancOut.connect(procMix); speechGain.connect(procMix); procMix.connect(procAnalyser);
+        // live STT tap: a rolling ring buffer of the resultant at-the-ear signal (procMix =
+        // cancelled noise + music), exposed to the in-browser Whisper module below. The sink
+        // gain is 0 so the tap is pulled by the graph without being heard twice.
+        const STT_SECONDS = 8;
+        sttRingLen = Math.ceil(actx.sampleRate * STT_SECONDS);
+        sttRing = new Float32Array(sttRingLen); sttWrite = 0;
+        sttTap = actx.createScriptProcessor(4096, 1, 1);
+        sttTap.onaudioprocess = (e)=>{
+          const inp = e.inputBuffer.getChannelData(0);
+          for(let i=0;i<inp.length;i++){ sttRing[sttWrite]=inp[i]; sttWrite=(sttWrite+1)%sttRingLen; }
+        };
+        const sttSink=actx.createGain(); sttSink.gain.value=0;
+        procMix.connect(sttTap); sttTap.connect(sttSink); sttSink.connect(actx.destination);
+        window.__sttSampleRate = actx.sampleRate;
+        window.__sttGetWindow = (sec)=>{
+          const n=Math.min(sttRingLen, Math.floor(actx.sampleRate*sec));
+          const out=new Float32Array(n);
+          let r=(sttWrite-n+sttRingLen)%sttRingLen;
+          for(let i=0;i<n;i++){ out[i]=sttRing[r]; r=(r+1)%sttRingLen; }
+          return out;
+        };
         // audio output: each source gets pan + distance loudness + behind-muffle
         noiseFilter=actx.createBiquadFilter(); noiseFilter.type='lowpass'; noiseFilter.frequency.value=17000; noiseDist=actx.createGain();
         sigFilter=actx.createBiquadFilter();   sigFilter.type='lowpass';   sigFilter.frequency.value=17000;   sigDist=actx.createGain();
@@ -1763,10 +1800,123 @@
         }
       };
 
+      // status hook for the live STT module (below): is audio playing, and is ANC engaged?
+      window.__ancStatus = ()=>({ playing: audioPlaying, ancOn: state.ancOn, noiseType: state.noiseType });
+
       // ===================== init =====================
       renderStatic();
       requestAnimationFrame(frame);
 
+    </script>
+
+    <!-- ===================== live in-browser speech-to-text ===================== -->
+    <!-- Lazily loads Whisper (transformers.js) on first click so the page stays fast, then
+         transcribes a rolling window of the at-the-ear signal captured above. -->
+    <script type="module">
+      (function(){
+        const $ = id=>document.getElementById(id);
+        const WINDOW_S = 5;                 // seconds of audio per transcription pass
+        let transcriber=null, running=false, busy=false, loop=null;
+
+        const setStatus = t => { $('sttStatus').innerHTML = t; };
+
+        // linear resample to Whisper's expected 16 kHz mono
+        function resampleTo16k(input, srIn){
+          const srOut=16000;
+          if(srIn===srOut) return input;
+          const ratio=srIn/srOut, n=Math.floor(input.length/ratio), out=new Float32Array(n);
+          for(let i=0;i<n;i++){
+            const pos=i*ratio, i0=Math.floor(pos), frac=pos-i0;
+            const a=input[i0]||0, b=(i0+1<input.length)?input[i0+1]:a;
+            out[i]=a+(b-a)*frac;
+          }
+          return out;
+        }
+        function normalize(buf){
+          let peak=1e-6; for(let i=0;i<buf.length;i++){ const a=Math.abs(buf[i]); if(a>peak) peak=a; }
+          if(peak<2e-4) return buf;          // essentially silent — leave as-is
+          const g=0.95/peak, out=new Float32Array(buf.length);
+          for(let i=0;i<buf.length;i++) out[i]=buf[i]*g;
+          return out;
+        }
+        function ancBadge(on){
+          return on
+            ? '<span style="color:#06281a;background:#2ECC71;border-radius:5px;padding:2px 8px;font-weight:700;font-size:12px;">ANC ON</span>'
+            : '<span style="color:#fff;background:var(--anc-off,#e5484d);border-radius:5px;padding:2px 8px;font-weight:700;font-size:12px;">ANC OFF</span>';
+        }
+
+        async function loadModel(){
+          setStatus('Loading Whisper tiny.en&nbsp;… first run downloads ~75&nbsp;MB (then cached by the browser).');
+          const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.2');
+          env.allowLocalModels = false;
+          let device='wasm';
+          try { if(navigator.gpu && await navigator.gpu.requestAdapter()) device='webgpu'; } catch(e){}
+          const opts = { device, progress_callback: p=>{
+            if(p && p.status==='progress' && typeof p.progress==='number')
+              setStatus('Downloading model&nbsp;… '+Math.round(p.progress)+'%');
+          }};
+          try {
+            transcriber = await pipeline('automatic-speech-recognition','Xenova/whisper-tiny.en', opts);
+          } catch(e){
+            if(device!=='wasm'){ setStatus('WebGPU unavailable — falling back to WASM&nbsp;…');
+              transcriber = await pipeline('automatic-speech-recognition','Xenova/whisper-tiny.en', {device:'wasm'}); device='wasm'; }
+            else throw e;
+          }
+          setStatus('Ready ('+device+'). Listening to the at-the-ear signal — toggle ANC to compare.');
+        }
+
+        function render(text, ancOn){
+          $('sttAncBadge').innerHTML = ancBadge(ancOn);
+          $('sttCurrent').innerHTML = text
+            ? text.replace(/</g,'&lt;')
+            : '<span class="note" style="margin:0;">(no intelligible speech recovered)</span>';
+        }
+
+        async function tick(){
+          if(!running) return;
+          try {
+            const st = window.__ancStatus ? window.__ancStatus() : null;
+            if(st && st.playing && window.__sttGetWindow && !busy){
+              busy=true;
+              const ancOn=st.ancOn, sr=window.__sttSampleRate||48000;
+              const audio=normalize(resampleTo16k(window.__sttGetWindow(WINDOW_S), sr));
+              const res=await transcriber(audio);
+              render((res && res.text || '').trim(), ancOn);
+              busy=false;
+            }
+          } catch(e){ console.warn('STT pass failed', e); busy=false; }
+          loop=setTimeout(tick, 400);
+        }
+
+        function stop(){
+          running=false; if(loop) clearTimeout(loop);
+          $('sttBtn').textContent='Start transcription'; setStatus('Stopped. Click to resume.');
+        }
+        async function start(){
+          if(running) return;
+          const btn=$('sttBtn'); btn.disabled=true; btn.textContent='Loading…';
+          try {
+            if(!transcriber) await loadModel();
+            running=true; btn.textContent='Stop transcription'; btn.disabled=false;
+            tick();
+          } catch(e){
+            console.error(e);
+            setStatus('Could not load the model: '+((e&&e.message)||e));
+            btn.textContent='Start transcription'; btn.disabled=false;
+          }
+        }
+        $('sttBtn').addEventListener('click', ()=>{ running ? stop() : start(); });
+
+        // Transcription is on by default: auto-start the first time the demo is played
+        // (defers the ~75 MB model download until the user actually engages the demo).
+        let autoStarted=false;
+        const playBtn=$('playBtn');
+        if(playBtn) playBtn.addEventListener('click', ()=>{
+          if(autoStarted) return;
+          autoStarted=true;
+          start();
+        });
+      })();
     </script>
   </body>
 </html>
