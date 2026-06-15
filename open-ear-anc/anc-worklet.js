@@ -8,6 +8,10 @@
  * delayed by its distance + independent sensor noise), an NLMS FIR per mic reconstructs the
  * ear sound, and the residual ear − (anti-noise applied late by the processing latency) is
  * the output. Scene/parameter changes arrive via port messages.
+ *
+ * IMPORTANT: process() must allocate NOTHING (it runs ~375×/s on the audio thread; any
+ * garbage triggers GC pauses that crackle/distort the output). All geometry is recomputed
+ * only when parameters change, into preallocated buffers.
  */
 
 const C = 343;                                   // speed of sound (m/s)
@@ -22,8 +26,6 @@ const _byDist = (ear) => (a, b) =>
   Math.hypot(MICS[a][0] - ear[0], MICS[a][1] - ear[1]) - Math.hypot(MICS[b][0] - ear[0], MICS[b][1] - ear[1]);
 const LEFT_MICS = MICS.map((m, i) => i).filter(i => MICS[i][0] < 0).sort(_byDist(EAR0));
 const RIGHT_MICS = MICS.map((m, i) => i).filter(i => MICS[i][0] > 0).sort(_byDist(EAR_R));
-const selectedMics = (perSide) => [...LEFT_MICS.slice(0, perSide), ...RIGHT_MICS.slice(0, perSide)];
-const srcPos = (thetaDeg, d) => { const th = thetaDeg * Math.PI / 180; return [d * Math.sin(th), d * Math.cos(th)]; };
 
 class AdaptiveAncProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -38,7 +40,37 @@ class AdaptiveAncProcessor extends AudioWorkletProcessor {
     // scene/params, updated from the main thread
     this.algo = 'adaptive'; this.ancOn = false; this.latencyMs = 0.1;
     this.theta = 40; this.dist = 1.5; this.nMics = 4;
-    this.port.onmessage = (e) => { Object.assign(this, e.data); };
+    // preallocated geometry caches (filled by updateGeom on parameter change — never in process)
+    this.idx = new Int32Array(this.NMAX);
+    this.di0 = new Int32Array(this.NMAX);
+    this.dif = new Float32Array(this.NMAX);
+    this.N = 0; this.tg0 = 0; this.tgf = 0; this.latSamp = 5;
+    this.updateGeom();
+    this.port.onmessage = (e) => { Object.assign(this, e.data); this.updateGeom(); };
+  }
+
+  // Recompute mic/ear delays for the current scene — called only on parameter change.
+  updateGeom() {
+    const SR = sampleRate, perSide = this.nMics;
+    const th = this.theta * Math.PI / 180, Px = this.dist * Math.sin(th), Py = this.dist * Math.cos(th);
+    this.latSamp = Math.min(this.Mx - 1, Math.round(Math.max(0, this.latencyMs * 1e-3) * SR));
+    // active mic indices (left then right, nearest-ear first)
+    let N = 0;
+    for (let s = 0; s < perSide && s < LEFT_MICS.length; s++) this.idx[N++] = LEFT_MICS[s];
+    for (let s = 0; s < perSide && s < RIGHT_MICS.length; s++) this.idx[N++] = RIGHT_MICS[s];
+    this.N = N;
+    const dEar = Math.hypot(EAR0[0] - Px, EAR0[1] - Py);
+    let dmin = dEar;
+    for (let i = 0; i < N; i++) { const m = MICS[this.idx[i]]; const d = Math.hypot(m[0] - Px, m[1] - Py); if (d < dmin) dmin = d; }
+    const dE = (dEar - dmin) / C * SR;
+    let mld = 0;
+    for (let i = 0; i < N; i++) {
+      const m = MICS[this.idx[i]]; const d = (Math.hypot(m[0] - Px, m[1] - Py) - dmin) / C * SR;
+      this.di0[i] = d | 0; this.dif[i] = d - (d | 0);
+      const rel = d - dE; if (rel > mld) mld = rel;
+    }
+    const tgt = dE + mld; this.tg0 = tgt | 0; this.tgf = tgt - this.tg0;
+    if (N !== this.curN) { this.w.fill(0); this.curN = N; }   // active-mic set changed → reset filters
   }
 
   process(inputs, outputs) {
@@ -47,37 +79,32 @@ class AdaptiveAncProcessor extends AudioWorkletProcessor {
     const inp = inputs[0] && inputs[0][0];
     if (!inp || this.algo !== 'adaptive') { out.fill(0); return true; }
 
-    const SR = sampleRate, en = this.ancOn ? 1 : 0, Nn = out.length;
+    const en = this.ancOn ? 1 : 0, Nn = out.length;
     const T = this.T, Mx = this.Mx, Mm = this.Mm, w = this.w, xbuf = this.xbuf, mbuf = this.mbuf, Yh = this.Yh;
     const MU = this.MU, LEAK = this.LEAK, SIG = this.SIG;
-    const latSamp = Math.min(Mx - 1, Math.round(Math.max(0, this.latencyMs * 1e-3) * SR));
-    // geometry: per-active-mic delay + the ear delay (relative to nearest receiver)
-    const P = srcPos(this.theta, this.dist), idx = selectedMics(this.nMics), N = idx.length;
-    const ds = idx.map(mi => Math.hypot(MICS[mi][0] - P[0], MICS[mi][1] - P[1]));
-    const dEar = Math.hypot(EAR0[0] - P[0], EAR0[1] - P[1]);
-    const dmin = Math.min(dEar, ...ds);
-    const di = ds.map(d => (d - dmin) / C * SR);
-    let dE = (dEar - dmin) / C * SR, mld = 0; for (const d of di) mld = Math.max(mld, d - dE);
-    const tgt = dE + mld;
-    const di0 = di.map(d => d | 0), dif = di.map((d, i) => d - di0[i]);
-    const tg0 = tgt | 0, tgf = tgt - tg0;
-    if (N !== this.curN) { w.fill(0); this.curN = N; }   // active-mic set changed → reset filters
-    const readX = (d0, df) => { const a = xbuf[(this.xpos - d0 + Mx) % Mx], b = xbuf[(this.xpos - d0 - 1 + Mx) % Mx]; return a + (b - a) * df; };
-
+    const N = this.N, di0 = this.di0, dif = this.dif, tg0 = this.tg0, tgf = this.tgf, latSamp = this.latSamp;
     let xpos = this.xpos, mpos = this.mpos, ypos = this.ypos;
+
     for (let n = 0; n < Nn; n++) {
-      const x = inp[n]; xbuf[xpos] = x;
-      for (let i = 0; i < N; i++) mbuf[i * Mm + mpos] = readX(di0[i], dif[i]) + SIG * (Math.random() * 2 - 1);
-      const ear = readX(tg0, tgf);
+      xbuf[xpos] = inp[n];
+      // what each active mic hears = fractionally-delayed source + its own sensor noise
+      for (let i = 0; i < N; i++) {
+        const d0 = di0[i], df = dif[i];
+        const a = xbuf[(xpos - d0 + Mx) % Mx], b = xbuf[(xpos - d0 - 1 + Mx) % Mx];
+        mbuf[i * Mm + mpos] = a + (b - a) * df + SIG * (Math.random() * 2 - 1);
+      }
+      // true ear sound (adaptation target)
+      const ea = xbuf[(xpos - tg0 + Mx) % Mx], eb = xbuf[(xpos - tg0 - 1 + Mx) % Mx];
+      const ear = ea + (eb - ea) * tgf;
       let yhat = 0, energy = 1e-6;
       for (let i = 0; i < N; i++) { const b = i * Mm;
         for (let k = 0; k < T; k++) { const mv = mbuf[b + ((mpos - k + Mm) % Mm)]; yhat += w[i * T + k] * mv; energy += mv * mv; } }
       Yh[ypos] = yhat;
-      const yDel = en ? Yh[(ypos - latSamp + Mx) % Mx] : 0;
+      const yDel = en ? Yh[(ypos - latSamp + Mx) % Mx] : 0;   // anti-noise reaches the ear late by the latency
       const e = en ? (ear - yDel) : ear;
-      out[n] = Math.max(-2, Math.min(2, e));
+      out[n] = e < -2 ? -2 : (e > 2 ? 2 : e);
       if (en) {
-        const step = MU * (ear - yhat) / energy;
+        const step = MU * (ear - yhat) / energy;             // adapt on the un-delayed prediction error
         for (let i = 0; i < N; i++) { const b = i * Mm;
           for (let k = 0; k < T; k++) { const j = b + ((mpos - k + Mm) % Mm); w[i * T + k] = w[i * T + k] * (1 - LEAK) + step * mbuf[j]; } }
       }
