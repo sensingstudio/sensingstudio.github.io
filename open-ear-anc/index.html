@@ -348,14 +348,11 @@
           <div class="card2 nopad" id="sttCard">
             <div class="vhead">
               <span>Live speech-to-text (Whisper tiny.en, in-browser)</span>
-              <button id="sttBtn" class="pausebtn" style="margin-left:auto;">Start transcription</button>
+              <span id="sttAncBadge" style="margin-left:auto;"></span>
+              <button id="sttBtn" class="pausebtn" style="margin-left:12px;">Start transcription</button>
             </div>
             <div style="padding:14px 16px;">
               <div id="sttStatus" class="note" style="margin:0 0 12px;">Press Play and transcription starts automatically: a small Whisper model (~75&nbsp;MB, downloaded once) transcribes the at-the-ear signal live. Toggle ANC on/off and watch how many words it can recover.</div>
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
-                <span class="note" style="margin:0;">Latest window</span>
-                <span id="sttAncBadge"></span>
-              </div>
               <div id="sttCurrent" style="min-height:48px; font-size:20px; line-height:1.45; color:var(--black); font-weight:600;"></div>
             </div>
           </div>
@@ -1852,7 +1849,7 @@
         const WINDOW_S = 5;                 // seconds of audio per transcription pass
         let transcriber=null, running=false, busy=false, loop=null;
 
-        const setStatus = t => { $('sttStatus').innerHTML = t; };
+        const setStatus = t => { const el=$('sttStatus'); el.innerHTML=t; el.style.display = t ? '' : 'none'; };
 
         // linear resample to Whisper's expected 16 kHz mono
         function resampleTo16k(input, srIn){
@@ -1896,7 +1893,7 @@
               transcriber = await pipeline('automatic-speech-recognition','Xenova/whisper-tiny.en', {device:'wasm'}); device='wasm'; }
             else throw e;
           }
-          setStatus('Ready ('+device+'). Listening to the at-the-ear signal — toggle ANC to compare.');
+          setStatus('');   // clear the loading text once the model is ready; the transcript speaks for itself
         }
 
         function render(text, ancOn){
