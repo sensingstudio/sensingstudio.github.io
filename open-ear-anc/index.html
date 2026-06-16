@@ -345,34 +345,6 @@
             </div>
           </div>
 
-          <div class="card2 nopad" id="sttCard">
-            <div class="vhead">
-              <span>Live speech-to-text (Whisper small.en, in-browser)</span>
-              <span id="sttAncBadge" style="margin-left:auto;"></span>
-              <button id="sttBtn" class="pausebtn" style="margin-left:12px;">Start transcription</button>
-            </div>
-            <div style="padding:14px 16px;">
-              <div id="sttStatus" class="note" style="margin:0 0 12px;">Press Play and transcription starts automatically: a Whisper model (downloaded once) transcribes the at-the-ear signal live. Toggle ANC on/off and watch how many words it can recover.</div>
-              <div id="stoiWrap" style="display:none; margin:0 0 14px;">
-                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px;">
-                  <span class="note" style="margin:0;">Predicted intelligibility (STOI)</span>
-                  <span id="stoiVal" style="font-weight:700; font-variant-numeric:tabular-nums;">&mdash;</span>
-                </div>
-                <div style="height:10px; border-radius:6px; background:var(--grey-line); overflow:hidden;">
-                  <div id="stoiBar" style="height:100%; width:0%; background:#2ECC71; transition:width 0.25s ease, background 0.25s ease;"></div>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:baseline; margin:10px 0 5px;">
-                  <span class="note" style="margin:0;">Signal quality (SI-SNR)</span>
-                  <span id="sisnrVal" style="font-weight:700; font-variant-numeric:tabular-nums;">&mdash;</span>
-                </div>
-                <div style="height:10px; border-radius:6px; background:var(--grey-line); overflow:hidden;">
-                  <div id="sisnrBar" style="height:100%; width:0%; background:#2ECC71; transition:width 0.25s ease, background 0.25s ease;"></div>
-                </div>
-              </div>
-              <div id="sttCurrent" style="min-height:48px; font-size:20px; line-height:1.45; color:var(--black); font-weight:600;"></div>
-            </div>
-          </div>
-
           <div class="card2 nopad">
             <div class="vhead">
               <span>Live spectrum (left ear)</span>
@@ -1295,7 +1267,6 @@
       let actx=null, master=null, charFilter=null, noiseSum=null, ancDelay=null, ancSenseLP=null, ancInvGain=null, ancOut=null, speechGain=null, noisePanner=null, sigPanner=null, noiseFilter=null, noiseDist=null, sigFilter=null, sigDist=null;
       let combBus=null, modelSel=null, adaptiveSel=null, adaptiveProc=null;
       let rawAnalyser=null, procAnalyser=null, noiseRawAnalyser=null, noiseProcAnalyser=null, nFftRaw=null, nFftProc=null;
-      let sttTap=null, sttRing=null, sttRefRing=null, sttRingLen=0, sttWrite=0;   // rolling capture of the at-the-ear signal (+ clean reference) for live STT / STOI
       let speechRate=1, speechNode=null, tempoWorkletOK=false;   // tempo factor + live time-stretch node
       let noiseBuf=null, noiseSrc=null, noiseBufGain=null, engineOsc=null, engineGain=null, toneOsc=null, toneGain=null, speechBuf=null, babyNodes=[], babyBuf=null, babyBytes=null, clickBuf=null, clickSrc=null, fanNodes=[], fanBuf=null, fanBytes=null, vacNodes=[], vacBuf=null, vacBytes=null, chatNodes=[], chatBuf=null, chatBytes=null, spchNodes=[], spchBuf=null, spchBytes=null, washNodes=[], washBuf=null, washBytes=null, carNodes=[], carBuf=null, carBytes=null;
       let audioPlaying=false;
@@ -1362,36 +1333,6 @@
         // visuals: incoming (red) = music + full noise ; at-the-ear (gold) = music + cancelled noise
         noiseSum.connect(rawMix); speechGain.connect(rawMix); rawMix.connect(rawAnalyser);
         ancOut.connect(procMix); speechGain.connect(procMix); procMix.connect(procAnalyser);
-        // live capture tap: two sample-aligned rolling buffers — the resultant at-the-ear
-        // signal (procMix = cancelled noise + speech) and the clean reference (speechGain,
-        // the protected speech alone). The first feeds Whisper; both feed the STOI meter.
-        // A channel merger keeps them perfectly aligned; the sink gain is 0 so the tap is
-        // pulled by the graph without being heard.
-        const STT_SECONDS = 8;
-        sttRingLen = Math.ceil(actx.sampleRate * STT_SECONDS);
-        sttRing = new Float32Array(sttRingLen);      // degraded (at-the-ear)
-        sttRefRing = new Float32Array(sttRingLen);   // clean reference (speech only)
-        sttWrite = 0;
-        const sttMerger=actx.createChannelMerger(2);
-        procMix.connect(sttMerger, 0, 0);
-        speechGain.connect(sttMerger, 0, 1);
-        sttTap = actx.createScriptProcessor(4096, 2, 1);
-        sttTap.onaudioprocess = (e)=>{
-          const deg = e.inputBuffer.getChannelData(0);
-          const ref = e.inputBuffer.getChannelData(1);
-          for(let i=0;i<deg.length;i++){ sttRing[sttWrite]=deg[i]; sttRefRing[sttWrite]=ref[i]; sttWrite=(sttWrite+1)%sttRingLen; }
-        };
-        const sttSink=actx.createGain(); sttSink.gain.value=0;
-        sttMerger.connect(sttTap); sttTap.connect(sttSink); sttSink.connect(actx.destination);
-        window.__sttSampleRate = actx.sampleRate;
-        // returns {mix, ref}: the degraded at-the-ear signal and the aligned clean reference
-        window.__sttGetWindow = (sec)=>{
-          const n=Math.min(sttRingLen, Math.floor(actx.sampleRate*sec));
-          const mix=new Float32Array(n), ref=new Float32Array(n);
-          let r=(sttWrite-n+sttRingLen)%sttRingLen;
-          for(let i=0;i<n;i++){ mix[i]=sttRing[r]; ref[i]=sttRefRing[r]; r=(r+1)%sttRingLen; }
-          return {mix, ref};
-        };
         // audio output: each source gets pan + distance loudness + behind-muffle
         noiseFilter=actx.createBiquadFilter(); noiseFilter.type='lowpass'; noiseFilter.frequency.value=17000; noiseDist=actx.createGain();
         sigFilter=actx.createBiquadFilter();   sigFilter.type='lowpass';   sigFilter.frequency.value=17000;   sigDist=actx.createGain();
@@ -1856,247 +1797,11 @@
         }
       };
 
-      // status hook for the live STT module (below): is audio playing, and is ANC engaged?
-      window.__ancStatus = ()=>({ playing: audioPlaying, ancOn: state.ancOn, noiseType: state.noiseType });
-
       // ===================== init =====================
       renderStatic();
       requestAnimationFrame(frame);
 
     </script>
 
-    <!-- ===================== live in-browser speech-to-text ===================== -->
-    <!-- Lazily loads Whisper (transformers.js) on first click so the page stays fast, then
-         transcribes a rolling window of the at-the-ear signal captured above. -->
-    <script type="module">
-      (function(){
-        const $ = id=>document.getElementById(id);
-        const WINDOW_S = 5;                 // seconds of audio per transcription pass
-        let transcriber=null, running=false, busy=false, loop=null;
-
-        const setStatus = t => { const el=$('sttStatus'); el.innerHTML=t; el.style.display = t ? '' : 'none'; };
-
-        // linear resample to an arbitrary target rate (16 kHz for Whisper, 10 kHz for STOI)
-        function resample(input, srIn, srOut){
-          if(srIn===srOut) return input;
-          const ratio=srIn/srOut, n=Math.floor(input.length/ratio), out=new Float32Array(n);
-          for(let i=0;i<n;i++){
-            const pos=i*ratio, i0=Math.floor(pos), frac=pos-i0;
-            const a=input[i0]||0, b=(i0+1<input.length)?input[i0+1]:a;
-            out[i]=a+(b-a)*frac;
-          }
-          return out;
-        }
-        const resampleTo16k = (input, srIn)=>resample(input, srIn, 16000);
-        function normalize(buf){
-          let peak=1e-6; for(let i=0;i<buf.length;i++){ const a=Math.abs(buf[i]); if(a>peak) peak=a; }
-          if(peak<2e-4) return buf;          // essentially silent — leave as-is
-          const g=0.95/peak, out=new Float32Array(buf.length);
-          for(let i=0;i<buf.length;i++) out[i]=buf[i]*g;
-          return out;
-        }
-        function ancBadge(on){
-          return on
-            ? '<span style="color:#06281a;background:#2ECC71;border-radius:5px;padding:2px 8px;font-weight:700;font-size:12px;">ANC ON</span>'
-            : '<span style="color:#fff;background:var(--anc-off,#e5484d);border-radius:5px;padding:2px 8px;font-weight:700;font-size:12px;">ANC OFF</span>';
-        }
-
-        // ===================== reference-based quality metrics =====================
-        // Both compare the clean reference (speech alone) to the degraded at-the-ear mix
-        // (speech + residual noise), so they rise as ANC removes noise. Pure DSP — they
-        // run live with no model download.
-
-        // Scale-invariant SNR (dB): project the estimate onto the reference, noise = residual.
-        function siSnr(ref, est){
-          const n=Math.min(ref.length, est.length);
-          let mr=0, me=0; for(let i=0;i<n;i++){ mr+=ref[i]; me+=est[i]; } mr/=n; me/=n;
-          let dot=0, rr=0; for(let i=0;i<n;i++){ const r=ref[i]-mr, e=est[i]-me; dot+=r*e; rr+=r*r; }
-          if(rr<1e-12) return null;
-          const alpha=dot/rr;
-          let st=0, en=0; for(let i=0;i<n;i++){ const r=ref[i]-mr, s=alpha*r, e=(est[i]-me)-s; st+=s*s; en+=e*e; }
-          if(st<1e-12 || en<1e-12) return null;
-          return 10*Math.log10(st/en);
-        }
-
-        // STOI (Taal et al. 2011): one-third-octave envelope correlation at 10 kHz.
-        const ST_FS=10000, ST_NFFT=256, ST_HOP=128, ST_N=30, ST_NB=15, ST_MINF=150, ST_BETA=-15, ST_DYN=40;
-        const stHann=(()=>{ const w=new Float32Array(ST_NFFT); for(let i=0;i<ST_NFFT;i++) w[i]=0.5*(1-Math.cos(2*Math.PI*i/(ST_NFFT-1))); return w; })();
-        const stBands=(()=>{
-          const bins=ST_NFFT/2+1, bands=[];
-          for(let j=0;j<ST_NB;j++){
-            const fl=ST_MINF*Math.pow(2,(j-0.5)/3), fr=ST_MINF*Math.pow(2,(j+0.5)/3), idx=[];
-            for(let b=0;b<bins;b++){ const f=b*ST_FS/ST_NFFT; if(f>=fl && f<fr) idx.push(b); }
-            bands.push(idx);
-          }
-          return bands;
-        })();
-        function fft256(re, im){
-          const n=re.length;
-          for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit; if(i<j){ const tr=re[i];re[i]=re[j];re[j]=tr; const ti=im[i];im[i]=im[j];im[j]=ti; } }
-          for(let len=2;len<=n;len<<=1){
-            const ang=-2*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang);
-            for(let i=0;i<n;i+=len){ let cr=1, ci=0;
-              for(let k=0;k<len>>1;k++){
-                const a=i+k, b=i+k+(len>>1);
-                const vr=re[b]*cr-im[b]*ci, vi=re[b]*ci+im[b]*cr;
-                re[b]=re[a]-vr; im[b]=im[a]-vi; re[a]=re[a]+vr; im[a]=im[a]+vi;
-                const ncr=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=ncr;
-              }
-            }
-          }
-        }
-        function stSpec(x){
-          const F=Math.floor((x.length-ST_NFFT)/ST_HOP)+1;
-          if(F<=0) return null;
-          const re=new Float32Array(ST_NFFT), im=new Float32Array(ST_NFFT);
-          const M=[]; for(let j=0;j<ST_NB;j++) M.push(new Float32Array(F));
-          const eFrame=new Float32Array(F);
-          for(let t=0;t<F;t++){
-            const off=t*ST_HOP; let e=0;
-            for(let i=0;i<ST_NFFT;i++){ const v=x[off+i]*stHann[i]; re[i]=v; im[i]=0; e+=v*v; }
-            eFrame[t]=e; fft256(re, im);
-            for(let j=0;j<ST_NB;j++){ const idx=stBands[j]; let s=0; for(let b=0;b<idx.length;b++){ const k=idx[b]; s+=re[k]*re[k]+im[k]*im[k]; } M[j][t]=Math.sqrt(s); }
-          }
-          return {M, F, eFrame};
-        }
-        function computeStoi(refRaw, estRaw, srIn){
-          const X=stSpec(resample(refRaw, srIn, ST_FS)), Y=stSpec(resample(estRaw, srIn, ST_FS));
-          if(!X||!Y) return null;
-          const F=Math.min(X.F, Y.F);
-          let maxE=0; for(let t=0;t<F;t++) if(X.eFrame[t]>maxE) maxE=X.eFrame[t];
-          if(maxE<=0) return null;
-          const thr=maxE*Math.pow(10, -ST_DYN/10);          // keep frames within 40 dB of the loudest
-          const keep=[]; for(let t=0;t<F;t++) if(X.eFrame[t]>=thr) keep.push(t);
-          if(keep.length<ST_N) return null;
-          const clip=1+Math.pow(10, -ST_BETA/20);
-          const xs=new Float64Array(ST_N), ys=new Float64Array(ST_N);
-          let acc=0, cnt=0;
-          for(let m=ST_N-1;m<keep.length;m++){
-            for(let j=0;j<ST_NB;j++){
-              let nx=0, ny=0;
-              for(let p=0;p<ST_N;p++){ const t=keep[m-ST_N+1+p]; const xv=X.M[j][t], yv=Y.M[j][t]; nx+=xv*xv; ny+=yv*yv; }
-              nx=Math.sqrt(nx); ny=Math.sqrt(ny); cnt++;
-              if(nx<1e-12||ny<1e-12) continue;
-              const alpha=nx/ny; let mxx=0, myy=0;
-              for(let p=0;p<ST_N;p++){ const t=keep[m-ST_N+1+p]; const xv=X.M[j][t]; let yv=Y.M[j][t]*alpha; const ub=xv*clip; if(yv>ub) yv=ub; xs[p]=xv; ys[p]=yv; mxx+=xv; myy+=yv; }
-              mxx/=ST_N; myy/=ST_N;
-              let cov=0, vx=0, vy=0;
-              for(let p=0;p<ST_N;p++){ const dx=xs[p]-mxx, dy=ys[p]-myy; cov+=dx*dy; vx+=dx*dx; vy+=dy*dy; }
-              if(vx>1e-12 && vy>1e-12) acc += cov/Math.sqrt(vx*vy);
-            }
-          }
-          return cnt>0 ? acc/cnt : null;
-        }
-
-        // red -> amber -> green for the meter bars
-        function meterColor(t){
-          t=Math.max(0,Math.min(1,t));
-          const s=[[229,72,77],[230,180,40],[46,204,113]], seg=t<0.5?0:1, lt=t<0.5?t/0.5:(t-0.5)/0.5;
-          const a=s[seg], b=s[seg+1];
-          return 'rgb('+Math.round(a[0]+(b[0]-a[0])*lt)+','+Math.round(a[1]+(b[1]-a[1])*lt)+','+Math.round(a[2]+(b[2]-a[2])*lt)+')';
-        }
-        function renderMetrics(stoi, sisnr){
-          const wrap=$('stoiWrap');
-          if(stoi==null && sisnr==null){ wrap.style.display='none'; return; }
-          wrap.style.display='';
-          if(stoi!=null){ const s=Math.max(0,Math.min(1,stoi));
-            $('stoiVal').textContent=s.toFixed(2); $('stoiBar').style.width=(s*100).toFixed(0)+'%'; $('stoiBar').style.background=meterColor(s);
-          } else { $('stoiVal').innerHTML='&mdash;'; $('stoiBar').style.width='0%'; }
-          if(sisnr!=null){ const t=(sisnr+5)/30;            // map -5..25 dB -> 0..1
-            $('sisnrVal').textContent=sisnr.toFixed(1)+' dB'; $('sisnrBar').style.width=(Math.max(0,Math.min(1,t))*100).toFixed(0)+'%'; $('sisnrBar').style.background=meterColor(t);
-          } else { $('sisnrVal').innerHTML='&mdash;'; $('sisnrBar').style.width='0%'; }
-        }
-        let metricTimer=null;
-        function metricLoop(){
-          try {
-            const st=window.__ancStatus?window.__ancStatus():null;
-            if(st && st.playing && window.__sttGetWindow){
-              const sr=window.__sttSampleRate||48000, w=window.__sttGetWindow(3);
-              renderMetrics(computeStoi(w.ref, w.mix, sr), siSnr(w.ref, w.mix));
-            } else { renderMetrics(null, null); }
-          } catch(e){ console.warn('metric loop failed', e); }
-          metricTimer=setTimeout(metricLoop, 700);
-        }
-
-        const MODEL = 'Xenova/whisper-small.en';
-        async function loadModel(){
-          setStatus('Loading Whisper small.en&nbsp;… first run downloads ~250&nbsp;MB (then cached by the browser).');
-          const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.2');
-          env.allowLocalModels = false;
-          let device='wasm';
-          try { if(navigator.gpu && await navigator.gpu.requestAdapter()) device='webgpu'; } catch(e){}
-          const progress_callback = p=>{
-            if(p && p.status==='progress' && typeof p.progress==='number')
-              setStatus('Downloading model&nbsp;… '+Math.round(p.progress)+'%');
-          };
-          // q8 decoders fail on WebGPU (known transformers.js bug), so use fp32 encoder +
-          // q4 decoder there; WASM uses the default q8.
-          const dtype = device==='webgpu' ? { encoder_model:'fp32', decoder_model_merged:'q4' } : 'q8';
-          try {
-            transcriber = await pipeline('automatic-speech-recognition', MODEL, { device, dtype, progress_callback });
-          } catch(e){
-            if(device!=='wasm'){ setStatus('WebGPU unavailable — falling back to WASM (slower)&nbsp;…');
-              transcriber = await pipeline('automatic-speech-recognition', MODEL, { device:'wasm', dtype:'q8', progress_callback }); }
-            else throw e;
-          }
-          setStatus('');   // clear the loading text once the model is ready; the transcript speaks for itself
-        }
-
-        function render(text, ancOn){
-          $('sttAncBadge').innerHTML = ancBadge(ancOn);
-          $('sttCurrent').innerHTML = text
-            ? text.replace(/</g,'&lt;')
-            : '<span class="note" style="margin:0;">(no intelligible speech recovered)</span>';
-        }
-
-        async function tick(){
-          if(!running) return;
-          try {
-            const st = window.__ancStatus ? window.__ancStatus() : null;
-            if(st && st.playing && window.__sttGetWindow && !busy){
-              busy=true;
-              const ancOn=st.ancOn, sr=window.__sttSampleRate||48000;
-              const audio=normalize(resampleTo16k(window.__sttGetWindow(WINDOW_S).mix, sr));
-              const res=await transcriber(audio);
-              render((res && res.text || '').trim(), ancOn);
-              busy=false;
-            }
-          } catch(e){ console.warn('STT pass failed', e); busy=false; }
-          loop=setTimeout(tick, 400);
-        }
-
-        function stop(){
-          running=false; if(loop) clearTimeout(loop);
-          $('sttBtn').textContent='Start transcription'; setStatus('Stopped. Click to resume.');
-        }
-        async function start(){
-          if(running) return;
-          const btn=$('sttBtn'); btn.disabled=true; btn.textContent='Loading…';
-          try {
-            if(!transcriber) await loadModel();
-            running=true; btn.textContent='Stop transcription'; btn.disabled=false;
-            tick();
-          } catch(e){
-            console.error(e);
-            setStatus('Could not load the model: '+((e&&e.message)||e));
-            btn.textContent='Start transcription'; btn.disabled=false;
-          }
-        }
-        $('sttBtn').addEventListener('click', ()=>{ running ? stop() : start(); });
-
-        // Transcription is on by default: auto-start the first time the demo is played
-        // (defers the ~75 MB model download until the user actually engages the demo).
-        let autoStarted=false;
-        const playBtn=$('playBtn');
-        if(playBtn) playBtn.addEventListener('click', ()=>{
-          if(autoStarted) return;
-          autoStarted=true;
-          start();
-        });
-
-        // STOI / SI-SNR meters run continuously (pure DSP, no model needed) and self-gate on playback
-        metricLoop();
-      })();
-    </script>
   </body>
 </html>
