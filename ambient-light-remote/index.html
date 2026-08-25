@@ -1,0 +1,1651 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ambient Light · Remote · Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <script src="https://unpkg.com/peerjs@1/dist/peerjs.min.js"></script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --raw: #bc122a;
+        --smooth: #2a8b2a;
+        --blue: #1f4eb6;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel h2 .units {
+        margin-left: 8px;
+        color: var(--grey-text);
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        text-transform: none;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 70px;
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.big { font-size: 16px; padding: 16px 36px; }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        background: #fff;
+        color: var(--black);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      input[type="range"] { flex: 1; min-width: 140px; max-width: 320px; }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 16 / 5;
+      }
+      .canvas-wrap.tall { aspect-ratio: 16 / 7; }
+      canvas { width: 100%; height: 100%; display: block; }
+      .canvas-wrap .placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        margin-top: 12px;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--grey-text);
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .legend .axis { display: inline-flex; align-items: center; gap: 6px; }
+      .legend .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .legend .val {
+        font-weight: 700;
+        color: var(--black);
+        min-width: 76px;
+        display: inline-block;
+        text-align: right;
+      }
+      .status { font-size: 13px; color: var(--grey-text); margin: 0; }
+      .status.error { color: var(--red); }
+      .status.ok { color: var(--green); font-weight: 500; }
+      .note {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 16px;
+        line-height: 1.5;
+      }
+      .note strong { color: var(--black); }
+      .pair-help { color: var(--grey-text); font-size: 13px; margin: 0; line-height: 1.5; }
+      .pair-help strong { color: var(--black); font-weight: 700; }
+      .pair-code-block {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .pair-code-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .pair-code {
+        font-size: 44px;
+        font-weight: 900;
+        letter-spacing: 6px;
+        font-variant-numeric: tabular-nums;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        color: var(--black);
+        line-height: 1;
+      }
+      .join-help { margin: 0 0 12px; color: var(--grey-text); font-size: 13px; }
+      .join-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 0;
+      }
+      #joinCode,
+      #reconnectCode {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        text-align: center;
+        padding: 10px 14px;
+        border: 1px solid var(--grey-line);
+        border-radius: 6px;
+        background: #f5f5f5;
+        width: 150px;
+        min-width: 0;
+      }
+      #joinCode:focus,
+      #reconnectCode:focus {
+        outline: none;
+        border-color: var(--red);
+        background: #fff;
+      }
+      .live-readout {
+        font-variant-numeric: tabular-nums;
+        font-size: clamp(16px, 2.4vw, 22px);
+        font-weight: 700;
+        letter-spacing: -0.3px;
+      }
+      .hero {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin: 0 0 16px;
+        flex-wrap: wrap;
+      }
+      .hero .big-num {
+        font-size: clamp(40px, 7vw, 64px);
+        font-weight: 900;
+        letter-spacing: -2px;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .hero .unit {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--grey-text);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .hero .desc {
+        margin-left: auto;
+        font-size: 13px;
+        color: var(--grey-text);
+        text-align: right;
+      }
+      .hero .desc strong { color: var(--black); }
+      .meta {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .screen-sim {
+        width: 100%;
+        max-width: 220px;
+        aspect-ratio: 16 / 10;
+        border-radius: 8px;
+        border: 1px solid var(--grey-line);
+        background: #000;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .preview-wrap {
+        width: 120px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #0c0c0e;
+        aspect-ratio: 3 / 4;
+      }
+      .preview-wrap video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transform: scaleX(-1);
+      }
+      body[data-role="laptop"] .phone-only { display: none; }
+      body[data-role="phone"] .laptop-only { display: none; }
+      body:not([data-role]) .laptop-only,
+      body:not([data-role]) .phone-only { display: none; }
+      body[data-role="laptop"]:not([data-paired]) .needs-phone {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      .join-only { display: none; }
+      @media (pointer: coarse) {
+        body[data-role="laptop"] .host-only { display: none; }
+        body[data-role="laptop"] .join-only { display: block; }
+        #joinCode,
+        #reconnectCode {
+          font-size: 32px;
+          letter-spacing: 8px;
+          width: 100%;
+          max-width: 240px;
+          padding: 14px 16px;
+        }
+        .join-form button { font-size: 15px; padding: 14px 24px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="Ambient Light · Remote"></header>
+    <script src="../nav.js" defer></script>
+    <main>
+      <!-- LAPTOP ROLE -->
+      <div class="laptop-only">
+        <h1>Ambient Light (Remote)</h1>
+        <p class="lead host-only">Pair a phone to stream its front-facing ambient light sensor &mdash; the tiny photodiode next to the earpiece that drives auto-brightness. Readings travel over a WebRTC data channel and are plotted live below, along with the auto-brightness curve they feed and the flicker spectrum hiding inside them.</p>
+        <p class="lead join-only">Enter the 4-digit code shown on the host laptop to use this phone as its light sensor.</p>
+
+        <section class="panel host-only">
+          <h2>Pair your phone</h2>
+          <div class="pair-code-block">
+            <span class="pair-code-label">Code</span>
+            <span class="pair-code" id="pairCode">&mdash; &mdash; &mdash; &mdash;</span>
+          </div>
+          <p class="status" id="pairStatus">Generating session&hellip;</p>
+          <p class="pair-help">On your phone, open <strong>sensingstudio.org/ambient-light-remote</strong> and enter this code.</p>
+        </section>
+
+        <section class="panel join-only">
+          <h2>Join a session</h2>
+          <p class="join-help">Enter the 4-digit code from the host laptop:</p>
+          <form id="joinForm" class="join-form">
+            <input
+              type="text"
+              id="joinCode"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              placeholder="0000"
+              autocomplete="off"
+              aria-label="4-digit pairing code"
+            />
+            <button type="submit">Connect</button>
+            <span class="status" id="joinStatus"></span>
+          </form>
+        </section>
+
+        <section class="panel needs-phone host-only">
+          <h2>Illuminance <span class="units" id="luxUnits">(lux)</span></h2>
+          <div class="hero">
+            <span class="big-num" id="luxBig">&mdash;</span>
+            <span class="unit" id="luxUnitBig">lx</span>
+            <span class="desc">
+              <span id="luxScene">&mdash;</span><br />
+              Source <strong id="luxSource">&mdash;</strong>
+            </span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="luxCanvas"></canvas>
+            <div class="placeholder" id="luxPlaceholder">Waiting for phone&hellip;</div>
+          </div>
+          <div class="legend" id="luxLegend"></div>
+          <p class="note" id="luxNote">Cover the top of the phone with your hand, then point it at a lamp or a window: indoor light is roughly 100&ndash;500&nbsp;lx, an overcast sky 1&nbsp;000&ndash;10&nbsp;000&nbsp;lx, direct sun above 50&nbsp;000&nbsp;lx. That is a range of five decades, which is why the log axis is the honest way to draw it.</p>
+        </section>
+
+        <section class="panel needs-phone host-only">
+          <h2>Auto-brightness <span class="units">(illuminance &rarr; backlight)</span></h2>
+          <div class="row" style="align-items: stretch; gap: 24px;">
+            <div style="flex: 1 1 340px; min-width: 260px;">
+              <div class="canvas-wrap tall">
+                <canvas id="curveCanvas"></canvas>
+                <div class="placeholder" id="curvePlaceholder">Waiting for phone&hellip;</div>
+              </div>
+            </div>
+            <div style="flex: 0 0 220px; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center;">
+              <div class="screen-sim" id="screenSim"><span id="screenSimLabel" style="color: #888;">screen</span></div>
+              <p class="status" style="text-align: center;">Backlight <strong id="backlightVal" style="color: var(--black); font-variant-numeric: tabular-nums;">&mdash;</strong></p>
+            </div>
+          </div>
+          <div class="row" style="margin-top: 16px;">
+            <label for="gammaSlider">Gamma</label>
+            <input type="range" id="gammaSlider" min="0.25" max="3" step="0.01" value="1" />
+            <span class="status" id="gammaVal" style="min-width: 48px; text-align: right; font-variant-numeric: tabular-nums;">1.00</span>
+          </div>
+          <div class="row">
+            <label for="floorSlider">Floor</label>
+            <input type="range" id="floorSlider" min="0" max="0.6" step="0.005" value="0.08" />
+            <span class="status" id="floorVal" style="min-width: 48px; text-align: right; font-variant-numeric: tabular-nums;">8%</span>
+          </div>
+          <div class="row">
+            <label for="tauSlider">Smoothing</label>
+            <input type="range" id="tauSlider" min="0" max="1" step="0.001" value="0.45" />
+            <span class="status" id="tauVal" style="min-width: 60px; text-align: right; font-variant-numeric: tabular-nums;">0.50 s</span>
+          </div>
+          <p class="note">The backlight follows the <em>log</em> of illuminance, not the illuminance itself &mdash; perceived brightness is roughly logarithmic, so a linear map would blast the screen the moment you walk past a window. <strong>Gamma</strong> bends that curve, <strong>floor</strong> keeps the screen readable in the dark, and <strong>smoothing</strong> is the first-order lag (&tau;) that stops a passing shadow from strobing the display. Drop &tau; to zero and watch the green operating point chase every flicker of the red one.</p>
+        </section>
+
+        <section class="panel needs-phone host-only">
+          <h2>Flicker spectrum <span class="units">(magnitude, dB, relative to DC)</span></h2>
+          <div class="canvas-wrap">
+            <canvas id="specCanvas"></canvas>
+            <div class="placeholder" id="specPlaceholder">Waiting for phone&hellip;</div>
+          </div>
+          <div class="legend">
+            <span class="axis">Sample rate <span class="val" id="specFs">&mdash;</span></span>
+            <span class="axis">Peak <span class="val" id="specPeak">&mdash;</span></span>
+            <span class="axis">Window <span class="val" id="specWin">&mdash;</span></span>
+          </div>
+          <p class="note">Mains-powered lamps flicker at <strong>twice</strong> the line frequency &mdash; 100&nbsp;Hz where the grid is 50&nbsp;Hz, 120&nbsp;Hz where it is 60&nbsp;Hz &mdash; because the bulb does not care which way the current flows. PWM-dimmed LEDs and phone screens add their own tones, often in the hundreds of hertz. This sensor samples far too slowly to see any of that directly: everything above f<sub>s</sub>/2 folds back down to an alias, so a 120&nbsp;Hz flicker sampled at 50&nbsp;Hz shows up at |120 &minus; 2&times;50| = 20&nbsp;Hz. Wave the phone slowly under a lamp and the low-frequency end fills in with the motion instead.</p>
+        </section>
+
+        <section class="panel needs-phone host-only">
+          <h2>Display</h2>
+          <div class="row">
+            <label for="windowSlider">Window</label>
+            <input type="range" id="windowSlider" min="0" max="1" step="0.001" />
+            <span class="status" id="windowVal" style="min-width: 64px; text-align: right;">10 s</span>
+            <label style="min-width: 0; display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0;">
+              <input type="checkbox" id="logScale" checked /> Log axis
+            </label>
+            <label style="min-width: 0; display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0;">
+              <input type="checkbox" id="showSamples" /> Show samples
+            </label>
+            <span class="status" id="rateEl" style="margin-left: auto;">&mdash; Hz</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- PHONE ROLE -->
+      <div class="phone-only">
+        <h1>Light Sensor Mode</h1>
+        <p class="lead">This phone streams its ambient light readings to the laptop. Tap Start and keep the screen on.</p>
+
+        <section class="panel">
+          <h2>Status</h2>
+          <p class="status" id="phoneStatus">Tap Start to enable the light sensor and connect.</p>
+          <div class="row" style="margin-top: 16px;">
+            <button id="phoneStart" class="big">Start</button>
+          </div>
+          <div class="row">
+            <label for="modeSelect">Sensor</label>
+            <select id="modeSelect">
+              <option value="auto">Auto (sensor, else camera)</option>
+              <option value="als">Ambient light sensor only</option>
+              <option value="camera">Front camera only</option>
+            </select>
+          </div>
+          <p class="note">Only some Android builds expose the real ambient light sensor to the browser (Chrome needs <strong>chrome://flags/#enable-generic-sensor-extra-classes</strong>). Everywhere else &mdash; iOS included &mdash; this falls back to measuring the average brightness of the front camera, which tracks the same light with different units. Nothing from the camera leaves the phone except one number per frame.</p>
+        </section>
+
+        <section class="panel" id="reconnectPanel" hidden>
+          <h2>Try a different code</h2>
+          <p class="join-help">Enter a 4-digit code from the host laptop:</p>
+          <form id="reconnectForm" class="join-form">
+            <input
+              type="text"
+              id="reconnectCode"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              placeholder="0000"
+              autocomplete="off"
+              aria-label="4-digit pairing code"
+            />
+            <button type="submit">Connect</button>
+          </form>
+        </section>
+
+        <section class="panel" id="phoneReadouts" hidden>
+          <h2>Live reading</h2>
+          <div class="row" style="align-items: center;">
+            <div style="flex: 1 1 auto;">
+              <p class="live-readout" style="margin: 0 0 6px;"><span id="phoneLux">&mdash;</span></p>
+              <p class="status" id="phoneSource">&mdash;</p>
+            </div>
+            <div class="preview-wrap" id="previewWrap" hidden>
+              <video id="phonePreview" autoplay playsinline muted></video>
+            </div>
+          </div>
+          <p class="meta" id="phoneMeta">&mdash;</p>
+        </section>
+      </div>
+      <style>
+        .attribution { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--grey-line); width: 100%; font-size: 13px; letter-spacing: 0.5px; color: var(--grey-text); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .attribution a { display: inline-flex; align-items: center; gap: 8px; color: var(--black); text-decoration: none; font-weight: 700; transition: color 0.15s, opacity 0.15s; }
+        .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+        .attribution a:hover { color: var(--red); }
+        .attribution a:hover img { opacity: 0.85; }
+      </style>
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const codeParam = params.get('code');
+      const hostId = codeParam ? 'sslab-light-' + codeParam : null;
+      const role = hostId ? 'phone' : 'laptop';
+      document.body.dataset.role = role;
+
+      const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+
+      // Human-readable label for an illuminance in lux.
+      function sceneFor(lux) {
+        if (!isFinite(lux)) return '—';
+        if (lux < 0.5)   return 'Moonless night';
+        if (lux < 5)     return 'Moonlight / dark room';
+        if (lux < 50)    return 'Dim indoors, twilight';
+        if (lux < 200)   return 'Living room';
+        if (lux < 750)   return 'Office lighting';
+        if (lux < 3000)  return 'Very bright indoors';
+        if (lux < 15000) return 'Overcast daylight';
+        if (lux < 40000) return 'Daylight, in shade';
+        return 'Direct sunlight';
+      }
+
+      // Value formatter that stays readable across five decades.
+      function fmtLevel(v) {
+        if (v === null || v === undefined || !isFinite(v)) return '—';
+        if (v >= 10000) return (v / 1000).toFixed(1) + 'k';
+        if (v >= 100)   return v.toFixed(0);
+        if (v >= 10)    return v.toFixed(1);
+        return v.toFixed(2);
+      }
+
+      if (role === 'laptop') initLaptop(); else initPhone();
+
+      /* ============ LAPTOP ============ */
+      function initLaptop() {
+        const pairCodeEl = document.getElementById('pairCode');
+        const pairStatus = document.getElementById('pairStatus');
+        const joinForm   = document.getElementById('joinForm');
+        const joinCodeIn = document.getElementById('joinCode');
+        const joinStatus = document.getElementById('joinStatus');
+        const windowSlider = document.getElementById('windowSlider');
+        const windowVal    = document.getElementById('windowVal');
+        const logScaleEl   = document.getElementById('logScale');
+        const showSamplesEl = document.getElementById('showSamples');
+        const rateEl       = document.getElementById('rateEl');
+        const luxBig       = document.getElementById('luxBig');
+        const luxUnitBig   = document.getElementById('luxUnitBig');
+        const luxUnitsEl   = document.getElementById('luxUnits');
+        const luxSceneEl   = document.getElementById('luxScene');
+        const luxSourceEl  = document.getElementById('luxSource');
+
+        const WMIN = 1, WMAX = 600;
+        const sliderToWin = t => WMIN * Math.pow(WMAX / WMIN, t);
+        const winToSlider = s => Math.log(s / WMIN) / Math.log(WMAX / WMIN);
+        const fmtWin = s => s < 10 ? s.toFixed(1) + ' s'
+                          : s < 60 ? s.toFixed(0) + ' s'
+                          : (s / 60).toFixed(1) + ' min';
+        let windowSec = 10;
+        windowSlider.value = winToSlider(windowSec);
+        windowVal.textContent = fmtWin(windowSec);
+
+        const chart = makeLevelChart('luxCanvas', 'luxPlaceholder', 'luxLegend');
+        const curve = makeCurvePanel();
+        const spec  = makeSpectrum();
+
+        // Smoothing time constant for the auto-brightness path.
+        const TMIN = 0.02, TMAX = 5;
+        const sliderToTau = t => TMIN * Math.pow(TMAX / TMIN, t);
+        const tauSlider = document.getElementById('tauSlider');
+        const tauValEl  = document.getElementById('tauVal');
+        let tau = sliderToTau(parseFloat(tauSlider.value));
+        function applyTau() {
+          tau = sliderToTau(parseFloat(tauSlider.value));
+          tauValEl.textContent = tau < 0.1 ? (tau * 1000).toFixed(0) + ' ms' : tau.toFixed(2) + ' s';
+        }
+        tauSlider.addEventListener('input', applyTau);
+        applyTau();
+
+        let peer = null;
+        let dataConn = null;
+        let lastSampleAt = 0;
+        let lastReadoutAt = 0;
+        let sampleCount = 0;
+        let rateAt = performance.now();
+        let unit = 'lx';
+        let ema = null;
+        let lastT = null;
+
+        function makeNumericCode() {
+          return ('0000' + Math.floor(Math.random() * 10000)).slice(-4);
+        }
+
+        function tryClaimPeer(attempt) {
+          attempt = attempt || 0;
+          if (attempt > 8) {
+            pairStatus.textContent = 'Could not allocate a session — please refresh.';
+            pairStatus.classList.add('error');
+            return;
+          }
+          const code = makeNumericCode();
+          peer = new Peer('sslab-light-' + code);
+          let resolved = false;
+          peer.on('open', () => {
+            if (resolved) return;
+            resolved = true;
+            pairCodeEl.textContent = code.split('').join(' ');
+            pairStatus.textContent = 'Waiting for phone…';
+            attachPeerHandlers();
+          });
+          peer.on('error', (err) => {
+            if (resolved) {
+              pairStatus.textContent = 'Connection error: ' + err.message;
+              pairStatus.classList.add('error');
+              return;
+            }
+            if (err.type === 'unavailable-id') {
+              resolved = true;
+              try { peer.destroy(); } catch (_) {}
+              tryClaimPeer(attempt + 1);
+            } else {
+              resolved = true;
+              pairStatus.textContent = 'Pairing error: ' + err.message;
+              pairStatus.classList.add('error');
+            }
+          });
+        }
+
+        function attachPeerHandlers() {
+          peer.on('connection', (conn) => {
+            dataConn = conn;
+            conn.on('open', () => {
+              pairStatus.textContent = 'Phone connected.';
+              pairStatus.classList.remove('error');
+              pairStatus.classList.add('ok');
+              document.body.dataset.paired = '1';
+              conn.send({ type: 'config' });
+            });
+            conn.on('data', (msg) => {
+              if (!msg) return;
+              if (msg.type === 'light') onSample(msg);
+              else if (msg.type === 'caps') onCaps(msg);
+            });
+            conn.on('close', () => {
+              dataConn = null;
+              delete document.body.dataset.paired;
+              pairStatus.textContent = 'Phone disconnected.';
+              pairStatus.classList.remove('ok');
+            });
+          });
+          // Why: iOS Safari and some restrictive networks fail to negotiate
+          // data-channel-only WebRTC; pairing the data conn with a silent
+          // media call (as in tone-remote) makes ICE consistently complete.
+          peer.on('call', (call) => {
+            try { call.answer(); } catch (_) {}
+            call.on('stream', () => {});  // discard
+            call.on('error', () => {});
+          });
+        }
+
+        joinCodeIn.addEventListener('input', () => {
+          joinCodeIn.value = joinCodeIn.value.replace(/\D/g, '').slice(0, 4);
+        });
+        joinForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const v = joinCodeIn.value.replace(/\D/g, '').slice(0, 4);
+          if (v.length !== 4) {
+            joinStatus.textContent = 'Enter all 4 digits.';
+            joinStatus.classList.add('error');
+            joinCodeIn.focus();
+            return;
+          }
+          location.href = location.pathname + '?code=' + v;
+        });
+
+        tryClaimPeer();
+
+        function onCaps(c) {
+          unit = c.unit || 'lx';
+          luxUnitBig.textContent = unit;
+          luxUnitsEl.textContent = unit === 'lx' ? '(lux)' : '(arbitrary units)';
+          chart.setUnit(unit);
+          curve.setUnit(unit);
+          const names = {
+            als: 'AmbientLightSensor (native, lux)',
+            devicelight: 'devicelight event (native, lux)',
+            camera: 'front camera brightness',
+            'camera-ev': 'front camera, exposure-derived lux',
+          };
+          luxSourceEl.textContent = names[c.src] || c.src || '—';
+          const note = document.getElementById('luxNote');
+          if (c.src === 'camera' || c.src === 'camera-ev') {
+            note.innerHTML = 'This phone has no ambient light sensor exposed to the browser, so the readings come from the average brightness of the front camera instead. ' +
+              (c.src === 'camera-ev'
+                ? 'Exposure time and ISO <em>are</em> readable, so the value is converted to an approximate illuminance in lux — treat it as an estimate, not a calibrated measurement.'
+                : 'Without readable exposure metadata the value is in arbitrary units: the camera’s own auto-exposure fights every change in light, so expect the trace to sag back toward the middle a second after a step change. That feedback loop is exactly why phones use a dedicated photodiode instead of the camera.');
+          }
+        }
+
+        function onSample(s) {
+          const t = s.t;
+          const v = s.v;
+          if (!isFinite(v)) return;
+
+          // First-order lag (the smoothing every auto-brightness controller runs).
+          if (ema === null || lastT === null) {
+            ema = v;
+          } else {
+            const dt = clamp(t - lastT, 0, 1);
+            const a = tau > 0 ? 1 - Math.exp(-dt / tau) : 1;
+            ema += a * (v - ema);
+          }
+          lastT = t;
+
+          chart.push(t, v, ema);
+          spec.push(t, v);
+          curve.update(v, ema);
+
+          sampleCount++;
+          const now = performance.now();
+          if (now - lastReadoutAt > 100) {
+            lastReadoutAt = now;
+            luxBig.textContent = fmtLevel(v);
+            luxSceneEl.textContent = (unit === 'lx') ? sceneFor(v) : 'relative brightness';
+          }
+          if (now - rateAt > 500) {
+            const hz = sampleCount * 1000 / (now - rateAt);
+            rateEl.textContent = hz.toFixed(0) + ' Hz';
+            rateAt = now;
+            sampleCount = 0;
+          }
+          lastSampleAt = now;
+        }
+
+        function applyWindow() {
+          windowSec = sliderToWin(parseFloat(windowSlider.value));
+          windowVal.textContent = fmtWin(windowSec);
+          chart.setWindow(windowSec);
+        }
+        windowSlider.addEventListener('input', applyWindow);
+        applyWindow();
+
+        logScaleEl.addEventListener('change', () => chart.setLog(logScaleEl.checked));
+        chart.setLog(logScaleEl.checked);
+        showSamplesEl.addEventListener('change', () => chart.setShowSamples(showSamplesEl.checked));
+
+        setInterval(() => {
+          if (!dataConn || !dataConn.open) {
+            rateEl.textContent = '— Hz';
+          } else if (performance.now() - lastSampleAt > 1500) {
+            rateEl.textContent = 'idle';
+          }
+        }, 500);
+      }
+
+      /* ----- scrolling level chart: positive-only, linear or log y ----- */
+      function makeLevelChart(canvasId, placeholderId, legendId) {
+        const canvas = document.getElementById(canvasId);
+        const placeholder = document.getElementById(placeholderId);
+        const legend = document.getElementById(legendId);
+        const ctx = canvas.getContext('2d');
+
+        const axes = [['raw', '--raw'], ['smoothed', '--smooth']];
+        const legendEntries = axes.map(([name, varName]) => {
+          const span = document.createElement('span');
+          span.className = 'axis';
+          const sw = document.createElement('span');
+          sw.className = 'swatch';
+          sw.style.background = 'var(' + varName + ')';
+          const lab = document.createElement('span');
+          lab.textContent = name;
+          const val = document.createElement('span');
+          val.className = 'val';
+          val.textContent = '—';
+          span.append(sw, lab, val);
+          legend.append(span);
+          return { valEl: val };
+        });
+
+        const buf = [];          // { t, v, s }
+        let windowSec = 10;
+        let logY = true;
+        let showSamples = false;
+        let unit = 'lx';
+        let firstSampleAt = null;
+        let lastT = 0;
+        let drawScheduled = false;
+
+        function setWindow(s) { windowSec = s; schedule(); }
+        function setLog(v) { logY = !!v; schedule(); }
+        function setShowSamples(v) { showSamples = !!v; schedule(); }
+        function setUnit(u) { unit = u; schedule(); }
+
+        function push(t, v, s) {
+          if (firstSampleAt === null) {
+            firstSampleAt = t;
+            placeholder.style.display = 'none';
+          }
+          lastT = t;
+          buf.push({ t, v, s });
+          const cutoff = t - windowSec * 1.2;
+          let drop = 0;
+          while (drop < buf.length && buf[drop].t < cutoff) drop++;
+          if (drop > 0) buf.splice(0, drop);
+          legendEntries[0].valEl.textContent = fmtLevel(v);
+          legendEntries[1].valEl.textContent = fmtLevel(s);
+          schedule();
+        }
+
+        function schedule() {
+          if (drawScheduled || firstSampleAt === null) return;
+          drawScheduled = true;
+          requestAnimationFrame(() => { drawScheduled = false; draw(); });
+        }
+
+        function draw() {
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          const w = Math.round(rect.width * dpr);
+          const h = Math.round(rect.height * dpr);
+          if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+          ctx.fillStyle = '#0c0c0e';
+          ctx.fillRect(0, 0, w, h);
+
+          const tEnd = lastT;
+          const tStart = tEnd - windowSec;
+          const span = Math.max(1e-3, tEnd - tStart);
+          const xOf = t => ((t - tStart) / span) * w;
+
+          let vmin = Infinity, vmax = -Infinity;
+          for (const p of buf) {
+            if (p.t < tStart) continue;
+            for (const v of [p.v, p.s]) {
+              if (!isFinite(v)) continue;
+              if (v < vmin) vmin = v;
+              if (v > vmax) vmax = v;
+            }
+          }
+          if (!isFinite(vmin)) { vmin = 0; vmax = 1; }
+
+          let lo, hi, yOf;
+          if (logY) {
+            const floorV = Math.max(1e-3, vmax / 1e5);
+            lo = Math.max(floorV, vmin > 0 ? vmin : floorV) / 2;
+            hi = Math.max(lo * 10, vmax * 2);
+            const l0 = Math.log10(lo), l1 = Math.log10(hi);
+            yOf = v => {
+              const lv = Math.log10(Math.max(v, lo * 1e-3));
+              return h - 6 * dpr - ((lv - l0) / (l1 - l0)) * (h - 12 * dpr);
+            };
+          } else {
+            lo = 0;
+            hi = Math.max(vmax * 1.15, 1e-3);
+            const step0 = niceTickStep(hi / 4);
+            hi = Math.ceil(hi / step0) * step0;
+            yOf = v => h - 6 * dpr - (v / hi) * (h - 12 * dpr);
+          }
+
+          ctx.lineWidth = 1 * dpr;
+          ctx.font = (10 * dpr) + 'px Roboto, sans-serif';
+
+          if (logY) {
+            // one gridline per decade, plus faint 2/5 minor lines
+            const d0 = Math.floor(Math.log10(lo)), d1 = Math.ceil(Math.log10(hi));
+            for (let d = d0; d <= d1; d++) {
+              for (const m of [1, 2, 5]) {
+                const v = m * Math.pow(10, d);
+                if (v < lo || v > hi) continue;
+                const y = yOf(v);
+                ctx.strokeStyle = (m === 1) ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)';
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+                if (m === 1) {
+                  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                  ctx.fillText(fmtLevel(v) + (unit === 'lx' ? ' lx' : ''), 4 * dpr, y - 3 * dpr);
+                }
+              }
+            }
+          } else {
+            const step = niceTickStep(hi / 4);
+            for (let v = 0; v <= hi + 1e-9; v += step) {
+              const y = yOf(v);
+              ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+              ctx.beginPath();
+              ctx.moveTo(0, y);
+              ctx.lineTo(w, y);
+              ctx.stroke();
+              ctx.fillStyle = 'rgba(255,255,255,0.45)';
+              if (v > 0) ctx.fillText(fmtLevel(v), 4 * dpr, y - 3 * dpr);
+            }
+          }
+
+          // vertical seconds grid
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+          const tickSpacing = niceTickStep(span / 8);
+          for (let s = Math.ceil(tStart / tickSpacing) * tickSpacing; s <= tEnd; s += tickSpacing) {
+            const x = xOf(s);
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+          }
+
+          const styles = getComputedStyle(document.body);
+          const keys = ['v', 's'];
+          const r = 1.8 * dpr;
+          for (let i = 0; i < axes.length; i++) {
+            const color = styles.getPropertyValue(axes[i][1]).trim() || '#fff';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = (i === 1 ? 1.8 : 1.3) * dpr;
+            ctx.beginPath();
+            let pen = false;
+            for (const p of buf) {
+              const v = p[keys[i]];
+              if (!isFinite(v)) { pen = false; continue; }
+              const x = xOf(p.t), y = yOf(v);
+              if (!pen) { ctx.moveTo(x, y); pen = true; } else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            if (showSamples && i === 0) {
+              ctx.fillStyle = color;
+              for (const p of buf) {
+                const v = p[keys[i]];
+                if (!isFinite(v)) continue;
+                const x = xOf(p.t);
+                if (x < -r || x > w + r) continue;
+                ctx.beginPath();
+                ctx.arc(x, yOf(v), r, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          }
+
+          ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          ctx.textAlign = 'right';
+          ctx.fillText((logY ? 'log · ' : 'linear · ') + unit, w - 6 * dpr, 12 * dpr);
+          ctx.textAlign = 'left';
+        }
+
+        window.addEventListener('resize', () => { if (firstSampleAt !== null) draw(); });
+        return { push, setWindow, setLog, setShowSamples, setUnit };
+      }
+
+      function niceTickStep(target) {
+        if (target <= 0) return 1;
+        const p = Math.pow(10, Math.floor(Math.log10(target)));
+        const n = target / p;
+        let m;
+        if (n < 1.5) m = 1;
+        else if (n < 3) m = 2;
+        else if (n < 7) m = 5;
+        else m = 10;
+        return m * p;
+      }
+
+      /* ----- auto-brightness transfer curve ----- */
+      function makeCurvePanel() {
+        const canvas = document.getElementById('curveCanvas');
+        const placeholder = document.getElementById('curvePlaceholder');
+        const ctx = canvas.getContext('2d');
+        const screenSim = document.getElementById('screenSim');
+        const screenLabel = document.getElementById('screenSimLabel');
+        const backlightVal = document.getElementById('backlightVal');
+        const gammaSlider = document.getElementById('gammaSlider');
+        const gammaValEl  = document.getElementById('gammaVal');
+        const floorSlider = document.getElementById('floorSlider');
+        const floorValEl  = document.getElementById('floorVal');
+
+        let gamma = 1, floorB = 0.08;
+        let LMIN = 1, LMAX = 20000, unit = 'lx';
+        let raw = null, sm = null;
+        let scheduled = false;
+
+        function setUnit(u) {
+          unit = u;
+          if (u === 'lx') { LMIN = 1; LMAX = 20000; }
+          else { LMIN = 0.05; LMAX = 100; }
+          schedule();
+        }
+
+        // Backlight as a function of illuminance: log-compressed, then bent by
+        // gamma, then lifted off the floor so the screen never goes black.
+        function backlight(L) {
+          const x = clamp((Math.log10(Math.max(L, 1e-6)) - Math.log10(LMIN)) / (Math.log10(LMAX) - Math.log10(LMIN)), 0, 1);
+          return floorB + (1 - floorB) * Math.pow(x, gamma);
+        }
+
+        function update(v, s) {
+          if (raw === null) placeholder.style.display = 'none';
+          raw = v; sm = s;
+          schedule();
+        }
+
+        function schedule() {
+          if (scheduled) return;
+          scheduled = true;
+          requestAnimationFrame(() => { scheduled = false; draw(); });
+        }
+
+        function draw() {
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          const w = Math.round(rect.width * dpr);
+          const h = Math.round(rect.height * dpr);
+          if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+          const padL = 34 * dpr, padR = 10 * dpr, padT = 10 * dpr, padB = 20 * dpr;
+          const pw = w - padL - padR, ph = h - padT - padB;
+
+          ctx.fillStyle = '#0c0c0e';
+          ctx.fillRect(0, 0, w, h);
+
+          const l0 = Math.log10(LMIN) - 1, l1 = Math.log10(LMAX) + 0.3;
+          const xOf = L => padL + ((Math.log10(Math.max(L, 1e-6)) - l0) / (l1 - l0)) * pw;
+          const yOf = b => padT + (1 - b) * ph;
+
+          ctx.font = (10 * dpr) + 'px Roboto, sans-serif';
+          ctx.lineWidth = 1 * dpr;
+
+          // decade gridlines on the illuminance axis
+          for (let d = Math.ceil(l0); d <= Math.floor(l1); d++) {
+            const L = Math.pow(10, d);
+            const x = xOf(L);
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.beginPath();
+            ctx.moveTo(x, padT);
+            ctx.lineTo(x, padT + ph);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.45)';
+            ctx.textAlign = 'center';
+            ctx.fillText(fmtLevel(L), x, h - 6 * dpr);
+          }
+          // brightness gridlines
+          ctx.textAlign = 'right';
+          for (let b = 0; b <= 1.001; b += 0.25) {
+            const y = yOf(b);
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.beginPath();
+            ctx.moveTo(padL, y);
+            ctx.lineTo(w - padR, y);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.45)';
+            ctx.fillText((b * 100).toFixed(0) + '%', padL - 5 * dpr, y + 3.5 * dpr);
+          }
+          ctx.textAlign = 'left';
+
+          // the curve
+          ctx.strokeStyle = '#e8e8ea';
+          ctx.lineWidth = 2 * dpr;
+          ctx.beginPath();
+          for (let i = 0; i <= 240; i++) {
+            const lv = l0 + (i / 240) * (l1 - l0);
+            const L = Math.pow(10, lv);
+            const x = xOf(L), y = yOf(backlight(L));
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+
+          const styles = getComputedStyle(document.body);
+          const rawCol = styles.getPropertyValue('--raw').trim() || '#bc122a';
+          const smCol  = styles.getPropertyValue('--smooth').trim() || '#2a8b2a';
+
+          // operating points
+          if (raw !== null && isFinite(raw)) {
+            const x = xOf(raw), y = yOf(backlight(raw));
+            ctx.strokeStyle = rawCol;
+            ctx.lineWidth = 1.6 * dpr;
+            ctx.beginPath();
+            ctx.arc(x, y, 4.5 * dpr, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          let b = null;
+          if (sm !== null && isFinite(sm)) {
+            b = backlight(sm);
+            const x = xOf(sm), y = yOf(b);
+            ctx.strokeStyle = 'rgba(42,139,42,0.45)';
+            ctx.setLineDash([4 * dpr, 4 * dpr]);
+            ctx.lineWidth = 1 * dpr;
+            ctx.beginPath();
+            ctx.moveTo(x, padT + ph);
+            ctx.lineTo(x, y);
+            ctx.lineTo(padL, y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = smCol;
+            ctx.beginPath();
+            ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // axis captions
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.textAlign = 'right';
+          ctx.fillText('illuminance (' + unit + ')', w - padR, padT + 10 * dpr);
+          ctx.textAlign = 'left';
+
+          if (b !== null) {
+            backlightVal.textContent = (b * 100).toFixed(0) + '%';
+            const lightness = Math.round(b * 100);
+            screenSim.style.background = 'hsl(45, 12%, ' + lightness + '%)';
+            screenLabel.style.color = lightness > 55 ? '#333' : '#999';
+          }
+        }
+
+        gammaSlider.addEventListener('input', () => {
+          gamma = parseFloat(gammaSlider.value);
+          gammaValEl.textContent = gamma.toFixed(2);
+          draw();
+        });
+        floorSlider.addEventListener('input', () => {
+          floorB = parseFloat(floorSlider.value);
+          floorValEl.textContent = (floorB * 100).toFixed(0) + '%';
+          draw();
+        });
+        window.addEventListener('resize', () => draw());
+        draw();
+
+        return { update, setUnit };
+      }
+
+      /* ----- flicker spectrum ----- */
+      function fft(re, im) {
+        const n = re.length;
+        for (let i = 1, j = 0; i < n; i++) {
+          let bit = n >> 1;
+          for (; j & bit; bit >>= 1) j ^= bit;
+          j ^= bit;
+          if (i < j) {
+            let tr = re[i]; re[i] = re[j]; re[j] = tr;
+            let ti = im[i]; im[i] = im[j]; im[j] = ti;
+          }
+        }
+        for (let len = 2; len <= n; len <<= 1) {
+          const ang = -2 * Math.PI / len;
+          const wr = Math.cos(ang), wi = Math.sin(ang);
+          for (let i = 0; i < n; i += len) {
+            let cr = 1, ci = 0;
+            for (let k = 0; k < len / 2; k++) {
+              const ur = re[i + k], ui = im[i + k];
+              const jr = re[i + k + len / 2], ji = im[i + k + len / 2];
+              const vr = jr * cr - ji * ci;
+              const vi = jr * ci + ji * cr;
+              re[i + k] = ur + vr; im[i + k] = ui + vi;
+              re[i + k + len / 2] = ur - vr; im[i + k + len / 2] = ui - vi;
+              const ncr = cr * wr - ci * wi;
+              ci = cr * wi + ci * wr;
+              cr = ncr;
+            }
+          }
+        }
+      }
+
+      function makeSpectrum() {
+        const canvas = document.getElementById('specCanvas');
+        const placeholder = document.getElementById('specPlaceholder');
+        const ctx = canvas.getContext('2d');
+        const fsEl   = document.getElementById('specFs');
+        const peakEl = document.getElementById('specPeak');
+        const winEl  = document.getElementById('specWin');
+
+        const NMAX = 256;           // longest FFT we will run
+        const NMIN = 64;
+        const KEEP = 30;            // seconds of history
+        const buf = [];             // { t, v }
+        let mags = null;            // dB relative to DC
+        let nfft = NMAX;
+        let fs = 0;
+        let lastCompute = 0;
+
+        function push(t, v) {
+          buf.push({ t, v });
+          const cutoff = t - KEEP;
+          let drop = 0;
+          while (drop < buf.length && buf[drop].t < cutoff) drop++;
+          if (drop > 0) buf.splice(0, drop);
+
+          const now = performance.now();
+          if (now - lastCompute > 120) {
+            lastCompute = now;
+            compute();
+            requestAnimationFrame(draw);
+          }
+        }
+
+        function compute() {
+          if (buf.length < 32) return;
+          const tLast = buf[buf.length - 1].t;
+          const tFirst = buf[0].t;
+          const dur = tLast - tFirst;
+          if (dur <= 0) return;
+          const fsRaw = (buf.length - 1) / dur;
+          if (!isFinite(fsRaw) || fsRaw <= 0) return;
+
+          // Resample onto a uniform grid at the incoming sample rate. The FFT
+          // length shrinks to whatever history we actually have, so the Nyquist
+          // limit drawn on the axis is the sensor's real one.
+          let N = Math.pow(2, Math.floor(Math.log2(Math.max(dur * fsRaw, 1))));
+          N = clamp(N, NMIN, NMAX);
+          if (buf.length < N / 2) return;          // not enough history yet
+          const winDur = N / fsRaw;
+          const t0 = Math.max(tFirst, tLast - winDur);
+          const dt = (tLast - t0) / (N - 1);
+          const re = new Float64Array(N);
+          const im = new Float64Array(N);
+          let idx = 0;
+          for (let k = 0; k < N; k++) {
+            const t = t0 + k * dt;
+            while (idx < buf.length - 2 && buf[idx + 1].t < t) idx++;
+            const a = buf[idx], b = buf[Math.min(idx + 1, buf.length - 1)];
+            const f = (b.t > a.t) ? (t - a.t) / (b.t - a.t) : 0;
+            re[k] = a.v + clamp(f, 0, 1) * (b.v - a.v);
+          }
+          // Remove the mean, then Hann-window: we care about the flicker
+          // riding on top of the level, not the level itself.
+          let mean = 0;
+          for (let k = 0; k < N; k++) mean += re[k];
+          mean /= N;
+          let coh = 0;
+          for (let k = 0; k < N; k++) {
+            const wnd = 0.5 - 0.5 * Math.cos(2 * Math.PI * k / (N - 1));
+            re[k] = (re[k] - mean) * wnd;
+            coh += wnd;
+          }
+          fft(re, im);
+          nfft = N;
+          const half = N / 2;
+          // DC reference: a constant `mean` through this window lands at mean·Σw,
+          // so a bin at -6 dB is 100 % modulation of the light level.
+          const ref = Math.max(Math.abs(mean) * coh, 1e-9);
+          const out = new Float64Array(half);
+          for (let k = 0; k < half; k++) {
+            const m = Math.hypot(re[k], im[k]);
+            out[k] = 20 * Math.log10(Math.max(m, 1e-12) / ref);
+          }
+          mags = out;
+          fs = (N - 1) / (tLast - t0);
+
+
+          fsEl.textContent = fs.toFixed(1) + ' Hz';
+          winEl.textContent = (tLast - t0).toFixed(1) + ' s';
+          let peakK = 1, peakV = -Infinity;
+          for (let k = 2; k < half; k++) {
+            if (out[k] > peakV) { peakV = out[k]; peakK = k; }
+          }
+          peakEl.textContent = (peakK * fs / N).toFixed(1) + ' Hz';
+        }
+
+        function draw() {
+          if (!mags) return;
+          placeholder.style.display = 'none';
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          const w = Math.round(rect.width * dpr);
+          const h = Math.round(rect.height * dpr);
+          if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+          const padL = 30 * dpr, padB = 18 * dpr, padT = 8 * dpr, padR = 8 * dpr;
+          const pw = w - padL - padR, ph = h - padT - padB;
+          ctx.fillStyle = '#0c0c0e';
+          ctx.fillRect(0, 0, w, h);
+
+          const fNy = fs / 2;
+          const DBMIN = -80, DBMAX = 0;
+          const xOf = f => padL + (f / fNy) * pw;
+          const yOf = db => padT + (1 - (clamp(db, DBMIN, DBMAX) - DBMIN) / (DBMAX - DBMIN)) * ph;
+
+          ctx.font = (10 * dpr) + 'px Roboto, sans-serif';
+          ctx.lineWidth = 1 * dpr;
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.textAlign = 'center';
+          const fStep = niceTickStep(fNy / 6);
+          for (let f = 0; f <= fNy + 1e-9; f += fStep) {
+            const x = xOf(f);
+            ctx.beginPath();
+            ctx.moveTo(x, padT);
+            ctx.lineTo(x, padT + ph);
+            ctx.stroke();
+            ctx.fillText(f.toFixed(fStep < 1 ? 1 : 0), x, h - 5 * dpr);
+          }
+          ctx.textAlign = 'right';
+          for (let db = DBMIN; db <= DBMAX; db += 20) {
+            const y = yOf(db);
+            ctx.beginPath();
+            ctx.moveTo(padL, y);
+            ctx.lineTo(w - padR, y);
+            ctx.stroke();
+            ctx.fillText(db.toFixed(0), padL - 4 * dpr, y + 3.5 * dpr);
+          }
+          ctx.textAlign = 'left';
+
+          ctx.strokeStyle = '#7aa2ff';
+          ctx.fillStyle = 'rgba(122,162,255,0.18)';
+          ctx.lineWidth = 1.4 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(xOf(0), yOf(DBMIN));
+          for (let k = 1; k < mags.length; k++) {
+            ctx.lineTo(xOf(k * fs / nfft), yOf(mags[k]));
+          }
+          ctx.lineTo(xOf(fNy), yOf(DBMIN));
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.textAlign = 'right';
+          ctx.fillText('Hz →', w - padR, padT + 10 * dpr);
+          ctx.textAlign = 'left';
+        }
+
+        window.addEventListener('resize', draw);
+        return { push };
+      }
+
+      /* ============ PHONE ============ */
+      function initPhone() {
+        const phoneStatus    = document.getElementById('phoneStatus');
+        const phoneStart     = document.getElementById('phoneStart');
+        const phoneReadouts  = document.getElementById('phoneReadouts');
+        const phoneLux       = document.getElementById('phoneLux');
+        const phoneSource    = document.getElementById('phoneSource');
+        const phoneMeta      = document.getElementById('phoneMeta');
+        const modeSelect     = document.getElementById('modeSelect');
+        const previewWrap    = document.getElementById('previewWrap');
+        const preview        = document.getElementById('phonePreview');
+        const reconnectPanel = document.getElementById('reconnectPanel');
+        const reconnectForm  = document.getElementById('reconnectForm');
+        const reconnectCode  = document.getElementById('reconnectCode');
+
+        function showReconnect() {
+          if (!reconnectPanel) return;
+          reconnectPanel.hidden = false;
+          if (codeParam && !reconnectCode.value) reconnectCode.value = codeParam;
+        }
+        if (reconnectCode) {
+          reconnectCode.addEventListener('input', () => {
+            reconnectCode.value = reconnectCode.value.replace(/\D/g, '').slice(0, 4);
+          });
+        }
+        if (reconnectForm) {
+          reconnectForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const v = reconnectCode.value.replace(/\D/g, '').slice(0, 4);
+            if (v.length !== 4) { reconnectCode.focus(); return; }
+            location.href = location.pathname + '?code=' + v;
+          });
+        }
+
+        let conn = null;
+        let t0 = 0;
+        let src = null;       // 'als' | 'devicelight' | 'camera' | 'camera-ev'
+        let unit = 'lx';
+        let latest = null;
+        let exposureNote = '';
+
+        function sendCaps() {
+          if (!conn || !conn.open) return;
+          conn.send({ type: 'caps', src, unit, note: exposureNote });
+        }
+
+        function emit(v) {
+          latest = v;
+          if (!conn || !conn.open) return;
+          conn.send({ type: 'light', t: (performance.now() - t0) / 1000, v });
+        }
+
+        /* --- native ambient light sensor (Generic Sensor API) --- */
+        function startNativeALS() {
+          return new Promise((resolve) => {
+            if (!('AmbientLightSensor' in window)) { resolve(false); return; }
+            let sensor;
+            try {
+              sensor = new window.AmbientLightSensor({ frequency: 20 });
+            } catch (e) { resolve(false); return; }
+            let settled = false;
+            const finish = (ok) => { if (!settled) { settled = true; resolve(ok); } };
+            const timer = setTimeout(() => {
+              if (!settled) { try { sensor.stop(); } catch (_) {} finish(false); }
+            }, 2000);
+            sensor.addEventListener('error', () => { clearTimeout(timer); finish(false); });
+            sensor.addEventListener('reading', () => {
+              clearTimeout(timer);
+              finish(true);
+              emit(sensor.illuminance);
+            });
+            try { sensor.start(); } catch (e) { clearTimeout(timer); finish(false); }
+          });
+        }
+
+        /* --- legacy devicelight event --- */
+        function startDeviceLight() {
+          return new Promise((resolve) => {
+            if (!('ondevicelight' in window)) { resolve(false); return; }
+            let got = false;
+            window.addEventListener('devicelight', (e) => {
+              got = true;
+              if (typeof e.value === 'number') emit(e.value);
+            });
+            setTimeout(() => resolve(got), 1500);
+          });
+        }
+
+        /* --- front camera as a photometer --- */
+        const srgbToLinear = c => (c <= 0.04045) ? (c / 12.92) : Math.pow((c + 0.055) / 1.055, 2.4);
+
+        async function startCamera() {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: 320 },
+              height: { ideal: 240 },
+              frameRate: { ideal: 60 },
+            },
+            audio: false,
+          });
+          preview.srcObject = stream;
+          previewWrap.hidden = false;
+          try { await preview.play(); } catch (_) {}
+
+          const track = stream.getVideoTracks()[0];
+          // Auto-exposure is a feedback loop that cancels exactly what we are
+          // trying to measure, so lock it if the browser lets us.
+          let locked = false;
+          try {
+            const caps = track.getCapabilities ? track.getCapabilities() : {};
+            const adv = {};
+            if (caps.exposureMode && caps.exposureMode.indexOf('manual') >= 0) {
+              adv.exposureMode = 'manual';
+              if (caps.exposureTime) {
+                const mid = Math.sqrt(Math.max(caps.exposureTime.min, 1) * caps.exposureTime.max);
+                adv.exposureTime = clamp(mid, caps.exposureTime.min, caps.exposureTime.max);
+              }
+              if (caps.iso) adv.iso = caps.iso.min;
+            }
+            if (caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf('manual') >= 0) {
+              adv.whiteBalanceMode = 'manual';
+            }
+            if (Object.keys(adv).length) {
+              await track.applyConstraints({ advanced: [adv] });
+              locked = !!adv.exposureMode;
+            }
+          } catch (_) { /* not supported — carry on with AE running */ }
+
+          const cv = document.createElement('canvas');
+          cv.width = 32; cv.height = 24;
+          const cx = cv.getContext('2d', { willReadFrequently: true });
+
+          const s = track.getSettings ? track.getSettings() : {};
+          const hasEV = typeof s.exposureTime === 'number' && typeof s.iso === 'number';
+          src = hasEV ? 'camera-ev' : 'camera';
+          unit = hasEV ? 'lx' : 'arb.';
+          exposureNote = hasEV
+            ? ('exposure ' + (s.exposureTime / 10000).toFixed(4) + ' s · ISO ' + s.iso + (locked ? ' · locked' : ' · auto'))
+            : (locked ? 'exposure locked, uncalibrated units' : 'auto-exposure active, uncalibrated units');
+
+          const APERTURE = 2.0;   // typical selfie-camera f-number
+          function frame() {
+            if (preview.readyState >= 2) {
+              cx.drawImage(preview, 0, 0, cv.width, cv.height);
+              let sum = 0;
+              try {
+                const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+                for (let i = 0; i < d.length; i += 4) {
+                  sum += 0.2126 * srgbToLinear(d[i] / 255)
+                       + 0.7152 * srgbToLinear(d[i + 1] / 255)
+                       + 0.0722 * srgbToLinear(d[i + 2] / 255);
+                }
+              } catch (_) { /* tainted canvas should not happen for own camera */ }
+              const Y = sum / (cv.width * cv.height);   // linear luminance, 0–1
+              let value;
+              if (hasEV) {
+                const st = track.getSettings ? track.getSettings() : s;
+                const tExp = (st.exposureTime || s.exposureTime) / 10000;   // spec: 100 µs units
+                const iso = st.iso || s.iso;
+                // Incident-light estimate from the exposure triangle:
+                //   EV100 = log2(N²/t) + log2(100/ISO),  E ≈ 2.5 · 2^EV100
+                // scaled by how far the frame sits from an 18 % grey render.
+                const ev100 = Math.log2((APERTURE * APERTURE) / Math.max(tExp, 1e-6)) + Math.log2(100 / Math.max(iso, 1));
+                value = 2.5 * Math.pow(2, ev100) * (Y / 0.18);
+              } else {
+                value = Y * 100;
+              }
+              emit(value);
+            }
+            if (preview.requestVideoFrameCallback) preview.requestVideoFrameCallback(frame);
+            else requestAnimationFrame(frame);
+          }
+          if (preview.requestVideoFrameCallback) preview.requestVideoFrameCallback(frame);
+          else requestAnimationFrame(frame);
+          return true;
+        }
+
+        // Local readout, refreshed at 10 Hz so the number stays legible.
+        setInterval(() => {
+          if (latest === null) return;
+          phoneLux.textContent = fmtLevel(latest) + ' ' + unit;
+        }, 100);
+
+        phoneStart.addEventListener('click', async () => {
+          phoneStart.disabled = true;
+          modeSelect.disabled = true;
+          phoneStatus.classList.remove('error', 'ok');
+          t0 = performance.now();
+          try {
+            const mode = modeSelect.value;
+            let ok = false;
+
+            if (mode === 'auto' || mode === 'als') {
+              phoneStatus.textContent = 'Looking for an ambient light sensor…';
+              ok = await startNativeALS();
+              if (ok) { src = 'als'; unit = 'lx'; exposureNote = 'native photodiode'; }
+              if (!ok) {
+                ok = await startDeviceLight();
+                if (ok) { src = 'devicelight'; unit = 'lx'; exposureNote = 'legacy devicelight event'; }
+              }
+              if (!ok && mode === 'als') {
+                throw new Error('No ambient light sensor exposed by this browser');
+              }
+            }
+            if (!ok) {
+              phoneStatus.textContent = 'Starting the front camera…';
+              ok = await startCamera();
+            }
+            if (!ok) throw new Error('No light source available');
+
+            phoneReadouts.hidden = false;
+            phoneSource.textContent = ({
+              als: 'Native ambient light sensor',
+              devicelight: 'Native sensor (devicelight)',
+              camera: 'Front camera brightness (no ALS available)',
+              'camera-ev': 'Front camera, exposure-derived lux',
+            })[src] || src;
+            phoneMeta.textContent = exposureNote;
+
+            // Build a silent audio MediaStream. We never play it; it exists
+            // purely so the WebRTC peer connection has a media track. iOS
+            // Safari + restrictive networks often fail to negotiate
+            // data-channel-only connections ("Negotiation of connection
+            // failed"); piggybacking on a media call mirrors the
+            // tone-remote pattern that's known to work on these networks.
+            let silentStream = null;
+            try {
+              const ac = new (window.AudioContext || window.webkitAudioContext)();
+              if (ac.state === 'suspended') ac.resume().catch(() => {});
+              const osc = ac.createOscillator();
+              osc.frequency.value = 0;
+              const dst = ac.createMediaStreamDestination();
+              osc.connect(dst);
+              osc.start();
+              silentStream = dst.stream;
+            } catch (e) {
+              console.warn('silent stream creation failed:', e);
+            }
+
+            phoneStatus.textContent = 'Connecting…';
+            const peer = new Peer();
+            peer.on('open', () => {
+              conn = peer.connect(hostId, { reliable: true });
+              conn.on('open', () => {
+                phoneStatus.textContent = 'Connected. Streaming light readings to laptop.';
+                phoneStatus.classList.add('ok');
+                sendCaps();
+              });
+              conn.on('data', (msg) => {
+                if (msg && msg.type === 'config') sendCaps();
+              });
+              conn.on('close', () => {
+                phoneStatus.textContent = 'Disconnected.';
+                phoneStatus.classList.remove('ok');
+                showReconnect();
+              });
+              conn.on('error', (err) => {
+                phoneStatus.textContent = 'Connection error: ' + err.message;
+                phoneStatus.classList.add('error');
+                showReconnect();
+              });
+
+              // Companion silent media call — see comment above silentStream.
+              if (silentStream) {
+                try {
+                  const call = peer.call(hostId, silentStream);
+                  if (call) {
+                    call.on('error', () => {});
+                    call.on('stream', () => {});
+                  }
+                } catch (e) { /* ignore */ }
+              }
+            });
+            peer.on('error', (err) => {
+              phoneStatus.textContent = 'Connection error: ' + err.message;
+              phoneStatus.classList.add('error');
+              phoneStart.disabled = false;
+              showReconnect();
+            });
+
+            if ('wakeLock' in navigator) {
+              navigator.wakeLock.request('screen').catch(() => {});
+            }
+          } catch (err) {
+            phoneStatus.textContent = 'Could not start: ' + err.message;
+            phoneStatus.classList.add('error');
+            phoneStart.disabled = false;
+            modeSelect.disabled = false;
+            showReconnect();
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

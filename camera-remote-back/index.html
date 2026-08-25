@@ -184,14 +184,37 @@
         font-weight: 700;
         margin-left: 4px;
       }
+      .chart-row {
+        display: flex;
+        gap: 12px;
+        align-items: stretch;
+        height: 230px;
+      }
       .canvas-wrap {
         position: relative;
         background: #0c0c0e;
         border-radius: 6px;
         overflow: hidden;
-        aspect-ratio: 16 / 5;
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 100%;
       }
-      .canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+      .spec-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        flex: 0 0 32%;
+        min-width: 0;
+        height: 100%;
+      }
+      .canvas-wrap canvas,
+      .spec-wrap canvas { width: 100%; height: 100%; display: block; }
+      @media (max-width: 760px) {
+        .chart-row { flex-direction: column; height: auto; }
+        .canvas-wrap { height: 180px; }
+        .spec-wrap { flex: 0 0 auto; height: 150px; }
+      }
       .canvas-wrap .placeholder {
         position: absolute;
         inset: 0;
@@ -231,6 +254,35 @@
         display: inline-block;
         text-align: right;
       }
+      .legend .tag {
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .legend .bpm {
+        font-weight: 700;
+        color: var(--black);
+        font-variant-numeric: tabular-nums;
+      }
+      .legend .bpm.weak {
+        font-weight: 500;
+        color: var(--grey-text);
+      }
+      .legend .sep {
+        width: 1px;
+        height: 12px;
+        background: var(--grey-line);
+        display: inline-block;
+      }
+      .check {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        cursor: pointer;
+      }
+      .check input { accent-color: var(--red); width: 15px; height: 15px; cursor: pointer; }
       .preview-wrap {
         position: relative;
         background: #0c0c0e;
@@ -403,27 +455,42 @@
 
         <section class="panel needs-phone host-only">
           <h2>Red channel <span class="units">(0–255)</span></h2>
-          <div class="canvas-wrap">
-            <canvas id="rCanvas"></canvas>
-            <div class="placeholder" id="rPlaceholder">Waiting for phone&hellip;</div>
+          <div class="chart-row">
+            <div class="canvas-wrap">
+              <canvas id="rCanvas"></canvas>
+              <div class="placeholder" id="rPlaceholder">Waiting for phone&hellip;</div>
+            </div>
+            <div class="spec-wrap">
+              <canvas id="rSpec"></canvas>
+            </div>
           </div>
           <div class="legend" id="rLegend"></div>
         </section>
 
         <section class="panel needs-phone host-only">
           <h2>Green channel <span class="units">(0–255)</span></h2>
-          <div class="canvas-wrap">
-            <canvas id="gCanvas"></canvas>
-            <div class="placeholder" id="gPlaceholder">Waiting for phone&hellip;</div>
+          <div class="chart-row">
+            <div class="canvas-wrap">
+              <canvas id="gCanvas"></canvas>
+              <div class="placeholder" id="gPlaceholder">Waiting for phone&hellip;</div>
+            </div>
+            <div class="spec-wrap">
+              <canvas id="gSpec"></canvas>
+            </div>
           </div>
           <div class="legend" id="gLegend"></div>
         </section>
 
         <section class="panel needs-phone host-only">
           <h2>Blue channel <span class="units">(0–255)</span></h2>
-          <div class="canvas-wrap">
-            <canvas id="bCanvas"></canvas>
-            <div class="placeholder" id="bPlaceholder">Waiting for phone&hellip;</div>
+          <div class="chart-row">
+            <div class="canvas-wrap">
+              <canvas id="bCanvas"></canvas>
+              <div class="placeholder" id="bPlaceholder">Waiting for phone&hellip;</div>
+            </div>
+            <div class="spec-wrap">
+              <canvas id="bSpec"></canvas>
+            </div>
           </div>
           <div class="legend" id="bLegend"></div>
         </section>
@@ -435,6 +502,20 @@
             <input type="range" id="windowSlider" min="0" max="1" step="0.001" />
             <span class="status" id="windowVal" style="min-width: 64px; text-align: right;">5.0 s</span>
             <span class="status" id="rgbRate" style="margin-left: auto;">— Hz</span>
+          </div>
+          <div class="row">
+            <label for="fftWindow">Analysis</label>
+            <select id="fftWindow">
+              <option value="8">8 s</option>
+              <option value="15" selected>15 s</option>
+              <option value="30">30 s</option>
+              <option value="60">60 s</option>
+            </select>
+            <label class="check" for="peakToggle">
+              <input type="checkbox" id="peakToggle" checked />
+              <span>Peak marks</span>
+            </label>
+            <span class="status" style="margin-left: auto;">Periodogram band 30&ndash;220 BPM</span>
           </div>
         </section>
       </div>
@@ -541,9 +622,9 @@
         let lastStatsAt = 0;
 
         const charts = {
-          r: makeChannelChart('rCanvas', 'rPlaceholder', 'rLegend', 'R', '#e63946'),
-          g: makeChannelChart('gCanvas', 'gPlaceholder', 'gLegend', 'G', '#2a8b2a'),
-          b: makeChannelChart('bCanvas', 'bPlaceholder', 'bLegend', 'B', '#1f6feb'),
+          r: makeChannelChart('rCanvas', 'rSpec', 'rPlaceholder', 'rLegend', 'R', '#e63946'),
+          g: makeChannelChart('gCanvas', 'gSpec', 'gPlaceholder', 'gLegend', 'G', '#2a8b2a'),
+          b: makeChannelChart('bCanvas', 'bSpec', 'bPlaceholder', 'bLegend', 'B', '#1f6feb'),
         };
         function chartsForEach(fn) { fn(charts.r); fn(charts.g); fn(charts.b); }
         const rgbRateEl = document.getElementById('rgbRate');
@@ -564,6 +645,19 @@
           chartsForEach(c => c.setWindow(windowSec));
         });
         chartsForEach(c => c.setWindow(windowSec));
+
+        const fftWindowSel = document.getElementById('fftWindow');
+        const peakToggle = document.getElementById('peakToggle');
+        let analysisSec = parseFloat(fftWindowSel.value);
+        chartsForEach(c => c.setAnalysisWindow(analysisSec));
+        fftWindowSel.addEventListener('change', () => {
+          analysisSec = parseFloat(fftWindowSel.value);
+          chartsForEach(c => c.setAnalysisWindow(analysisSec));
+        });
+        peakToggle.addEventListener('change', () => {
+          chartsForEach(c => c.setShowPeaks(peakToggle.checked));
+        });
+        chartsForEach(c => c.setShowPeaks(peakToggle.checked));
 
         // Hidden downsampling canvas for cheap per-frame averaging.
         const sampleCanvas = document.createElement('canvas');
@@ -761,54 +855,322 @@
         tryClaimPeer();
       }
 
-      /* ----- single-channel chart: scrolling time-series, auto Y range ----- */
-      function makeChannelChart(canvasId, placeholderId, legendId, name, color) {
+      /* ============ SIGNAL ANALYSIS ============ */
+
+      /** Centered moving average. `win` is a length in samples. */
+      function movAvg(arr, win) {
+        const n = arr.length;
+        const out = new Float64Array(n);
+        const half = Math.max(1, Math.round(win / 2));
+        let sum = 0, lo = 0, hi = -1;
+        for (let i = 0; i < n; i++) {
+          const a = Math.max(0, i - half), b = Math.min(n - 1, i + half);
+          while (hi < b) sum += arr[++hi];
+          while (lo < a) sum -= arr[lo++];
+          out[i] = sum / (hi - lo + 1);
+        }
+        return out;
+      }
+
+      function median(xs) {
+        if (!xs.length) return NaN;
+        const a = Array.prototype.slice.call(xs).sort((p, q) => p - q);
+        const m = a.length >> 1;
+        return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+      }
+
+      const BPM_MIN = 30, BPM_MAX = 220;
+      const SNR_GOOD = 8; // spectral peak-to-mean below this reads as noise
+
+      /**
+       * Systolic-peak detector for a PPG-like trace.
+       *
+       * Smooths away the dicrotic notch, subtracts a moving baseline to remove
+       * drift, then takes local maxima above an RMS-scaled threshold with a
+       * refractory period. All three windows scale with the expected beat
+       * period (from the periodogram when available) — a fixed baseline window
+       * high-passes away the fundamental at slow heart rates and the detector
+       * then locks onto the second harmonic.
+       *
+       * Returns indices into the input arrays.
+       */
+      function detectPeaks(ts, vs, fs, priorBpm) {
+        const n = vs.length;
+        if (n < Math.max(24, fs * 1.5)) return [];
+        const bpm = (isFinite(priorBpm) && priorBpm >= BPM_MIN && priorBpm <= BPM_MAX) ? priorBpm : 75;
+        const period = 60 / bpm;
+        const smooth = movAvg(vs, Math.max(3, Math.round(fs * period * 0.10)));
+        const base = movAvg(smooth, Math.max(5, Math.round(fs * period * 1.5)));
+        const d = new Float64Array(n);
+        let ss = 0;
+        for (let i = 0; i < n; i++) { d[i] = smooth[i] - base[i]; ss += d[i] * d[i]; }
+        const rms = Math.sqrt(ss / n);
+        if (!(rms > 0)) return [];
+        const thresh = rms * 0.4;
+        const minGap = Math.max(1, Math.round(fs * period * 0.6));
+        const peaks = [];
+        for (let i = 1; i < n - 1; i++) {
+          if (d[i] < thresh) continue;
+          if (d[i] < d[i - 1] || d[i] < d[i + 1]) continue;
+          if (d[i] === d[i + 1]) continue; // keep only the last sample of a plateau
+          const lastIdx = peaks.length ? peaks[peaks.length - 1] : -1;
+          if (lastIdx >= 0 && i - lastIdx < minGap) {
+            if (d[i] > d[lastIdx]) peaks[peaks.length - 1] = i;
+            continue;
+          }
+          peaks.push(i);
+        }
+        return peaks;
+      }
+
+      /** Heart rate from the median inter-beat interval, or NaN. */
+      function bpmFromPeaks(ts, peaks) {
+        if (peaks.length < 3) return NaN;
+        const ibi = [];
+        for (let i = 1; i < peaks.length; i++) ibi.push(ts[peaks[i]] - ts[peaks[i - 1]]);
+        const m = median(ibi);
+        if (!(m > 0)) return NaN;
+        const bpm = 60 / m;
+        return (bpm >= BPM_MIN && bpm <= BPM_MAX) ? bpm : NaN;
+      }
+
+      /** In-place iterative radix-2 FFT. */
+      function fftInPlace(re, im) {
+        const n = re.length;
+        for (let i = 1, j = 0; i < n; i++) {
+          let bit = n >> 1;
+          for (; j & bit; bit >>= 1) j ^= bit;
+          j ^= bit;
+          if (i < j) {
+            let t = re[i]; re[i] = re[j]; re[j] = t;
+            t = im[i]; im[i] = im[j]; im[j] = t;
+          }
+        }
+        for (let len = 2; len <= n; len <<= 1) {
+          const ang = -2 * Math.PI / len;
+          const wr = Math.cos(ang), wi = Math.sin(ang);
+          const half = len >> 1;
+          for (let i = 0; i < n; i += len) {
+            let cr = 1, ci = 0;
+            for (let k = 0; k < half; k++) {
+              const ur = re[i + k], ui = im[i + k];
+              const xr = re[i + k + half], xi = im[i + k + half];
+              const vr = xr * cr - xi * ci;
+              const vi = xr * ci + xi * cr;
+              re[i + k] = ur + vr; im[i + k] = ui + vi;
+              re[i + k + half] = ur - vr; im[i + k + half] = ui - vi;
+              const ncr = cr * wr - ci * wi;
+              ci = cr * wi + ci * wr;
+              cr = ncr;
+            }
+          }
+        }
+      }
+
+      /**
+       * Periodogram of an unevenly-sampled trace: resample onto a uniform grid,
+       * remove the linear trend, apply a Hann window, zero-pad and FFT.
+       * Returns {bpm[], power[], peakBpm, snr} restricted to the heart-rate band.
+       */
+      function periodogram(ts, vs) {
+        const n = vs.length;
+        if (n < 48) return null;
+        const dur = ts[n - 1] - ts[0];
+        if (!(dur > 2)) return null;
+        const fs = (n - 1) / dur;
+
+        // Uniform resample (linear interpolation).
+        const N = n;
+        const dt = dur / (N - 1);
+        const x = new Float64Array(N);
+        let j = 0;
+        for (let i = 0; i < N; i++) {
+          const t = ts[0] + i * dt;
+          while (j < n - 2 && ts[j + 1] < t) j++;
+          const t0 = ts[j], t1 = ts[j + 1];
+          const f = (t1 > t0) ? (t - t0) / (t1 - t0) : 0;
+          x[i] = vs[j] + (vs[j + 1] - vs[j]) * Math.min(1, Math.max(0, f));
+        }
+
+        // Remove linear trend (kills the slow drift that dominates raw PPG).
+        let sx = 0, sy = 0, sxx = 0, sxy = 0;
+        for (let i = 0; i < N; i++) { sx += i; sy += x[i]; sxx += i * i; sxy += i * x[i]; }
+        const den = N * sxx - sx * sx;
+        const slope = den ? (N * sxy - sx * sy) / den : 0;
+        const icept = (sy - slope * sx) / N;
+        for (let i = 0; i < N; i++) x[i] -= icept + slope * i;
+
+        // Hann window.
+        let wss = 0;
+        for (let i = 0; i < N; i++) {
+          const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1));
+          x[i] *= w;
+          wss += w * w;
+        }
+
+        // Zero-pad for a smoothly interpolated spectrum.
+        let NFFT = 1;
+        while (NFFT < N) NFFT <<= 1;
+        NFFT = Math.min(8192, Math.max(1024, NFFT * 2));
+        const re = new Float64Array(NFFT), im = new Float64Array(NFFT);
+        re.set(x.subarray(0, Math.min(N, NFFT)));
+        fftInPlace(re, im);
+
+        const df = fs / NFFT;
+        const fLo = BPM_MIN / 60, fHi = Math.min(BPM_MAX / 60, fs / 2);
+        const kLo = Math.max(1, Math.ceil(fLo / df));
+        const kHi = Math.min((NFFT >> 1) - 1, Math.floor(fHi / df));
+        if (kHi <= kLo + 2) return null;
+
+        const norm = 2 / (fs * wss);
+        const m = kHi - kLo + 1;
+        const bpm = new Float64Array(m);
+        const power = new Float64Array(m);
+        let peakI = 0, peakP = -1, sumP = 0;
+        for (let k = kLo; k <= kHi; k++) {
+          const p = (re[k] * re[k] + im[k] * im[k]) * norm;
+          const i = k - kLo;
+          bpm[i] = k * df * 60;
+          power[i] = p;
+          sumP += p;
+          if (p > peakP) { peakP = p; peakI = i; }
+        }
+
+        // Parabolic refinement of the peak location.
+        let peakBpm = bpm[peakI];
+        if (peakI > 0 && peakI < m - 1) {
+          const a = power[peakI - 1], b = power[peakI], c = power[peakI + 1];
+          const d2 = a - 2 * b + c;
+          if (d2 !== 0) {
+            const shift = 0.5 * (a - c) / d2;
+            if (Math.abs(shift) <= 1) peakBpm = (bpm[peakI] + shift * (bpm[1] - bpm[0]));
+          }
+        }
+        const mean = sumP / m;
+        return {
+          bpm, power,
+          maxPower: peakP,
+          peakBpm,
+          snr: mean > 0 ? peakP / mean : 0,
+          fs,
+          dur,
+        };
+      }
+
+      /* ----- single-channel chart: scrolling time-series + periodogram ----- */
+      function makeChannelChart(canvasId, specCanvasId, placeholderId, legendId, name, color) {
         const canvas = document.getElementById(canvasId);
+        const specCanvas = document.getElementById(specCanvasId);
         const placeholder = document.getElementById(placeholderId);
         const legend = document.getElementById(legendId);
         const ctx = canvas.getContext('2d');
+        const sctx = specCanvas.getContext('2d');
 
-        // Legend: swatch + name + current value.
+        // Legend: swatch + name + current value + the two rate estimates.
         const span = document.createElement('span');
         span.className = 'axis';
         const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = color;
         const lab = document.createElement('span'); lab.textContent = name;
         const val = document.createElement('span'); val.className = 'val'; val.textContent = '—';
         span.append(sw, lab, val);
-        legend.append(span);
+        const sep1 = document.createElement('span'); sep1.className = 'sep';
+        const peakWrap = document.createElement('span'); peakWrap.className = 'axis';
+        const peakTag = document.createElement('span'); peakTag.className = 'tag'; peakTag.textContent = 'peaks';
+        const peakVal = document.createElement('span'); peakVal.className = 'bpm'; peakVal.textContent = '— BPM';
+        peakWrap.append(peakTag, peakVal);
+        const sep2 = document.createElement('span'); sep2.className = 'sep';
+        const fftWrap = document.createElement('span'); fftWrap.className = 'axis';
+        const fftTag = document.createElement('span'); fftTag.className = 'tag'; fftTag.textContent = 'spectral';
+        const fftVal = document.createElement('span'); fftVal.className = 'bpm'; fftVal.textContent = '— BPM';
+        fftWrap.append(fftTag, fftVal);
+        legend.append(span, sep1, peakWrap, sep2, fftWrap);
 
         const buf = []; // {t, v}
         let windowSec = 5;
+        let analysisSec = 15;
+        let showPeaks = true;
         let lastT = 0;
         let firstT = null;
         let drawScheduled = false;
         // Smooth the visible Y range across frames to avoid jumpiness.
         let smoothedMin = null, smoothedMax = null;
 
-        function setWindow(s) { windowSec = s; scheduleDraw(); }
+        let peakTimes = [];   // {t, v} of detected systolic peaks
+        let spec = null;      // last periodogram
+        let lastAnalysisAt = 0;
+
+        function keepSec() { return Math.max(windowSec * 1.2, analysisSec + 1); }
+        function setWindow(s) { windowSec = s; trim(); scheduleDraw(); }
+        function setAnalysisWindow(s) { analysisSec = s; trim(); analyze(true); scheduleDraw(); }
+        function setShowPeaks(on) { showPeaks = on; scheduleDraw(); }
         function clear() {
           buf.length = 0;
           firstT = null; lastT = 0;
           smoothedMin = smoothedMax = null;
+          peakTimes = []; spec = null; lastAnalysisAt = 0;
           placeholder.style.display = '';
           val.textContent = '—';
+          peakVal.textContent = '— BPM';
+          fftVal.textContent = '— BPM';
           scheduleDraw();
+        }
+        function trim() {
+          const cutoff = lastT - keepSec();
+          let drop = 0;
+          while (drop < buf.length && buf[drop].t < cutoff) drop++;
+          if (drop > 0) buf.splice(0, drop);
         }
         function push(t, v) {
           if (firstT === null) { firstT = t; placeholder.style.display = 'none'; }
           lastT = t;
           buf.push({ t, v });
-          const cutoff = t - windowSec * 1.2;
-          let drop = 0;
-          while (drop < buf.length && buf[drop].t < cutoff) drop++;
-          if (drop > 0) buf.splice(0, drop);
+          trim();
           val.textContent = v.toFixed(0);
+          analyze(false);
           scheduleDraw();
         }
+
+        /** Re-run peak detection + periodogram at ~5 Hz (they are not cheap). */
+        function analyze(force) {
+          const now = performance.now();
+          if (!force && now - lastAnalysisAt < 200) return;
+          lastAnalysisAt = now;
+          const tStart = lastT - analysisSec;
+          const ts = [], vs = [];
+          for (const s of buf) {
+            if (s.t < tStart || !isFinite(s.v)) continue;
+            ts.push(s.t); vs.push(s.v);
+          }
+          const n = ts.length;
+          if (n < 32 || ts[n - 1] - ts[0] < 2) {
+            peakTimes = []; spec = null;
+            peakVal.textContent = '— BPM';
+            fftVal.textContent = '— BPM';
+            return;
+          }
+          const fs = (n - 1) / (ts[n - 1] - ts[0]);
+          // Spectrum first: its dominant frequency seeds the peak detector.
+          spec = periodogram(ts, vs);
+          fftVal.textContent = spec ? spec.peakBpm.toFixed(1) + ' BPM' : '— BPM';
+          const idx = detectPeaks(ts, vs, fs, spec ? spec.peakBpm : NaN);
+          peakTimes = idx.map(i => ({ t: ts[i], v: vs[i] }));
+          const bpmP = bpmFromPeaks(ts, idx);
+          peakVal.textContent = isFinite(bpmP) ? bpmP.toFixed(1) + ' BPM' : '— BPM';
+          // Below this spectral SNR the dominant bin is indistinguishable from
+          // camera noise — show the numbers, but mark them as untrustworthy.
+          const weak = !spec || spec.snr < SNR_GOOD;
+          peakVal.classList.toggle('weak', weak);
+          fftVal.classList.toggle('weak', weak);
+        }
+
         function scheduleDraw() {
           if (drawScheduled) return;
           drawScheduled = true;
-          requestAnimationFrame(() => { drawScheduled = false; draw(); });
+          requestAnimationFrame(() => {
+            drawScheduled = false;
+            draw();
+            drawSpec();
+          });
         }
 
         function niceTickStep(target) {
@@ -823,14 +1185,17 @@
           return m * p;
         }
 
-        function draw() {
-          const rect = canvas.getBoundingClientRect();
+        function fitCanvas(c) {
+          const rect = c.getBoundingClientRect();
           const dpr = window.devicePixelRatio || 1;
-          const w = Math.round(rect.width * dpr);
-          const h = Math.round(rect.height * dpr);
-          if (canvas.width !== w || canvas.height !== h) {
-            canvas.width = w; canvas.height = h;
-          }
+          const w = Math.max(1, Math.round(rect.width * dpr));
+          const h = Math.max(1, Math.round(rect.height * dpr));
+          if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+          return { w, h, dpr };
+        }
+
+        function draw() {
+          const { w, h, dpr } = fitCanvas(canvas);
           ctx.fillStyle = '#0c0c0e';
           ctx.fillRect(0, 0, w, h);
 
@@ -907,6 +1272,42 @@
             ctx.stroke();
           }
 
+          // Detected systolic peaks: dropline + marker, with the instantaneous
+          // interval printed between consecutive beats.
+          if (showPeaks && peakTimes.length) {
+            ctx.font = (9 * dpr) + 'px Roboto, sans-serif';
+            let prev = null;
+            for (const pk of peakTimes) {
+              if (pk.t < tStart || pk.t > tEnd) { prev = pk; continue; }
+              const x = xOf(pk.t), y = yOf(pk.v);
+              ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+              ctx.lineWidth = 1 * dpr;
+              ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, h); ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(x, y, 3.2 * dpr, 0, Math.PI * 2);
+              ctx.fillStyle = '#0c0c0e';
+              ctx.fill();
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = 1.4 * dpr;
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(x, y, 1.5 * dpr, 0, Math.PI * 2);
+              ctx.fillStyle = '#fff';
+              ctx.fill();
+              if (prev && prev.t >= tStart) {
+                const dt = pk.t - prev.t;
+                if (dt > 0.2 && dt < 2.5) {
+                  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                  ctx.textAlign = 'center';
+                  ctx.fillText((dt * 1000).toFixed(0) + ' ms', (x + xOf(prev.t)) / 2, 12 * dpr);
+                  ctx.textAlign = 'left';
+                }
+              }
+              prev = pk;
+            }
+            ctx.font = (10 * dpr) + 'px Roboto, sans-serif';
+          }
+
           // Range label, top-right.
           ctx.fillStyle = 'rgba(255,255,255,0.55)';
           ctx.textAlign = 'right';
@@ -914,8 +1315,89 @@
           ctx.textAlign = 'left';
         }
 
-        window.addEventListener('resize', () => { if (firstT !== null) draw(); });
-        return { push, setWindow, clear };
+        /* ----- periodogram panel: power vs. heart rate in BPM ----- */
+        function drawSpec() {
+          const { w, h, dpr } = fitCanvas(specCanvas);
+          sctx.fillStyle = '#0c0c0e';
+          sctx.fillRect(0, 0, w, h);
+
+          const padL = 6 * dpr, padR = 6 * dpr, padT = 22 * dpr, padB = 18 * dpr;
+          const plotW = w - padL - padR, plotH = h - padT - padB;
+          const xOf = bpm => padL + ((bpm - BPM_MIN) / (BPM_MAX - BPM_MIN)) * plotW;
+
+          sctx.font = (10 * dpr) + 'px Roboto, sans-serif';
+
+          // BPM gridlines.
+          sctx.strokeStyle = 'rgba(255,255,255,0.07)';
+          sctx.lineWidth = 1 * dpr;
+          sctx.fillStyle = 'rgba(255,255,255,0.35)';
+          sctx.textAlign = 'center';
+          for (let bpm = 60; bpm <= 180; bpm += 60) {
+            const x = xOf(bpm);
+            sctx.beginPath(); sctx.moveTo(x, padT); sctx.lineTo(x, padT + plotH); sctx.stroke();
+            sctx.fillText(String(bpm), x, h - 5 * dpr);
+          }
+          sctx.textAlign = 'left';
+          sctx.fillStyle = 'rgba(255,255,255,0.35)';
+          sctx.fillText('BPM', padL, h - 5 * dpr);
+
+          if (!spec) {
+            sctx.fillStyle = 'rgba(255,255,255,0.35)';
+            sctx.textAlign = 'center';
+            sctx.fillText('collecting…', w / 2, h / 2);
+            sctx.textAlign = 'left';
+            return;
+          }
+
+          const maxP = spec.maxPower > 0 ? spec.maxPower : 1;
+          const yOf = p => padT + plotH - (p / maxP) * plotH;
+
+          // Filled spectrum.
+          sctx.beginPath();
+          sctx.moveTo(xOf(spec.bpm[0]), padT + plotH);
+          for (let i = 0; i < spec.bpm.length; i++) sctx.lineTo(xOf(spec.bpm[i]), yOf(spec.power[i]));
+          sctx.lineTo(xOf(spec.bpm[spec.bpm.length - 1]), padT + plotH);
+          sctx.closePath();
+          sctx.fillStyle = color + '33';
+          sctx.fill();
+          sctx.strokeStyle = color;
+          sctx.lineWidth = 1.4 * dpr;
+          sctx.beginPath();
+          for (let i = 0; i < spec.bpm.length; i++) {
+            const x = xOf(spec.bpm[i]), y = yOf(spec.power[i]);
+            if (i === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
+          }
+          sctx.stroke();
+
+          // Dominant frequency marker.
+          const px = xOf(spec.peakBpm);
+          sctx.setLineDash([3 * dpr, 3 * dpr]);
+          sctx.strokeStyle = 'rgba(255,255,255,0.55)';
+          sctx.lineWidth = 1 * dpr;
+          sctx.beginPath(); sctx.moveTo(px, padT - 6 * dpr); sctx.lineTo(px, padT + plotH); sctx.stroke();
+          sctx.setLineDash([]);
+
+          const weak = spec.snr < SNR_GOOD;
+          sctx.fillStyle = weak ? 'rgba(255,255,255,0.45)' : '#fff';
+          sctx.font = '700 ' + (12 * dpr) + 'px Roboto, sans-serif';
+          sctx.textAlign = px > w * 0.6 ? 'right' : 'left';
+          const lx = px + (px > w * 0.6 ? -5 * dpr : 5 * dpr);
+          sctx.fillText(spec.peakBpm.toFixed(1) + ' BPM' + (weak ? ' ?' : ''), lx, 13 * dpr);
+
+          sctx.font = (9 * dpr) + 'px Roboto, sans-serif';
+          sctx.fillStyle = 'rgba(255,255,255,0.4)';
+          sctx.textAlign = 'right';
+          sctx.fillText(
+            (spec.peakBpm / 60).toFixed(2) + ' Hz · SNR ' + spec.snr.toFixed(1) +
+            ' · ' + spec.dur.toFixed(0) + ' s',
+            w - 5 * dpr, h - 5 * dpr
+          );
+          sctx.textAlign = 'left';
+        }
+
+        window.addEventListener('resize', () => { if (firstT !== null) { draw(); drawSpec(); } });
+        drawSpec();
+        return { push, setWindow, setAnalysisWindow, setShowPeaks, clear };
       }
 
       /* ============ PHONE ============ */
