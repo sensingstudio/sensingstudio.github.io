@@ -418,7 +418,7 @@
             <span class="pair-code" id="pairCode">— — — —</span>
           </div>
           <p class="status" id="pairStatus">Generating session&hellip;</p>
-          <p class="pair-help">On your phone, open <strong>sensingstudio.org/camera-remote-back</strong> and enter this code.</p>
+          <p class="pair-help" id="pairHelp">On your phone, open <strong>sensingstudio.org/camera-remote-back</strong> and enter this code.</p>
         </section>
 
         <section class="panel join-only">
@@ -728,37 +728,65 @@
           return ('0000' + Math.floor(Math.random() * 10000)).slice(-4);
         }
 
+        function fail(msg) {
+          pairStatus.textContent = msg;
+          pairStatus.classList.remove('ok');
+          pairStatus.classList.add('error');
+        }
+
         function tryClaimPeer(attempt) {
           attempt = attempt || 0;
           if (attempt > 8) {
-            pairStatus.textContent = 'Could not allocate a session — please refresh.';
-            pairStatus.classList.add('error');
+            fail('Could not allocate a session — please refresh.');
+            return;
+          }
+          if (typeof Peer === 'undefined') {
+            fail('Pairing library did not load — peerjs.min.js was blocked (ad blocker, extension, or no network).');
             return;
           }
           const code = makeNumericCode();
-          peer = new Peer(PEER_PREFIX + code);
+          try {
+            peer = new Peer(PEER_PREFIX + code);
+          } catch (err) {
+            fail('Could not start pairing: ' + err.message);
+            return;
+          }
           let resolved = false;
+          // PeerJS never times out on its own: without this the page sits on
+          // "Generating session…" forever when the broker is unreachable.
+          const watchdog = setTimeout(() => {
+            if (resolved) return;
+            resolved = true;
+            try { peer.destroy(); } catch (_) {}
+            if (attempt >= 2) {
+              fail('No response from the pairing server (0.peerjs.com) — a firewall, VPN, or ad blocker is likely blocking the WebSocket.');
+            } else {
+              pairStatus.textContent = 'Pairing server slow — retrying…';
+              tryClaimPeer(attempt + 1);
+            }
+          }, 8000);
           peer.on('open', () => {
             if (resolved) return;
             resolved = true;
+            clearTimeout(watchdog);
             pairCodeEl.textContent = code.split('').join(' ');
             pairStatus.textContent = 'Waiting for phone…';
+            pairStatus.classList.remove('error');
             attachPeerHandlers();
           });
           peer.on('error', (err) => {
             if (resolved) {
-              pairStatus.textContent = 'Connection error: ' + err.message;
-              pairStatus.classList.add('error');
+              fail('Connection error: ' + err.message);
               return;
             }
+            clearTimeout(watchdog);
             if (err.type === 'unavailable-id') {
               resolved = true;
               try { peer.destroy(); } catch (_) {}
               tryClaimPeer(attempt + 1);
             } else {
               resolved = true;
-              pairStatus.textContent = 'Pairing error: ' + err.message;
-              pairStatus.classList.add('error');
+              fail('Pairing error [' + (err.type || 'unknown') + ']: ' + err.message);
             }
           });
         }
@@ -851,6 +879,20 @@
           }
           location.href = location.pathname + '?code=' + v;
         });
+
+        // When served from anywhere but production (localhost, a tunnel, a LAN
+        // IP), point the phone at the host actually being used.
+        const pairHelp = document.getElementById('pairHelp');
+        if (pairHelp && location.hostname !== 'sensingstudio.org') {
+          const where = location.host + location.pathname.replace(/\/index\.html$/, '');
+          pairHelp.innerHTML = 'On your phone, open <strong></strong> and enter this code.';
+          pairHelp.querySelector('strong').textContent = where;
+          if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            const warn = document.createElement('span');
+            warn.textContent = ' The phone needs HTTPS (or localhost) or it cannot open its camera.';
+            pairHelp.append(warn);
+          }
+        }
 
         tryClaimPeer();
       }
