@@ -600,7 +600,25 @@
       const role = hostId ? 'phone' : 'laptop';
       document.body.dataset.role = role;
 
-      if (role === 'laptop') initLaptop(); else initPhone();
+      // Analysis constants. These must be declared before the dispatch below:
+      // initLaptop() builds the charts, which draw immediately, and a `const`
+      // referenced before its declaration is evaluated throws (TDZ).
+      const BPM_MIN = 30, BPM_MAX = 220;
+      const SNR_GOOD = 8; // spectral peak-to-mean below this reads as noise
+
+      // Surface a startup exception in the UI. Without this, anything thrown
+      // in initLaptop() leaves the page sitting on "Generating session…" with
+      // no clue that the script died before pairing ever started.
+      try {
+        if (role === 'laptop') initLaptop(); else initPhone();
+      } catch (err) {
+        const el = document.getElementById(role === 'laptop' ? 'pairStatus' : 'phoneStatus');
+        if (el) {
+          el.textContent = 'Startup error: ' + err.message;
+          el.classList.add('error');
+        }
+        throw err;
+      }
 
       /* ============ LAPTOP ============ */
       function initLaptop() {
@@ -921,8 +939,6 @@
         return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
       }
 
-      const BPM_MIN = 30, BPM_MAX = 220;
-      const SNR_GOOD = 8; // spectral peak-to-mean below this reads as noise
 
       /**
        * Systolic-peak detector for a PPG-like trace.
