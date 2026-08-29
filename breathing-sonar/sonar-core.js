@@ -483,7 +483,7 @@ function drawScope() {
     + (lim < 1 ? '  ·  zoomed ×' + (1 / lim).toFixed(0) : ''), padL + 6 * dpr, padT + 2 * dpr);
   ctx.textAlign = 'right';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(R.waveMs.toFixed(0) + ' ms', W - padR, H - 4 * dpr);
+  ctx.fillText(R.waveMs.toFixed(0) + ' ms · triggered', W - padR, H - 4 * dpr);
 }
 
 // Spectrum of the newest 4096 samples, Hann-windowed, in dBFS.
@@ -734,7 +734,7 @@ function resolveMotion(S, zr, zi, L, lamM, alpha, rate) {
 //  code, so the two pages cannot drift apart.
 // ============================================================
 const R = {
-  wave: new Float32Array(1024), waveN: 0, waveMs: 20,
+  wave: new Float32Array(1024), waveN: 0, waveMs: 2,
   spec: new Float32Array(1024), specN: 0, specDf: 0, fs: 48000,
   rms: 0, peak: 0, clip: 0, band: NaN,
   cwArcR: new Float32Array(400), cwArcI: new Float32Array(400), cwArcN: 0,
@@ -774,12 +774,33 @@ function ringInto(ring, count, dst, maxN) {
   return decimateInto(ringTmp.buf, n, dst, maxN);
 }
 
+// An oscilloscope, not a snapshot. The window is short enough to show the
+// carrier itself, and it starts at a rising zero crossing so successive
+// frames land on the same phase — without that the trace jumps to an
+// unrelated slice of audio five times a second and reads as broken.
+function fillScopeWave() {
+  const want = Math.min(R.wave.length, Math.round(R.waveMs / 1000 * scope.fs));
+  const grab = Math.min(scope.ring.filled, want * 3);
+  if (grab < 8) return 0;
+  if (!ringTmp.buf || ringTmp.buf.length < grab) ringTmp.buf = new Float32Array(grab);
+  ringLast(scope.ring, grab, ringTmp.buf);
+  const src = ringTmp.buf;
+  let start = 0;
+  const searchEnd = grab - want;
+  for (let i = 1; i < searchEnd; i++) {
+    if (src[i - 1] <= 0 && src[i] > 0) { start = i; break; }
+  }
+  const n = Math.min(want, grab - start);
+  for (let i = 0; i < n; i++) R.wave[i] = src[start + i];
+  return n;
+}
+
 // Fill R from local DSP state. `heavy` also refreshes the scope waveform
 // and the received spectrum, which are the expensive parts.
 function prepareDraw(heavy) {
   if (heavy) {
     R.fs = scope.fs;
-    R.waveN = ringInto(scope.ring, Math.round(R.waveMs / 1000 * scope.fs), R.wave, 1024);
+    R.waveN = fillScopeWave();
     computeRxSpectrum();
     R.specN = decimateInto(scope.spec, scope.specN, R.spec, 1024);
     R.specDf = R.specN > 1 ? (scope.fs / 2) / (R.specN - 1) : 0;
@@ -1080,7 +1101,7 @@ const fm = {
   arcR: null, arcI: null, lam: 0.018,
   frameRate: 0, lastFrameWall: 0, rateEMA: 0,
   profile: null, sharp: null, prof2nd: -1, lockCell: -1, manualLock: false, rangeCm: NaN,
-  res: null, ev: null, wf: null, work: null, colQueue: []
+  res: null, ev: null, wf: null, work: null, colQueue: [], skipped: 0
 };
 
 // Linear sweep, phase-continuous across the loop point: the centre
@@ -1133,6 +1154,7 @@ function fmInit(fs) {
   fm.ring = new Float32Array(ringSize);
   fm.mask = ringSize - 1;
   fm.write = 0; fm.nextFrame = 0; fm.synced = false; fm.syncReq = true;
+  fm.skipped = 0;
 
   fm.HISTN = Math.ceil(BR_WIN_S * fm.frameRate) + 8;
   // Keep the complex cell value, not just its magnitude: the range
@@ -1250,8 +1272,17 @@ function fmSamples(input, n) {
     fm.synced = true;
   }
   if (!fm.synced) return;
-  while (fm.nextFrame + fm.frameLen <= fm.write
-         && fm.write - fm.nextFrame < fm.ring.length - fm.frameLen) {
+  // If the grid has fallen further behind than the ring holds, the old
+  // samples are already overwritten. Jump forward by whole frames — that
+  // keeps chirp alignment — rather than refusing to process, which is a
+  // stall the frame grid can never climb out of.
+  const maxBehind = fm.ring.length - fm.frameLen;
+  if (fm.write - fm.nextFrame > maxBehind) {
+    const behind = fm.write - fm.nextFrame - maxBehind;
+    fm.nextFrame += Math.ceil(behind / fm.frameLen) * fm.frameLen;
+    fm.skipped++;
+  }
+  while (fm.nextFrame + fm.frameLen <= fm.write) {
     fmProcessFrame(fm.nextFrame);
     fm.nextFrame += fm.frameLen;
   }
@@ -1730,6 +1761,9 @@ function pushCapture(buf) {
     const old = eng.queue.shift();
     eng.qLen -= old.length;
     eng.dropped += old.length;
+    // A hole in the stream shifts every later sample, so the FMCW sweep
+    // grid no longer lines up with the transmitter. Find it again.
+    fm.syncReq = true;
   }
 }
 
@@ -1740,9 +1774,17 @@ function drainCapture() {
   eng.queue = [];
   eng.qLen = 0;
   let count = 0;
+  // Feed the DSP in bounded slices. A backlog handed over in one lump can
+  // be longer than the FMCW ring, in which case the oldest samples would
+  // be overwritten before the frame grid reached them; slicing keeps the
+  // grid inside the ring no matter how far behind we are.
+  const MAX_CHUNK = 4096;
   for (const buf of batch) {
-    scopePush(buf, buf.length);
-    if (method === 'cw') cwSamples(buf, buf.length); else fmSamples(buf, buf.length);
+    for (let off = 0; off < buf.length; off += MAX_CHUNK) {
+      const sub = buf.subarray(off, Math.min(off + MAX_CHUNK, buf.length));
+      scopePush(sub, sub.length);
+      if (method === 'cw') cwSamples(sub, sub.length); else fmSamples(sub, sub.length);
+    }
     count += buf.length;
   }
   eng.proc += count;
