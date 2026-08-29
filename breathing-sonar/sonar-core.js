@@ -949,13 +949,23 @@ function cwAnalyze() {
     paintBadge($('cwEvent'), cw.ev);
   }
 
-  const good = cw.res && cw.res.conf >= BR_CONF;
-  $('cwBpm').innerHTML = good
-    ? cw.res.bpm.toFixed(1) + '<span class="unit"> /min</span>'
+  // Always show the strongest peak in the band, marked "weak" when it is
+  // not sharp enough to believe. A dash tells you nothing about whether
+  // the pipeline is dead or the room is simply noisy; a number plus its
+  // confidence tells you which, and the confidence card below says by how
+  // much it misses.
+  const r = cw.res;
+  const good = r && r.conf >= BR_CONF;
+  const weak = good ? '' : ' &middot; weak';
+  $('cwBpm').innerHTML = r
+    ? r.bpm.toFixed(1) + '<span class="unit"> /min' + weak + '</span>'
     : '&mdash;<span class="unit"> /min</span>';
-  $('cwDisp').innerHTML = (good && cw.scaled)
-    ? cw.res.ampPP.toFixed(2) + '<span class="unit"> mm p-p</span>'
-    : '&mdash;<span class="unit">' + (good && !cw.scaled ? ' arc too short' : ' mm p-p') + '</span>';
+  $('cwDisp').innerHTML = (r && cw.scaled)
+    ? r.ampPP.toFixed(2) + '<span class="unit"> mm p-p' + weak + '</span>'
+    : '&mdash;<span class="unit">' + (r && !cw.scaled ? ' arc too short' : ' mm p-p') + '</span>';
+  setStat('cwConf', r
+    ? r.conf.toFixed(1) + '<span class="unit"> of ' + BR_CONF.toFixed(1) + ' needed</span>'
+    : '&mdash;<span class="unit"> of ' + BR_CONF.toFixed(1) + '</span>');
   const snr = cw.clMag > 0 && cw.ampEMA > 0 ? 20 * Math.log10(cw.ampEMA / cw.clMag) : NaN;
   $('cwSnr').innerHTML = isFinite(snr)
     ? snr.toFixed(1) + '<span class="unit"> dB</span>'
@@ -1420,11 +1430,16 @@ function fmAnalyze() {
   updateEvent(fm.ev, env, fm.res ? fm.res.conf : 0);
   paintBadge($('fmEvent'), fm.ev);
 
-  if (fm.res && fm.res.conf >= BR_CONF) {
-    $('fmBpm').innerHTML = fm.res.bpm.toFixed(1) + '<span class="unit"> /min</span>';
-    $('fmRangeStat').innerHTML = fm.rangeCm.toFixed(0) + '<span class="unit"> cm</span>';
+  const fr = fm.res;
+  const fweak = fr && fr.conf >= BR_CONF ? '' : ' &middot; weak';
+  setStat('fmConf', fr
+    ? fr.conf.toFixed(1) + '<span class="unit"> of ' + BR_CONF.toFixed(1) + ' needed</span>'
+    : '&mdash;<span class="unit"> of ' + BR_CONF.toFixed(1) + '</span>');
+  if (fr) {
+    $('fmBpm').innerHTML = fr.bpm.toFixed(1) + '<span class="unit"> /min' + fweak + '</span>';
+    $('fmRangeStat').innerHTML = fm.rangeCm.toFixed(0) + '<span class="unit"> cm' + fweak + '</span>';
     $('fmDisp').innerHTML = fm.scaled
-      ? fm.res.ampPP.toFixed(2) + '<span class="unit"> mm p-p</span>'
+      ? fr.ampPP.toFixed(2) + '<span class="unit"> mm p-p' + fweak + '</span>'
       : '&mdash;<span class="unit"> arc too short</span>';
   } else {
     $('fmBpm').innerHTML = '&mdash;<span class="unit"> /min</span>';

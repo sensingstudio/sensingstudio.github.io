@@ -509,6 +509,10 @@
             <div class="num" id="cwSnr">&mdash;<span class="unit"> dB</span></div>
           </div>
           <div class="stat">
+            <div class="label">Peak confidence</div>
+            <div class="num" id="cwConf">&mdash;<span class="unit"> of 5.0</span></div>
+          </div>
+          <div class="stat">
             <div class="label">Baseband rate</div>
             <div class="num" id="cwRate">&mdash;<span class="unit"> Hz</span></div>
           </div>
@@ -531,7 +535,7 @@
             </div>
             <div class="canvas-wrap mid"><canvas id="cwDispCanvas"></canvas></div>
             <div class="canvas-title">Breathing spectrum
-              <span class="sub">30 s FFT of the trace above</span>
+              <span class="sub">30 s FFT of the trace above &mdash; the peak counts only if it stands ~5&times; above the rest of the band</span>
             </div>
             <div class="canvas-wrap short"><canvas id="cwSpecCanvas"></canvas></div>
           </div>
@@ -567,6 +571,10 @@
           <div class="stat">
             <div class="label">Range cell c/2B</div>
             <div class="num" id="fmBinStat">&mdash;<span class="unit"> cm</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Peak confidence</div>
+            <div class="num" id="fmConf">&mdash;<span class="unit"> of 5.0</span></div>
           </div>
           <div class="stat">
             <div class="label">Frame rate</div>
