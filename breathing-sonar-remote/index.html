@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Breathing Sonar · Sensing Studio</title>
+    <title>Breathing Sonar (Remote) · Sensing Studio</title>
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,6 +16,7 @@
       gtag('js', new Date());
       gtag('config', 'G-XTHNL4559K');
     </script>
+    <script src="https://unpkg.com/peerjs@1/dist/peerjs.min.js"></script>
     <style>
       :root {
         --red: #bc122a;
@@ -309,24 +310,63 @@
         .param-hint { margin-left: 0; }
         label { min-width: 0; flex-basis: 100%; }
       }
+      body[data-role="laptop"] .phone-only { display: none; }
+      body[data-role="phone"] .laptop-only { display: none; }
+      body:not([data-role]) .laptop-only,
+      body:not([data-role]) .phone-only { display: none; }
+      body[data-role="laptop"]:not([data-paired]) .needs-phone { display: none; }
+      .pair-code-block {
+        display: flex; align-items: baseline; gap: 18px;
+        padding: 18px 0 10px;
+      }
+      .pair-code-label {
+        font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase;
+        color: var(--grey-text); font-weight: 700;
+      }
+      .pair-code {
+        font-family: 'Roboto Mono', monospace;
+        font-size: clamp(34px, 9vw, 56px);
+        font-weight: 700; letter-spacing: 10px; color: var(--red);
+      }
+      .pair-help { font-size: 13px; color: var(--grey-text); line-height: 1.5; }
+      .pair-help strong { color: var(--black); }
+      .join-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      .join-form input {
+        font-family: 'Roboto Mono', monospace; font-size: 26px; width: 150px;
+        padding: 10px 14px; border: 1px solid var(--grey-line); border-radius: 8px;
+        letter-spacing: 8px; text-align: center;
+      }
+      .phone-shell { text-align: center; padding-top: 8px; }
+      .phone-big {
+        font-family: 'Roboto Mono', monospace; font-size: 46px; font-weight: 700;
+        letter-spacing: -1px; margin: 6px 0 2px;
+      }
+      .phone-sub { font-size: 13px; color: var(--grey-text); }
+      .phone-btn { width: 100%; padding: 20px; font-size: 16px; margin-top: 18px; }
+      .phone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
     </style>
   </head>
   <body>
-    <header data-nav data-crumb="Breathing Sonar"></header>
+    <header data-nav data-crumb="Breathing Sonar &middot; Remote"></header>
     <script src="../nav.js" defer></script>
 
     <main>
-      <h1>Breathing Sonar</h1>
-      <p class="lead">Your chest moves a few millimetres when you breathe. That is enough to be seen from across the desk with nothing but a laptop speaker and its microphone: emit an inaudible tone above 18&nbsp;kHz, listen to what comes back, and watch the echo breathe. Two methods, side by side &mdash; a single-tone phase tracker, and the FMCW range-bin pipeline from Nandakumar, Gollakota &amp; Watson, <a href="https://apnea.cs.washington.edu/apneaapp.pdf" target="_blank" rel="noopener">ApneaApp (MobiSys&nbsp;2015)</a>.</p>
+      <!-- ================= LAPTOP (host) ================= -->
+      <div class="laptop-only">
+        <h1>Breathing Sonar (Remote)</h1>
+        <p class="lead">Put the phone where ApneaApp put it &mdash; on the nightstand, a metre from a chest &mdash; and keep the laptop as the screen. The phone becomes the sonar: it emits the inaudible signal, records its own echoes, and runs the whole pipeline on board, streaming only the results here over WebRTC. The physics is explained on the <a href="../breathing-sonar/">single-device page</a>; this one is the same code with the front end moved.</p>
 
-      <section class="panel teach">
-        <h2>The idea in one minute</h2>
-        <p>Sound leaves the speaker, bounces off your torso, and returns to the microphone. The round trip takes <code>2d/c</code> seconds. Inhale and <code>d</code> shrinks by a few millimetres; exhale and it grows back. Every method here is a different way of noticing that few-millimetre change against a room full of much stronger, perfectly stationary echoes.</p>
-        <p><strong>Method 1 &mdash; CW phase.</strong> Hold one tone. At 18&nbsp;kHz a wavelength is 19&nbsp;mm, so a 1&nbsp;mm chest displacement changes the round-trip path by 2&nbsp;mm and rotates the returning echo by <code>4&pi;&middot;1&nbsp;mm/&lambda;</code> = 38&deg;. You cannot measure absolute distance this way &mdash; but you can measure <em>change</em> with absurd sensitivity, because phase is a ruler with 19&nbsp;mm markings.</p>
-        <p><strong>Method 2 &mdash; FMCW range cells (ApneaApp).</strong> Sweep 18&rarr;20&nbsp;kHz over and over. Mixing the echo with the sweep turns delay into a beat frequency, so one FFT sorts the room into range cells 8.6&nbsp;cm deep. Breathing shows up as the energy in a cell rising and falling. Less sensitive per millimetre than holding a single tone &mdash; but it tells you <em>where</em> the sleeper is, and can follow two of them at different distances at once.</p>
-        <p>Both end the same way: take the slow, wobbling signal you extracted, run a 30-second FFT, and look for a peak between 0.12 and 0.7&nbsp;Hz &mdash; 7 to 42 breaths a minute. That peak, if it is sharp enough to stand clear of the rest of the band, is a breathing rate.</p>
-      </section>
+        <section class="panel">
+          <h2>Pair your phone</h2>
+          <div class="pair-code-block">
+            <span class="pair-code-label">Code</span>
+            <span class="pair-code" id="pairCode">&mdash; &mdash; &mdash; &mdash;</span>
+          </div>
+          <p class="status" id="pairStatus">Generating session&hellip;</p>
+          <p class="pair-help">On the phone, open <strong>sensingstudio.org/breathing-sonar-remote</strong> and enter this code. Both devices need to be online; the audio never leaves the phone.</p>
+        </section>
 
+      <div class="needs-phone">
       <section class="panel">
         <h2>Method</h2>
         <div class="row">
@@ -613,51 +653,72 @@
         </div>
       </section>
 
-      <section class="panel teach">
-        <h2>Method 1 &mdash; how phase becomes millimetres</h2>
-        <p><strong>Transmit.</strong> One sine at <code>f<sub>0</sub></code>, looped from an audio buffer holding a whole number of cycles so the loop point is silent. The buffer length rounds the frequency slightly; the receiver uses the rounded value, so transmitter and receiver share one clock and one frequency exactly.</p>
-        <p><strong>Receive and demodulate.</strong> Multiply each microphone sample by <code>e<sup>&minus;j2&pi;f<sub>0</sub>t</sup></code> and average over 512 samples. That is a quadrature demodulator followed by a very blunt low-pass: the 18&nbsp;kHz carrier collapses to DC, everything else averages away, and what drops out at ~94&nbsp;Hz is one complex number per block:</p>
-        <p class="eq">z(t) = &Sigma;<sub>k</sub> A<sub>k</sub> e<sup>&minus;j&middot;4&pi;d<sub>k</sub>(t)/&lambda;</sup></p>
-        <p>One term per echo path. The wall, the desk, and the speaker-to-mic leak have fixed <code>d<sub>k</sub></code>, so they sum to a large constant vector. Your chest is a small term whose angle sweeps as you breathe.</p>
-        <p><strong>Cancel the room.</strong> Subtract a running average of <code>z</code> with time constant &tau;. The constant vector vanishes; what remains is a small arc centred on the origin. That is the whole clutter-cancellation step, and it is why the constellation plot above starts as a blob and opens into an arc after a few seconds.</p>
-        <p><strong>Read the angle.</strong> Unwrap <code>&ang;z</code> across time and convert:</p>
-        <p class="eq">&Delta;d = &lambda;&middot;&Delta;&phi; / 4&pi; &nbsp;&nbsp;&nbsp; (&lambda; = c/f<sub>0</sub> &asymp; 19 mm at 18 kHz)</p>
-        <p>The 4&pi; rather than 2&pi; is the round trip &mdash; the path changes by twice the chest displacement. Note what this measurement is <em>not</em>: absolute distance is unrecoverable, since every added half-wavelength returns the same phase. And it is not selective &mdash; every mover in the room lands in the same single number.</p>
-      </section>
 
-      <section class="panel teach">
-        <h2>Method 2 &mdash; ApneaApp&rsquo;s pipeline, step by step</h2>
-        <p><strong>1. Sweep.</strong> Transmit a linear chirp from <code>f<sub>0</sub></code> to <code>f<sub>1</sub></code> over <code>T<sub>sweep</sub></code>, on repeat. An echo delayed by <code>&Delta;t</code> is a copy of the sweep shifted in time, which &mdash; because frequency rises linearly &mdash; means shifted in frequency:</p>
-        <p class="eq">&Delta;f = (f<sub>1</sub> &minus; f<sub>0</sub>) / T<sub>sweep</sub> &middot; &Delta;t, &nbsp;&nbsp; &Delta;t = 2d/c</p>
-        <p><strong>2. Dechirp.</strong> Multiply the received signal by the conjugate of the sweep the transmitter is playing at that instant. Each echo collapses from a 2&nbsp;kHz-wide chirp to a steady tone at its own <code>&Delta;f</code>. Delay has become frequency, so one FFT is a range profile.</p>
-        <p><strong>3. Transform over M sweeps, not one.</strong> This is the paper&rsquo;s move. A 512-sample FFT at 48&nbsp;kHz has 93.75&nbsp;Hz bins; transform over ten consecutive sweeps instead and the same 107&nbsp;ms of audio yields 9.375&nbsp;Hz bins, short enough a frame that nothing meaningful moves during it.</p>
-        <p>It is worth being exact about what those extra bins hold, because the answer is visible in this page&rsquo;s output. The sweep repeats every <code>N</code> samples, so a stationary echo dechirps to a signal that is <em>periodic</em> with the sweep &mdash; and an M-sweep FFT of a period-N signal has energy only on bins that are multiples of M. The spectrum comes out as a comb: one line per physical range cell, spaced <code>c/2B</code> = 8.6&nbsp;cm, exactly the resolution the bandwidth allows. The M&minus;1 bins between two comb lines are not extra range &mdash; they are the Doppler bins of that cell, and only motion pushes energy into them. Breathing is far too slow to reach them (a chest moving 6&nbsp;mm/s Doppler-shifts a 19&nbsp;kHz echo by under 1&nbsp;Hz, a fifteenth of one fine bin). So this page reads the comb lines and treats them as what they are: range cells 8.6&nbsp;cm apart, refreshed once per frame, with M sweeps of coherent gain behind each one.</p>
-        <p><strong>4. Find the person.</strong> Take a cell&rsquo;s magnitude as a function of frame number &mdash; a signal sampled at the frame rate, ~12&nbsp;Hz here &mdash; run a 30-second FFT on it, and score any peak in the breathing band. ApneaApp scans outward from the phone and stops at the first cell that shows one; keep scanning and a second peak, well clear of the first, is a second sleeper. The scan repeats whenever the subject shifts, which is why the system never has to be told how far away the bed is.</p>
-        <p><strong>4b. Read the rate from phase, not amplitude.</strong> One departure from the paper. Amplitude works for finding the cell, but it folds: the chest sweeps through <code>4&pi;&middot;6&nbsp;mm/&lambda;</code> &asymp; 240&deg; of phase per breath, so the magnitude of that cell rises and falls <em>twice</em> per breath and a naive spectral peak reports double the true rate. The complex bin value does not fold. Cancel its mean, unwrap its angle, and you get the same millimetre trace method 1 produces &mdash; but attached to a range. That is the trace plotted above; the amplitude test still drives the event monitor, as in the paper.</p>
-        <p><strong>5. Score events.</strong> Track the amplitude of the chest-motion signal. ApneaApp calls a hypopnea when it drops below 30% of baseline while staying periodic, and a central apnea when it goes to nothing. In a 296-hour clinical study across 37 patients at the UW Medicine Sleep Center, event counts correlated with polysomnography at 0.9957 (central), 0.9860 (obstructive) and 0.9533 (hypopnea), with an average error of 1.9 events per hour.</p>
-      </section>
-
-      <section class="panel teach">
-        <h2>Things to try</h2>
-        <ul>
-          <li>Start with CW, sit still, and watch the constellation. For the first few seconds it is a tight knot &mdash; the clutter average has not converged. Then the knot cancels and an arc opens up, one sweep out and back per breath.</li>
-          <li>Hold your breath. The arc collapses to a point, the spectrum flattens, and the envelope strip crosses its threshold within about ten seconds.</li>
-          <li>Breathe deliberately fast, then slow. The spectral peak walks across the axis. Deep breaths widen the arc &mdash; and if you exceed half a wavelength of chest travel the phase wraps, which the unwrapper handles but the constellation shows as a full loop.</li>
-          <li>Switch to FMCW and move your chair 20&nbsp;cm back. The bright ripple in the waterfall and the peak in the energy-vs-range plot both follow you &mdash; two cells over. That is the coordinate CW cannot see. Ranges are measured from the direct speaker-to-microphone arrival, so treat cell&nbsp;0 as the laptop, not as your nose.</li>
-          <li>Get a second person to sit a metre behind you. Two peaks in the energy profile, two independent breathing rates &mdash; click either to lock it.</li>
-          <li>Drop the FMCW bandwidth to 500&nbsp;Hz. Range resolution falls to 34&nbsp;cm, the peaks smear together, and two people become one. Bandwidth is resolution, always.</li>
-          <li>Set chirps-per-frame to 4. Range cells stay 8.6&nbsp;cm apart &mdash; bandwidth fixed that &mdash; but each one now integrates a quarter as much sound, so the trace gets noisier while updating four times as often.</li>
-          <li>Cover the laptop microphone with a finger. Both methods should fall to noise &mdash; a useful reminder of how much of this is real echo and how much is wishful thinking.</li>
-        </ul>
-      </section>
-
-      <section class="panel teach">
-        <h2>What this isn&rsquo;t</h2>
-        <p>This page is the sensing front end only, running on whatever single speaker and single microphone the browser hands it. ApneaApp ran on a phone placed beside a bed for eight hours a night, with a sleep-staging stage, a peak detector tuned against scored polysomnography, and an event classifier that separates obstructive from central apnea by looking for the effortful chest motion that continues during an obstruction. None of that is here.</p>
-        <div class="disclaimer">
-          <strong>Not a medical device.</strong> The envelope strip reproduces the shape of ApneaApp&rsquo;s amplitude test as a teaching aid, not a diagnosis. Sleep apnea is diagnosed with a sleep study. If you are worried about your breathing during sleep, talk to a physician &mdash; do not consult a web page.
         </div>
-      </section>
+
+        <section class="panel teach">
+          <h2>Why the phone does the maths</h2>
+          <p>The obvious split &mdash; phone streams its microphone, laptop does the signal processing &mdash; cannot work here, and it is worth knowing why. A WebRTC audio track is Opus-coded and resampled through a jitter buffer. Opus is a perceptual codec: it preserves what you hear and discards phase relationships you do not, and the jitter buffer stretches and shrinks the stream by fractions of a sample to keep the clocks aligned. Both are harmless for speech and fatal here, because the entire measurement <em>is</em> the phase of an 18&nbsp;kHz carrier, and 1&nbsp;mm of chest movement is 38&deg; of it.</p>
+          <p>So the phone keeps the samples. It plays the tone or the sweep, captures its own microphone at the native rate, and runs the identical <code>sonar-core.js</code> that the single-device page runs. What crosses the network is the finished picture: a few hundred numbers per packet &mdash; the motion trace, the breathing spectrum, the range profile, the envelope, and enough of the raw waveform and spectrum to fill the signal-check panel. About 40&nbsp;kB/s, four packets a second.</p>
+          <p>The controls above are commands, not settings: change a parameter here and the phone re-initialises its DSP and answers with new packets. That is also why the layout is identical to the single-device page &mdash; both pages call the same drawing code over the same render buffers, so what you see here is what the phone computed, not an approximation of it.</p>
+        </section>
+
+        <section class="panel teach">
+          <h2>Placing the phone</h2>
+          <ul>
+            <li>Speaker and microphone both face the chest. Flat on a nightstand pointing up is worse than propped against something at torso height.</li>
+            <li>Thirty to eighty centimetres. ApneaApp claims a metre; past that the echo is buried, and with a 512-sample sweep the far half of each chirp is wrapped anyway.</li>
+            <li>Plug the phone in. Half an hour of continuous 19&nbsp;kHz output and full-rate DSP is not a light load.</li>
+            <li>Check the signal panel before trusting anything. Phone speakers vary enormously above 18&nbsp;kHz; if the hump is missing from the received spectrum, drop the band.</li>
+            <li>A phone screen that sleeps may throttle its audio thread. Keep the screen awake for a long run.</li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- ================= PHONE (sensor) ================= -->
+      <div class="phone-only">
+        <h1>Sonar endpoint</h1>
+        <p class="lead" id="phoneLead">Enter the code shown on the laptop to turn this phone into the sonar.</p>
+
+        <section class="panel" id="joinPanel">
+          <h2>Join a session</h2>
+          <form id="joinForm" class="join-form">
+            <input type="text" id="joinCode" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                   placeholder="0000" autocomplete="off" aria-label="4-digit pairing code" />
+            <button type="submit">Connect</button>
+          </form>
+          <p class="status" id="joinStatus"></p>
+        </section>
+
+        <section class="panel phone-shell" id="phonePanel" style="display:none">
+          <div class="phone-sub">Breathing rate</div>
+          <div class="phone-big" id="phoneBpm">&mdash;</div>
+          <div class="phone-sub" id="phoneState">waiting for the laptop</div>
+          <div class="phone-grid">
+            <div class="stat">
+              <div class="label">Method</div>
+              <div class="num" id="phoneMethod">&mdash;</div>
+            </div>
+            <div class="stat">
+              <div class="label">Packets</div>
+              <div class="num" id="phonePackets">0</div>
+            </div>
+          </div>
+          <button id="phoneBtn" class="phone-btn">Tap to start the sonar</button>
+          <p class="status" id="phoneStatus">Connecting&hellip;</p>
+          <p class="note">Keep this screen on and the phone still, speaker facing the chest. Audio never leaves the phone &mdash; only the analysis is sent to the laptop.</p>
+        </section>
+
+        <!-- The core writes its readouts by element id; the phone keeps a
+             hidden mirror so the same code runs unchanged, and forwards
+             the finished strings to the laptop. -->
+        <div hidden id="statMirror">
+          <span id="cwBpm"></span><span id="cwDisp"></span><span id="cwSnr"></span><span id="cwRate"></span>
+          <span id="fmBpm"></span><span id="fmDisp"></span><span id="fmRangeStat"></span>
+          <span id="fmBinStat"></span><span id="fmFrameStat"></span>
+          <span id="cwEvent"></span><span id="fmEvent"></span>
+        </div>
+      </div>
 
       <style>
         .attribution { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--grey-line); width: 100%; font-size: 13px; letter-spacing: 0.5px; color: var(--grey-text); display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -675,164 +736,437 @@
       </footer>
     </main>
 
-    <script src="sonar-core.js"></script>
+    <script src="../breathing-sonar/sonar-core.js"></script>
     <script>
-      // Page glue: controls, audio engine, and the render loop.
-      // All signal processing lives in sonar-core.js.
-      // ---------- DOM ----------
-      const methodSeg = $('methodSeg');
-      const methodHint = $('methodHint');
-      const cwParams = $('cwParams'), fmcwParams = $('fmcwParams');
-      const cwResults = $('cwResults'), fmcwResults = $('fmcwResults');
-      const signalPanel = $('signalPanel');
-      const startBtn = $('startBtn'), stopBtn = $('stopBtn'), resyncBtn = $('resyncBtn');
-      const statusEl = $('status'), demoChk = $('demoChk');
-      const gainEl = $('gain'), gainVal = $('gainVal');
-
-      const cwFreqEl = $('cwFreq'), cwClutterEl = $('cwClutter'), cwSmoothEl = $('cwSmooth');
-      const fmBandLoEl = $('fmBandLo'), fmBandHiEl = $('fmBandHi');
-      const fmChirpNEl = $('fmChirpN'), fmChirpsEl = $('fmChirps'), fmRangeEl = $('fmRange');
-
-      const HINTS = {
-        cw: 'A single inaudible tone. The complex baseband echo is one vector; the room pins it in place and your chest rotates it. Most sensitive, but blind to distance.',
-        fmcw: 'A repeating 18–20 kHz sweep sorts the room into range bins. Slower and less sensitive per millimetre, but it reports how far away the sleeper is — and can follow two of them at once.'
-      };
-
-
       // ============================================================
-      //  Audio engine — sonar-core owns it; the page only drives panels
+      //  Breathing Sonar — remote pairing
+      //
+      //  The phone is the sonar. It runs sonar-core.js against its own
+      //  speaker and microphone and ships the finished render buffers
+      //  here; the laptop draws them with the same code the
+      //  single-device page uses, and sends parameter changes back.
+      //
+      //  Audio is never streamed. A WebRTC audio track is Opus-coded
+      //  and resampled through a jitter buffer, which is exactly the
+      //  wrong thing to do to a measurement made of carrier phase.
       // ============================================================
-      onStatus = (msg, kind) => {
-        statusEl.textContent = msg;
-        statusEl.classList.remove('error', 'busy', 'ok');
-        if (kind) statusEl.classList.add(kind);
-      };
-      onEngine = running => {
-        startBtn.disabled = running;
-        stopBtn.disabled = !running;
-        resyncBtn.disabled = !running || method !== 'fmcw';
-        if (running) requestAnimationFrame(uiLoop);
-      };
-      // Called once the DSP is initialised and before audio starts, so the
-      // canvases exist at their rendered size when the waterfall is sized.
-      onLayout = () => {
-        cwResults.classList.toggle('hidden', method !== 'cw');
-        fmcwResults.classList.toggle('hidden', method !== 'fmcw');
-        signalPanel.classList.remove('hidden');
-        $('cwSigExtra').classList.toggle('hidden', method !== 'cw');
-        $('fmSigExtra').classList.toggle('hidden', method !== 'fmcw');
-        void (method === 'cw' ? cwResults : fmcwResults).offsetHeight;
-      };
+      const qs = new URLSearchParams(location.search);
+      const codeParam = (qs.get('code') || '').replace(/\D/g, '').slice(0, 4);
+      const hostId = codeParam ? 'sslab-breath-' + codeParam : null;
+      const role = hostId ? 'phone' : 'laptop';
+      document.body.dataset.role = role;
 
-      function start() {
-        syncParams();
-        engStart(demoChk.checked);
+      // Stat readouts the core writes by id; the phone forwards them so
+      // the laptop shows exactly what the phone computed.
+      const STAT_IDS = ['cwBpm', 'cwDisp', 'cwSnr', 'cwRate',
+                        'fmBpm', 'fmDisp', 'fmRangeStat', 'fmBinStat', 'fmFrameStat'];
+
+      function copyInto(dst, arr) {
+        const n = Math.min(dst.length, arr ? arr.length : 0);
+        for (let i = 0; i < n; i++) dst[i] = arr[i];
+        return n;
       }
-      function stop() { engStop(); }
+
+      let conn = null;
+      const connOpen = () => conn && conn.open;
 
       // ============================================================
-      //  UI loop — analysis at ~1.2 Hz, redraw at ~12 Hz
+      //  Laptop: controls, commands, and rendering what arrives
       // ============================================================
-      let lastAna = 0, lastDraw = 0;
-      function uiLoop(now) {
-        if (!eng.running) return;
-        if (now - lastAna > 800) {
-          lastAna = now;
-          if (method === 'cw') cwAnalyze(); else fmAnalyze();
+      function initHost() {
+        const methodSeg = $('methodSeg'), methodHint = $('methodHint');
+        const cwParams = $('cwParams'), fmcwParams = $('fmcwParams');
+        const cwResults = $('cwResults'), fmcwResults = $('fmcwResults');
+        const signalPanel = $('signalPanel');
+        const startBtn = $('startBtn'), stopBtn = $('stopBtn'), resyncBtn = $('resyncBtn');
+        const statusEl = $('status'), demoChk = $('demoChk');
+        const gainEl = $('gain'), gainVal = $('gainVal');
+        const cwFreqEl = $('cwFreq'), cwClutterEl = $('cwClutter'), cwSmoothEl = $('cwSmooth');
+        const fmBandLoEl = $('fmBandLo'), fmBandHiEl = $('fmBandHi');
+        const fmChirpNEl = $('fmChirpN'), fmChirpsEl = $('fmChirps'), fmRangeEl = $('fmRange');
+        const pairStatus = $('pairStatus');
+
+        let laidOut = false;
+        const HINTS = {
+          cw: 'A single inaudible tone. The complex baseband echo is one vector; the room pins it in place and the chest rotates it. Most sensitive, but blind to distance.',
+          fmcw: 'A repeating 18–20 kHz sweep sorts the room into 8.6 cm range cells. Less sensitive per millimetre, but it reports how far away the sleeper is — and can follow two of them at once.'
+        };
+        let running = false;
+
+        function setPair(msg, kind) {
+          pairStatus.textContent = msg;
+          pairStatus.classList.remove('error', 'busy', 'ok');
+          if (kind) pairStatus.classList.add(kind);
         }
-        if (now - lastDraw > 80) {
-          lastDraw = now;
-          prepareDraw(true);
+        function setStatus2(msg, kind) {
+          statusEl.textContent = msg;
+          statusEl.classList.remove('error', 'busy', 'ok');
+          if (kind) statusEl.classList.add(kind);
+        }
+        function syncParams() {
+          P.toneHz = +cwFreqEl.value;
+          P.clutterTau = +cwClutterEl.value;
+          P.smoothTau = +cwSmoothEl.value;
+          P.bandLo = +fmBandLoEl.value;
+          P.bandHi = +fmBandHiEl.value;
+          P.chirpN = +fmChirpNEl.value;
+          P.chirps = +fmChirpsEl.value;
+          P.rangeCm = +fmRangeEl.value;
+          P.gain = +gainEl.value;
+        }
+        function fmtKHz(f) { return (f / 1000).toFixed(1) + ' kHz'; }
+        function refreshLabels() {
+          syncParams();
+          gainVal.textContent = P.gain.toFixed(2);
+          $('cwFreqVal').textContent = fmtKHz(P.toneHz);
+          $('cwClutterVal').textContent = P.clutterTau.toFixed(1) + ' s';
+          $('cwSmoothVal').textContent = P.smoothTau.toFixed(2) + ' s';
+          if (P.bandHi < P.bandLo + 250) { fmBandHiEl.value = P.bandLo + 250; P.bandHi = P.bandLo + 250; }
+          $('fmBandLoVal').textContent = fmtKHz(P.bandLo);
+          $('fmBandHiVal').textContent = fmtKHz(P.bandHi);
+          const fs = R.fs || 48000;
+          $('fmChirpNVal').textContent = (P.chirpN / fs * 1000).toFixed(1) + ' ms';
+          $('fmChirpsVal').textContent = (P.chirpN * P.chirps / fs * 1000).toFixed(0) + ' ms frame';
+          $('fmRangeVal').textContent = P.rangeCm + ' cm';
+        }
+
+        function send(action, extra) {
+          if (!connOpen()) return;
+          syncParams();
+          conn.send(Object.assign({
+            t: 'cmd', action, method, demo: demoChk.checked, P: Object.assign({}, P)
+          }, extra || {}));
+        }
+
+        function layout() {
+          cwResults.classList.toggle('hidden', method !== 'cw');
+          fmcwResults.classList.toggle('hidden', method !== 'fmcw');
+          signalPanel.classList.remove('hidden');
+          $('cwSigExtra').classList.toggle('hidden', method !== 'cw');
+          $('fmSigExtra').classList.toggle('hidden', method !== 'fmcw');
+          void (method === 'cw' ? cwResults : fmcwResults).offsetHeight;
+          if (method === 'fmcw') fmSetupWaterfall();
+        }
+
+        // ---- controls ----
+        [gainEl, cwFreqEl, cwClutterEl, cwSmoothEl, fmBandLoEl, fmBandHiEl,
+         fmChirpNEl, fmChirpsEl, fmRangeEl].forEach(el =>
+          el.addEventListener('input', refreshLabels));
+        refreshLabels();
+
+        // Live knobs the phone can apply without rebuilding its DSP.
+        [gainEl, cwClutterEl, cwSmoothEl, fmRangeEl].forEach(el =>
+          el.addEventListener('change', () => send('params')));
+        // Waveform-defining knobs need the phone to re-initialise.
+        [cwFreqEl, fmBandLoEl, fmBandHiEl, fmChirpNEl, fmChirpsEl].forEach(el =>
+          el.addEventListener('change', () => send('params', { restart: true })));
+
+        methodSeg.addEventListener('click', ev => {
+          const btn = ev.target.closest('button');
+          if (!btn || btn.dataset.method === method) return;
+          method = btn.dataset.method;
+          [...methodSeg.querySelectorAll('button')].forEach(b =>
+            b.classList.toggle('active', b.dataset.method === method));
+          methodHint.textContent = HINTS[method];
+          cwParams.classList.toggle('hidden', method !== 'cw');
+          fmcwParams.classList.toggle('hidden', method !== 'fmcw');
+          cwResults.classList.add('hidden');
+          fmcwResults.classList.add('hidden');
+          signalPanel.classList.add('hidden');
+          resyncBtn.classList.toggle('hidden', method !== 'fmcw');
+          laidOut = false;
+          send('params', { restart: running });
+        });
+
+        startBtn.addEventListener('click', () => {
+          if (!connOpen()) { setStatus2('No phone connected yet.', 'error'); return; }
+          running = true;
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+          resyncBtn.disabled = method !== 'fmcw';
+          setStatus2('Asked the phone to start — it may need a tap to allow audio.', 'busy');
+          send('start');
+        });
+        stopBtn.addEventListener('click', () => {
+          running = false;
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          resyncBtn.disabled = true;
+          setStatus2('Stopped.', '');
+          send('stop');
+        });
+        resyncBtn.addEventListener('click', () => {
+          send('resync');
+          setStatus2('Re-syncing the sweep grid on the phone — the 30 s window restarts.', 'busy');
+        });
+        // Clicking the range profile asks the phone to move its lock.
+        onLockCell = c => send('lock', { cell: c });
+        window.addEventListener('resize', () => { if (method === 'fmcw' && !fmcwResults.classList.contains('hidden')) fmSetupWaterfall(); });
+
+        // ---- incoming state ----
+        function onPacket(pk) {
+          if (!pk || pk.t !== 'state') return;
+          if (pk.method !== method) return;   // a stale packet from before a switch
+          R.motionN = copyInto(R.motion, pk.motion);
+          R.scaled = pk.scaled; R.span = pk.span; R.lam = pk.lam;
+          R.res = pk.res
+            ? { spec: Float32Array.from(pk.res.spec), df: pk.res.df,
+                bpm: pk.res.bpm, conf: pk.res.conf, ampPP: pk.res.ampPP }
+            : null;
+          R.envN = copyInto(R.envHist, pk.env.hist);
+          R.envFill = pk.env.fill;
+          const badge = $(method === 'cw' ? 'cwEvent' : 'fmEvent');
+          if (badge) {
+            badge.textContent = pk.env.label;
+            badge.className = 'event-badge' + (pk.env.cls ? ' ' + pk.env.cls : '');
+          }
+          if (pk.sig) {
+            R.fs = pk.sig.fs;
+            R.waveN = copyInto(R.wave, pk.sig.wave);
+            R.specN = copyInto(R.spec, pk.sig.spec);
+            R.specDf = pk.sig.specDf;
+            R.rms = pk.sig.rms; R.peak = pk.sig.peak; R.clip = pk.sig.clip; R.band = pk.sig.band;
+            cw.f0 = pk.sig.f0; fm.f0 = pk.sig.fmF0; fm.f1 = pk.sig.fmF1;
+          }
+          for (const id of STAT_IDS) if (pk.stats && pk.stats[id] != null) setStat(id, pk.stats[id]);
+
+          if (!laidOut) { layout(); laidOut = true; }
+
           if (method === 'cw') {
+            R.cwArcN = copyInto(R.cwArcR, pk.cw.arcR);
+            copyInto(R.cwArcI, pk.cw.arcI);
+            R.cwLvlN = copyInto(R.cwLvlS, pk.cw.lvlS);
+            copyInto(R.cwLvlC, pk.cw.lvlC);
             cwDraw();
           } else {
-            while (fm.colQueue.length) fmDrawColumn(fm.colQueue.shift());
+            R.fmProfile = Float32Array.from(pk.fm.profile);
+            R.fmSharp = Float32Array.from(pk.fm.sharp);
+            R.fmFine = Float32Array.from(pk.fm.fine);
+            R.fmLock = pk.fm.lock; R.fm2nd = pk.fm.second; R.fmManual = pk.fm.manual;
+            R.cmPerCell = pk.fm.cmPerCell; R.nCells = pk.fm.nCells;
+            R.minCell = pk.fm.minCell; R.M = pk.fm.M;
+            for (const col of (pk.fm.cols || [])) fmDrawColumn(Float32Array.from(col));
             fmDraw();
           }
+          if (pk.status) setStatus2(pk.status.msg, pk.status.kind);
         }
-        requestAnimationFrame(uiLoop);
+
+        // ---- pairing ----
+        const code = String(Math.floor(1000 + Math.random() * 9000));
+        $('pairCode').textContent = code.split('').join(' ');
+        let peer;
+        try {
+          peer = new Peer('sslab-breath-' + code);
+        } catch (e) {
+          setPair('Could not reach the pairing service: ' + e.message, 'error');
+          return;
+        }
+        peer.on('open', () => setPair('Waiting for a phone to join with code ' + code + '…', 'busy'));
+        peer.on('error', e => setPair('Pairing error (' + e.type + '). Reload to get a new code.', 'error'));
+        peer.on('connection', c => {
+          if (conn && conn.open) { c.close(); return; }
+          conn = c;
+          c.on('open', () => {
+            document.body.dataset.paired = '1';
+            setPair('Phone connected. Place it 30–80 cm from the chest and press Start.', 'ok');
+            laidOut = false;
+            send('params');
+          });
+          c.on('data', onPacket);
+          c.on('close', () => {
+            conn = null;
+            delete document.body.dataset.paired;
+            running = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            setPair('Phone disconnected.', 'error');
+          });
+          c.on('error', err => setPair('Link error: ' + err, 'error'));
+        });
       }
 
       // ============================================================
-      //  Controls
+      //  Phone: run the sonar, send the render buffers
       // ============================================================
-      function fmtKHz(f) { return (f / 1000).toFixed(1) + ' kHz'; }
-      // Controls are the page's; the core reads P. Keep them in step.
-      function syncParams() {
-        P.toneHz     = +cwFreqEl.value;
-        P.clutterTau = +cwClutterEl.value;
-        P.smoothTau  = +cwSmoothEl.value;
-        P.bandLo     = +fmBandLoEl.value;
-        P.bandHi     = +fmBandHiEl.value;
-        P.chirpN     = +fmChirpNEl.value;
-        P.chirps     = +fmChirpsEl.value;
-        P.rangeCm    = +fmRangeEl.value;
-        P.gain       = +gainEl.value;
+      function initPhone() {
+        $('joinPanel').style.display = 'none';
+        $('phonePanel').style.display = '';
+        $('phoneLead').textContent = 'This phone is the sonar. Prop it up facing the chest, 30–80 cm away, and leave it alone.';
+        const statusEl = $('phoneStatus'), btn = $('phoneBtn');
+        let unlocked = false, wantRunning = false, demoWanted = false, packets = 0, sendTimer = null;
+
+        const say = (msg, kind) => {
+          statusEl.textContent = msg;
+          statusEl.classList.remove('error', 'busy', 'ok');
+          if (kind) statusEl.classList.add(kind);
+        };
+        onStatus = (msg, kind) => say(msg, kind);
+        onEngine = running => {
+          $('phoneState').textContent = running ? 'running' : (wantRunning ? 'tap to start' : 'idle');
+          btn.textContent = running ? 'Stop' : 'Tap to start the sonar';
+        };
+
+        function tryStart() {
+          if (!unlocked) {
+            $('phoneState').textContent = 'tap to start';
+            btn.textContent = 'Tap to start the sonar';
+            say('The laptop is ready — tap to allow audio on this phone.', 'busy');
+            return;
+          }
+          engStart(demoWanted);
+        }
+
+        btn.addEventListener('click', () => {
+          unlocked = true;
+          if (eng.running) { wantRunning = false; engStop(); }
+          else { wantRunning = true; tryStart(); }
+        });
+
+        function buildPacket(heavy) {
+          prepareDraw(heavy);
+          const stats = {};
+          for (const id of STAT_IDS) { const el = $(id); if (el) stats[id] = el.innerHTML; }
+          const pk = {
+            t: 'state', method, running: eng.running,
+            motion: Array.from(R.motion.subarray(0, R.motionN)),
+            scaled: R.scaled, span: R.span, lam: R.lam,
+            res: R.res ? {
+              spec: Array.from(R.res.spec), df: R.res.df,
+              bpm: R.res.bpm, conf: R.res.conf, ampPP: R.res.ampPP
+            } : null,
+            env: { hist: Array.from(R.envHist.subarray(0, R.envN)), fill: R.envFill,
+                   label: R.envLabel, cls: R.envCls },
+            stats
+          };
+          if (heavy) {
+            pk.sig = {
+              fs: R.fs, wave: Array.from(R.wave.subarray(0, R.waveN)),
+              spec: Array.from(R.spec.subarray(0, R.specN)), specDf: R.specDf,
+              rms: R.rms, peak: R.peak, clip: R.clip, band: R.band,
+              f0: cw.f0, fmF0: fm.f0, fmF1: fm.f1
+            };
+          }
+          if (method === 'cw') {
+            pk.cw = {
+              arcR: Array.from(R.cwArcR.subarray(0, R.cwArcN)),
+              arcI: Array.from(R.cwArcI.subarray(0, R.cwArcN)),
+              lvlS: Array.from(R.cwLvlS.subarray(0, R.cwLvlN)),
+              lvlC: Array.from(R.cwLvlC.subarray(0, R.cwLvlN))
+            };
+          } else {
+            // Queued waterfall columns ride along so the laptop's
+            // waterfall scrolls at the phone's frame rate. Cap the batch:
+            // if the link stalls, drop old columns rather than send a
+            // packet that stalls it further.
+            const MAX_COLS = 24;
+            if (fm.colQueue.length > MAX_COLS) fm.colQueue.splice(0, fm.colQueue.length - MAX_COLS);
+            const cols = fm.colQueue.splice(0, fm.colQueue.length).map(c => Array.from(c));
+            pk.fm = {
+              profile: Array.from(fm.profile || []), sharp: Array.from(fm.sharp || []),
+              fine: Array.from(fm.fineMag || []),
+              lock: fm.lockCell, second: fm.prof2nd, manual: fm.manualLock,
+              cmPerCell: fm.cmPerCell, nCells: fm.nCells, minCell: fm.minCell, M: fm.M,
+              cols
+            };
+          }
+          return pk;
+        }
+
+        function startSender() {
+          if (sendTimer) return;
+          let tick = 0;
+          sendTimer = setInterval(() => {
+            if (!connOpen()) return;
+            if (!eng.running) { fm.colQueue.length = 0; return; }
+            try {
+              conn.send(buildPacket((tick++ % 4) === 0));
+              $('phonePackets').textContent = ++packets;
+              const bpm = R.res && R.res.conf >= BR_CONF ? R.res.bpm.toFixed(1) : '—';
+              $('phoneBpm').textContent = bpm;
+              $('phoneState').textContent = R.envLabel || 'running';
+            } catch (e) { /* a dropped packet is not worth stopping for */ }
+          }, 250);
+        }
+
+        function onCmd(cmd) {
+          if (!cmd || cmd.t !== 'cmd') return;
+          const hadMethod = method;
+          if (cmd.method) method = cmd.method;
+          if (cmd.P) Object.assign(P, cmd.P);
+          $('phoneMethod').textContent = method === 'cw' ? 'CW phase' : 'FMCW';
+          if (typeof cmd.demo === 'boolean') demoWanted = cmd.demo;
+          if (eng.gain && !cmd.restart) eng.gain.gain.value = P.gain;
+
+          switch (cmd.action) {
+            case 'start':
+              wantRunning = true;
+              tryStart();
+              break;
+            case 'stop':
+              wantRunning = false;
+              engStop();
+              break;
+            case 'resync':
+              fm.syncReq = true;
+              fm.ffilled = 0; fm.fw = 0;
+              if (fm.histRe) { fm.histRe.fill(0); fm.histIm.fill(0); }
+              if (fm.bg) fm.bg.fill(0);
+              if (fm.profile) fm.profile.fill(0);
+              fm.res = null; fm.ev = makeEventState();
+              fm.colQueue.length = 0;
+              break;
+            case 'lock':
+              onLockCell(cmd.cell);
+              break;
+            case 'params':
+              if (eng.running && (cmd.restart || method !== hadMethod)) tryStart();
+              break;
+          }
+        }
+
+        const peer = new Peer();
+        peer.on('open', () => {
+          say('Connecting to the laptop…', 'busy');
+          conn = peer.connect(hostId, { reliable: true });
+          conn.on('open', () => {
+            say('Connected. Waiting for the laptop to start.', 'ok');
+            startSender();
+          });
+          conn.on('data', onCmd);
+          conn.on('close', () => {
+            say('Laptop disconnected.', 'error');
+            engStop();
+          });
+          conn.on('error', err => say('Link error: ' + err, 'error'));
+        });
+        peer.on('error', e => say('Could not connect (' + e.type + '). Check the code and reload.', 'error'));
       }
 
-      function refreshLabels() {
-        syncParams();
-        gainVal.textContent = (+gainEl.value).toFixed(2);
-        $('cwFreqVal').textContent = fmtKHz(+cwFreqEl.value);
-        $('cwClutterVal').textContent = (+cwClutterEl.value).toFixed(1) + ' s';
-        $('cwSmoothVal').textContent = (+cwSmoothEl.value).toFixed(2) + ' s';
-        if (+fmBandHiEl.value < +fmBandLoEl.value + 250) fmBandHiEl.value = +fmBandLoEl.value + 250;
-        P.bandHi = +fmBandHiEl.value;
-        $('fmBandLoVal').textContent = fmtKHz(+fmBandLoEl.value);
-        $('fmBandHiVal').textContent = fmtKHz(+fmBandHiEl.value);
-        const fs = eng.ctx ? eng.ctx.sampleRate : 48000;
-        const N = +fmChirpNEl.value, M = +fmChirpsEl.value;
-        $('fmChirpNVal').textContent = (N / fs * 1000).toFixed(1) + ' ms';
-        $('fmChirpsVal').textContent = (N * M / fs * 1000).toFixed(0) + ' ms frame';
-        $('fmRangeVal').textContent = (+fmRangeEl.value) + ' cm';
+      // ============================================================
+      //  Join form — a phone that opened the page without a code
+      // ============================================================
+      const joinForm = $('joinForm');
+      if (joinForm) {
+        joinForm.addEventListener('submit', ev => {
+          ev.preventDefault();
+          const c = ($('joinCode').value || '').replace(/\D/g, '').slice(0, 4);
+          if (c.length !== 4) { $('joinStatus').textContent = 'Enter the four digits shown on the laptop.'; return; }
+          location.search = '?code=' + c;
+        });
       }
-      [gainEl, cwFreqEl, cwClutterEl, cwSmoothEl, fmBandLoEl, fmBandHiEl,
-       fmChirpNEl, fmChirpsEl, fmRangeEl].forEach(el =>
-        el.addEventListener('input', refreshLabels));
-      refreshLabels();
 
-      gainEl.addEventListener('input', () => {
-        if (eng.gain) eng.gain.gain.value = +gainEl.value;
-      });
-
-      // Waveform-defining parameters need the engine rebuilt.
-      [cwFreqEl, fmBandLoEl, fmBandHiEl, fmChirpNEl, fmChirpsEl].forEach(el =>
-        el.addEventListener('change', () => {
-          if (eng.running) { stop(); setTimeout(start, 120); }
-        }));
-
-      methodSeg.addEventListener('click', ev => {
-        const btn = ev.target.closest('button');
-        if (!btn || btn.dataset.method === method) return;
-        const wasRunning = eng.running;
-        if (wasRunning) stop();
-        method = btn.dataset.method;
-        [...methodSeg.querySelectorAll('button')].forEach(b =>
-          b.classList.toggle('active', b.dataset.method === method));
-        methodHint.textContent = HINTS[method];
-        cwParams.classList.toggle('hidden', method !== 'cw');
-        fmcwParams.classList.toggle('hidden', method !== 'fmcw');
-        cwResults.classList.add('hidden');
-        fmcwResults.classList.add('hidden');
-        signalPanel.classList.add('hidden');
-        resyncBtn.classList.toggle('hidden', method !== 'fmcw');
-        if (wasRunning) setTimeout(start, 120);
-      });
-
-      resyncBtn.addEventListener('click', () => {
-        if (!eng.running || method !== 'fmcw') return;
-        fm.syncReq = true;
-        fm.ffilled = 0; fm.fw = 0;
-        fm.hist.fill(0); fm.bg.fill(0); fm.profile.fill(0);
-        fm.res = null; fm.ev = makeEventState();
-        fmSetupWaterfall();
-        setStatus('Re-syncing the sweep grid — the 30 s window restarts.', 'busy');
-      });
-
-      window.addEventListener('resize', () => { if (eng.running && method === 'fmcw') fmSetupWaterfall(); });
-      startBtn.addEventListener('click', start);
-      stopBtn.addEventListener('click', stop);
-      window.addEventListener('beforeunload', stop);
+      if (role === 'phone') {
+        initPhone();
+      } else if (matchMedia('(pointer: coarse)').matches) {
+        // A touch device that arrived without a code wants to join, not
+        // host: show the code form and start nothing.
+        document.body.dataset.role = 'phone';
+        $('joinPanel').style.display = '';
+        $('phonePanel').style.display = 'none';
+        $('phoneLead').textContent = 'Enter the code shown on the laptop to turn this phone into the sonar.';
+      } else {
+        initHost();
+      }
     </script>
   </body>
 </html>
