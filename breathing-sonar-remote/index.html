@@ -914,6 +914,7 @@
           if (pk.method !== method) return;   // a stale packet from before a switch
           R.motionN = copyInto(R.motion, pk.motion);
           R.scaled = pk.scaled; R.span = pk.span; R.lam = pk.lam;
+          R.fillSec = pk.fillSec || 0;
           R.res = pk.res
             ? { spec: Float32Array.from(pk.res.spec), df: pk.res.df,
                 bpm: pk.res.bpm, conf: pk.res.conf, ampPP: pk.res.ampPP }
@@ -1039,7 +1040,7 @@
           const pk = {
             t: 'state', method, running: eng.running,
             motion: Array.from(R.motion.subarray(0, R.motionN)),
-            scaled: R.scaled, span: R.span, lam: R.lam,
+            scaled: R.scaled, span: R.span, lam: R.lam, fillSec: R.fillSec,
             res: R.res ? {
               spec: Array.from(R.res.spec), df: R.res.df,
               bpm: R.res.bpm, conf: R.res.conf, ampPP: R.res.ampPP
@@ -1085,10 +1086,20 @@
 
         function startSender() {
           if (sendTimer) return;
-          let tick = 0;
+          let tick = 0, lastAna = -1e9;   // analyse on the very first tick
           sendTimer = setInterval(() => {
             if (!connOpen()) return;
             if (!eng.running) { fm.colQueue.length = 0; return; }
+            // The single-device page runs this from its render loop. The
+            // phone has no render loop, so it runs here: without it the
+            // DSP front end fills its buffers and nothing ever reads them,
+            // and every packet leaves carrying empty arrays.
+            const now = performance.now();
+            if (now - lastAna > 800) {
+              lastAna = now;
+              try { if (method === 'cw') cwAnalyze(); else fmAnalyze(); }
+              catch (e) { say('Analysis error: ' + e.message, 'error'); }
+            }
             try {
               conn.send(buildPacket((tick++ % 4) === 0));
               $('phonePackets').textContent = ++packets;
