@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FingerIO Remote &middot; Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <script src="https://unpkg.com/peerjs@1/dist/peerjs.min.js"></script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 960px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 28px;
+        max-width: 62ch;
+        line-height: 1.5;
+      }
+      a { color: var(--red); }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 18px;
+      }
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel.teach {
+        background: #fffdf6;
+        border-color: #ecdda3;
+      }
+      .panel.teach h2 { color: #8a6d12; }
+      .panel.teach p, .panel.teach li {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #3a3a3a;
+      }
+      .panel.teach p { margin: 0 0 10px; }
+      .panel.teach p:last-child { margin-bottom: 0; }
+      .panel.teach ul { margin: 6px 0 10px; padding-left: 22px; }
+      .panel.teach code, .mono {
+        font-family: 'Roboto Mono', monospace;
+      }
+      .panel.teach code {
+        background: rgba(0,0,0,0.04);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12.5px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 110px;
+      }
+      input[type="range"] {
+        flex: 1 1 200px;
+        min-width: 200px;
+      }
+      .val {
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 500;
+        font-size: 14px;
+        min-width: 84px;
+        text-align: right;
+        color: var(--black);
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.danger { background: var(--red); border-color: var(--red); }
+      button.big { font-size: 14px; padding: 14px 28px; }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 14px 18px;
+      }
+      .stat .label {
+        font-size: 11px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .stat .num {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 4px;
+        letter-spacing: -0.5px;
+      }
+      .stat .num .unit {
+        font-size: 12px;
+        color: var(--grey-text);
+        font-weight: 500;
+        margin-left: 4px;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      .canvas-wrap.tall   { aspect-ratio: 16 / 9; }
+      .canvas-wrap.short  { aspect-ratio: 16 / 5; }
+      canvas { width: 100%; height: 100%; display: block; }
+      .canvas-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--black);
+        margin: 18px 0 8px;
+      }
+      .canvas-title:first-child { margin-top: 0; }
+      .canvas-title .sub {
+        font-weight: 400;
+        color: var(--grey-text);
+        font-size: 12px;
+        margin-left: 8px;
+      }
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 6px;
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      .legend .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 3px;
+        vertical-align: 2px;
+        margin-right: 6px;
+        border-radius: 1px;
+      }
+      .status {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin-top: 0;
+      }
+      .status.error { color: var(--red); }
+      .status.busy  { color: var(--gold); }
+      .status.ok    { color: var(--green); }
+      .hidden { display: none !important; }
+      .note {
+        font-size: 12.5px;
+        color: var(--grey-text);
+        margin-top: 14px;
+        line-height: 1.5;
+      }
+      .param-hint {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin: 0 0 14px 110px;
+        line-height: 1.45;
+        max-width: 60ch;
+      }
+      @media (max-width: 600px) {
+        .param-hint { margin-left: 0; }
+        label { min-width: 0; flex-basis: 100%; }
+      }
+      body[data-role="laptop"] .phone-only { display: none; }
+      body[data-role="phone"] .laptop-only { display: none; }
+      body:not([data-role]) .laptop-only,
+      body:not([data-role]) .phone-only { display: none; }
+      body[data-role="laptop"]:not([data-paired]) .needs-phone { display: none; }
+      .pair-code-block {
+        display: flex; align-items: baseline; gap: 18px;
+        padding: 18px 0 10px;
+      }
+      .pair-code-label {
+        font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase;
+        color: var(--grey-text); font-weight: 700;
+      }
+      .pair-code {
+        font-family: 'Roboto Mono', monospace;
+        font-size: clamp(34px, 9vw, 56px);
+        font-weight: 700; letter-spacing: 10px; color: var(--red);
+      }
+      .pair-help { font-size: 13px; color: var(--grey-text); line-height: 1.5; }
+      .pair-help strong { color: var(--black); }
+      .join-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      .join-form input {
+        font-family: 'Roboto Mono', monospace; font-size: 26px; width: 150px;
+        padding: 10px 14px; border: 1px solid var(--grey-line); border-radius: 8px;
+        letter-spacing: 8px; text-align: center;
+      }
+      .phone-shell { text-align: center; padding-top: 8px; }
+      .phone-big {
+        font-family: 'Roboto Mono', monospace; font-size: 46px; font-weight: 700;
+        letter-spacing: -1px; margin: 6px 0 2px;
+      }
+      .phone-sub { font-size: 13px; color: var(--grey-text); }
+      .phone-btn { width: 100%; padding: 20px; font-size: 16px; margin-top: 18px; }
+      .phone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="FingerIO &middot; Remote"></header>
+    <script src="../nav.js" defer></script>
+
+    <main>
+      <!-- ================= LAPTOP (host) ================= -->
+      <div class="laptop-only">
+        <h1>FingerIO (Remote)</h1>
+        <p class="lead">FingerIO was a phone system: its whole point was that a phone already carries the speaker, the microphone and the compute to turn air into a touchscreen. This page puts it back on one. The phone emits the OFDM symbol, records its own echoes, and runs the entire channel-estimation pipeline on board, sending only the finished picture here over WebRTC. The maths is explained on the <a href="../fingerio/">single-device page</a>; this is the same code with the front end moved to where your hand is.</p>
+
+        <section class="panel">
+          <h2>Pair your phone</h2>
+          <div class="pair-code-block">
+            <span class="pair-code-label">Code</span>
+            <span class="pair-code" id="pairCode">&mdash; &mdash; &mdash; &mdash;</span>
+          </div>
+          <p class="status" id="pairStatus">Generating session&hellip;</p>
+          <p class="pair-help">On the phone, open <strong>sensingstudio.org/fingerio-remote</strong> and enter this code. Both devices need to be online; the audio never leaves the phone.</p>
+        </section>
+
+      <div class="needs-phone">
+      <section class="panel">
+        <h2>Parameters</h2>
+        <div class="row">
+          <label for="bandLo">Band low</label>
+          <input type="range" id="bandLo" min="14000" max="20000" step="100" value="18000" />
+          <span class="val" id="bandLoVal">18.0 kHz</span>
+        </div>
+        <p class="param-hint">Lower edge of the inaudible OFDM band. Phone speakers are small and generally happier up here than a laptop&rsquo;s; if you can hear a faint hiss from across the room, raise it.</p>
+
+        <div class="row">
+          <label for="bandHi">Band high</label>
+          <input type="range" id="bandHi" min="18000" max="22000" step="100" value="22000" />
+          <span class="val" id="bandHiVal">22.0 kHz</span>
+        </div>
+        <p class="param-hint">Upper edge. Wider band &rarr; finer time resolution. Phone microphones usually run to 20&nbsp;kHz honestly and roll off above; if the impulse response looks like mush, bring this down to 20&nbsp;kHz and give up a little resolution.</p>
+
+        <div class="row">
+          <label for="symN">Symbol</label>
+          <select id="symN">
+            <option value="128">128 samples</option>
+            <option value="256" selected>256 samples</option>
+            <option value="512">512 samples</option>
+            <option value="1024">1024 samples</option>
+          </select>
+          <span class="val mono" id="symNVal">5.3 ms / 0.91 m</span>
+        </div>
+        <p class="param-hint">Symbol length N. Longer symbols span more range bins (max range = c&middot;N/2f<sub>s</sub>) but update the CIR less often. 256 at 48&nbsp;kHz is the FingerIO sweet spot: 91&nbsp;cm of unambiguous range refreshed at ~190&nbsp;Hz.</p>
+
+        <div class="row">
+          <label for="bgTau">Background &tau;</label>
+          <input type="range" id="bgTau" min="0.1" max="3" step="0.05" value="0.6" />
+          <span class="val" id="bgTauVal">0.60 s</span>
+        </div>
+        <p class="param-hint">Time constant of the running average that estimates static clutter. Short &tau; tracks slow movement (and erases it from the display); long &tau; lets every wave of the hand glow but holds onto stale clutter &mdash; including the phone being picked up.</p>
+
+        <div class="row">
+          <label for="gain">Volume</label>
+          <input type="range" id="gain" min="0" max="0.9" step="0.01" value="0.30" />
+          <span class="val" id="gainVal">0.30</span>
+        </div>
+        <p class="param-hint">Output amplitude on the phone. The band is above the audible range, so loud is fine &mdash; but a phone earpiece distorts sooner than a laptop tweeter. If the impulse response looks clipped and flat, back off.</p>
+
+        <div class="row">
+          <label for="dispRange">Display range</label>
+          <input type="range" id="dispRange" min="10" max="100" step="5" value="50" />
+          <span class="val" id="dispRangeVal">50 cm</span>
+        </div>
+        <p class="param-hint">Maximum range plotted, and the number of range bins the phone actually bothers to send. Most of the action is within the first 30&nbsp;cm of the phone.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Run</h2>
+        <div class="row">
+          <button id="startBtn" class="big">Start</button>
+          <button id="stopBtn" class="secondary" disabled>Stop</button>
+          <span class="status" id="status">Pair a phone, press Start, then tap the phone once to let it play and record.</span>
+        </div>
+        <p class="note">Lay the phone flat on the desk, screen up, and leave it there &mdash; then wave your hand 5&ndash;25&nbsp;cm above it. Echo cancellation, AGC and noise suppression are all disabled on the phone so it captures the sonar honestly. <strong>Keep the phone&rsquo;s screen awake</strong>: most phones suspend audio and timers within seconds of the screen going dark.</p>
+      </section>
+
+      <section class="panel hidden" id="resultPanel">
+        <h2>Live</h2>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Sample rate</div>
+            <div class="num" id="srStat">&mdash;<span class="unit"> Hz</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">CIR rate</div>
+            <div class="num" id="rateStat">&mdash;<span class="unit"> Hz</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Sync offset</div>
+            <div class="num" id="syncStat">&mdash;<span class="unit"> samples</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Strongest mover</div>
+            <div class="num" id="distStat">&mdash;<span class="unit"> cm</span></div>
+          </div>
+        </div>
+
+        <div class="canvas-title">Range &times; time
+          <span class="sub">|h[n]| with running average subtracted &mdash; brightness is motion, computed on the phone</span>
+        </div>
+        <div class="canvas-wrap tall"><canvas id="rtCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#0c0c0e"></span>static / no reflector</span>
+          <span><span class="swatch" style="background:#bc122a"></span>weak motion</span>
+          <span><span class="swatch" style="background:#E8B923"></span>strong motion</span>
+          <span><span class="swatch" style="background:#fff"></span>finger / hand peak</span>
+        </div>
+
+        <div class="canvas-title">Current channel impulse response
+          <span class="sub">one column from the heatmap above &mdash; raw <em>h[n]</em> in red, background estimate in grey</span>
+        </div>
+        <div class="canvas-wrap short"><canvas id="cirCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#bc122a"></span>|h[n]| this frame</span>
+          <span><span class="swatch" style="background:#5b6068"></span>running average (clutter)</span>
+          <span><span class="swatch" style="background:#E8B923"></span>peak above clutter</span>
+        </div>
+
+        <div class="canvas-title">Tracked distance
+          <span class="sub">strongest mover, bin &rarr; cm, last 8&nbsp;s &mdash; wave your hand back and forth over the phone</span>
+        </div>
+        <div class="canvas-wrap short"><canvas id="trackCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#E8B923"></span>tracked finger distance</span>
+          <span><span class="swatch" style="background:rgba(188,18,42,0.4)"></span>signal strength (dot size)</span>
+          <span><span class="swatch" style="background:#5b6068"></span>no motion above noise floor</span>
+        </div>
+      </section>
+      </div><!-- /needs-phone -->
+
+      <section class="panel teach">
+        <h2>Why the phone runs the whole pipeline</h2>
+        <p>The obvious split &mdash; phone streams its microphone, laptop does the signal processing &mdash; cannot work, and it is worth knowing why. A WebRTC audio track is Opus-coded and resampled through a jitter buffer. Opus is a perceptual codec: it keeps what you hear and throws away the rest, and the jitter buffer stretches and shrinks the stream by fractions of a sample to hold two clocks together. Both are harmless for speech and fatal here. The measurement <em>is</em> sample timing: one range bin is one sample, 3.57&nbsp;mm at 48&nbsp;kHz, and the symbol-boundary search that keeps the circular-convolution trick honest resolves to a single sample. A jitter buffer that quietly inserts one is a reflector that jumped 3.6&nbsp;cm.</p>
+        <p>So the phone keeps its samples. It plays the OFDM loop, records at the native rate, re-syncs the symbol grid twice a second, and runs the same <code>fingerio-core.js</code> the single-device page runs. What crosses the network is the finished picture: the impulse response and the clutter estimate quantised to a byte per range bin, the heatmap columns the phone has produced since the last packet, and the tracked-distance samples thinned to about 40&nbsp;Hz. Fifteen packets a second, a few tens of kB/s.</p>
+        <p>The CIR-rate readout is the phone&rsquo;s, not the laptop&rsquo;s &mdash; it counts channel estimates the phone actually finished. It should sit near f<sub>s</sub>/N (about 190&nbsp;Hz at the defaults). If it sags, the phone is the bottleneck: close its other apps, or go to a longer symbol.</p>
+      </section>
+
+      <section class="panel teach">
+        <h2>Things to try</h2>
+        <ul>
+          <li>Wave a flat palm horizontally above the phone at 5, 15, 25&nbsp;cm. Watch the bright streak ride up and down the y-axis while you stand at the laptop &mdash; two devices, one measurement.</li>
+          <li>Walk away with the laptop. The link is peer-to-peer, so the sonar keeps running as long as both ends have a network; the range&times;time strip becomes a record of a room you are no longer standing in.</li>
+          <li>Hold still for a few seconds. The running average eats the streak &mdash; that is &tau; doing its job. Move again and it lights right back up.</li>
+          <li>Drop the upper band edge to 19&nbsp;kHz. Range resolution gets worse (peaks widen in n) because removing high frequencies spreads the inverse-FFT impulse. Bandwidth is resolution.</li>
+          <li>Switch the symbol to 1024. The CIR refresh slows to ~47&nbsp;Hz but the unambiguous range stretches to 3.6&nbsp;m &mdash; enough to see someone crossing the room the phone is sitting in.</li>
+          <li>Compare the same gesture on the phone and on the laptop&rsquo;s own speaker. The phone&rsquo;s speaker and mic are centimetres apart and both point the same way; a laptop&rsquo;s are metres of plastic apart. The direct-path bin at the left edge is the difference.</li>
+        </ul>
+      </section>
+
+      <section class="panel teach">
+        <h2>What this isn&rsquo;t</h2>
+        <p>The original FingerIO uses the phone&rsquo;s two-microphone array to triangulate a finger in 2D, plus a finite-state tracker that follows one peak. The browser hands out a single mixed channel, so this page does the depth dimension only &mdash; the per-symbol CIR pipeline the rest of the system rests on. Add a second microphone and the lateral coordinate is the same trick run twice.</p>
+      </section>
+
+      </div><!-- /laptop-only -->
+
+      <!-- ================= PHONE (sensor) ================= -->
+      <div class="phone-only">
+        <h1>Sonar endpoint</h1>
+        <p class="lead" id="phoneLead">Enter the code shown on the laptop to turn this phone into the sonar.</p>
+
+        <section class="panel" id="joinPanel">
+          <h2>Join a session</h2>
+          <form id="joinForm" class="join-form">
+            <input type="text" id="joinCode" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                   placeholder="0000" autocomplete="off" aria-label="4-digit pairing code" />
+            <button type="submit">Connect</button>
+          </form>
+          <p class="status" id="joinStatus"></p>
+        </section>
+
+        <section class="panel phone-shell" id="phonePanel" style="display:none">
+          <div class="phone-sub">Strongest mover</div>
+          <div class="phone-big" id="phoneDist">&mdash;</div>
+          <div class="phone-sub" id="phoneState">waiting for the laptop</div>
+          <div class="phone-grid">
+            <div class="stat">
+              <div class="label">CIR rate</div>
+              <div class="num" id="phoneRate">&mdash;</div>
+            </div>
+            <div class="stat">
+              <div class="label">Packets</div>
+              <div class="num" id="phonePackets">0</div>
+            </div>
+          </div>
+          <button id="phoneBtn" class="phone-btn">Tap to start the sonar</button>
+          <p class="status" id="phoneStatus">Connecting&hellip;</p>
+          <p class="note">Lay the phone flat, screen up, and leave it alone &mdash; then wave a hand above it. Keep this screen on: phones suspend audio when the display sleeps. Audio never leaves the phone; only the analysis is sent to the laptop.</p>
+        </section>
+      </div>
+
+      <style>
+        .attribution { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--grey-line); width: 100%; font-size: 13px; letter-spacing: 0.5px; color: var(--grey-text); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .attribution a { display: inline-flex; align-items: center; gap: 8px; color: var(--black); text-decoration: none; font-weight: 700; transition: color 0.15s, opacity 0.15s; }
+        .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+        .attribution a:hover { color: var(--red); }
+        .attribution a:hover img { opacity: 0.85; }
+      </style>
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script src="../fingerio/fingerio-core.js"></script>
+    <script>
+      // ============================================================
+      //  FingerIO — remote pairing
+      //
+      //  The phone is the sonar. It runs fingerio-core.js against its
+      //  own speaker and microphone and ships the finished render
+      //  buffers here; the laptop draws them with the same code the
+      //  single-device page uses, and sends parameter changes back.
+      //
+      //  Audio is never streamed. One range bin is one sample —
+      //  3.57 mm at 48 kHz — and a WebRTC jitter buffer inserts and
+      //  drops samples for a living.
+      // ============================================================
+      const qs = new URLSearchParams(location.search);
+      const codeParam = (qs.get('code') || '').replace(/\D/g, '').slice(0, 4);
+      const hostId = codeParam ? 'sslab-fingerio-' + codeParam : null;
+      const role = hostId ? 'phone' : 'laptop';
+      document.body.dataset.role = role;
+
+      const PACKET_MS = 66;    // ~15 packets a second
+      const TRACK_MS  = 25;    // thin the tracked-distance samples to ~40 Hz
+      const MAX_COLS  = 12;    // drop stale heatmap columns rather than pile up
+
+      let conn = null;
+      const connOpen = () => conn && conn.open;
+
+      // ============================================================
+      //  Laptop: controls, commands, and rendering what arrives
+      // ============================================================
+      function initHost() {
+        const bandLoEl = $('bandLo'), bandHiEl = $('bandHi'), symNEl = $('symN');
+        const bgTauEl = $('bgTau'), gainEl = $('gain'), dispRangeEl = $('dispRange');
+        const startBtn = $('startBtn'), stopBtn = $('stopBtn');
+        const statusEl = $('status'), pairStatus = $('pairStatus');
+        const resultPanel = $('resultPanel');
+
+        let running = false, laidOut = false, drawing = false;
+
+        function setPair(msg, kind) {
+          pairStatus.textContent = msg;
+          pairStatus.classList.remove('error', 'busy', 'ok');
+          if (kind) pairStatus.classList.add(kind);
+        }
+        function setStatus2(msg, kind) {
+          statusEl.textContent = msg;
+          statusEl.classList.remove('error', 'busy', 'ok');
+          if (kind) statusEl.classList.add(kind);
+        }
+
+        function fmtFreq(f) { return (f / 1000).toFixed(1) + ' kHz'; }
+        function syncParams() {
+          P.bandLo = +bandLoEl.value;
+          P.bandHi = +bandHiEl.value;
+          P.symN = +symNEl.value;
+          P.bgTau = +bgTauEl.value;
+          P.gain = +gainEl.value;
+          P.dispRangeCm = +dispRangeEl.value;
+        }
+        function refreshLabels() {
+          if (+bandHiEl.value <= +bandLoEl.value + 500) {
+            bandHiEl.value = +bandLoEl.value + 500;
+          }
+          syncParams();
+          $('bandLoVal').textContent = fmtFreq(P.bandLo);
+          $('bandHiVal').textContent = fmtFreq(P.bandHi);
+          $('bgTauVal').textContent  = P.bgTau.toFixed(2) + ' s';
+          $('gainVal').textContent   = P.gain.toFixed(2);
+          $('dispRangeVal').textContent = P.dispRangeCm + ' cm';
+          const fs = R.fs || 48000;
+          const symMs = P.symN / fs * 1000;
+          const maxRange = SOUND_C * P.symN / (2 * fs);
+          $('symNVal').textContent = symMs.toFixed(1) + ' ms / ' + maxRange.toFixed(2) + ' m';
+        }
+
+        function send(action, extra) {
+          if (!connOpen()) return;
+          syncParams();
+          conn.send(Object.assign({ t: 'cmd', action, P: Object.assign({}, P) }, extra || {}));
+        }
+
+        [bandLoEl, bandHiEl, symNEl, bgTauEl, gainEl, dispRangeEl]
+          .forEach(el => el.addEventListener('input', refreshLabels));
+        refreshLabels();
+
+        // Knobs the phone can apply without rebuilding its DSP go out as
+        // they move; the ones that define the waveform wait for the
+        // slider to be let go and then ask for a restart.
+        [bgTauEl, gainEl, dispRangeEl].forEach(el =>
+          el.addEventListener('input', () => send('params')));
+        [bandLoEl, bandHiEl, symNEl].forEach(el =>
+          el.addEventListener('change', () => send('params', { restart: running })));
+
+        startBtn.addEventListener('click', () => {
+          if (!connOpen()) { setStatus2('No phone connected yet.', 'error'); return; }
+          running = true;
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+          setStatus2('Asked the phone to start — it may need a tap to allow audio.', 'busy');
+          send('start');
+        });
+        stopBtn.addEventListener('click', () => {
+          running = false;
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          setStatus2('Stopped.', '');
+          send('stop');
+        });
+
+        window.addEventListener('resize', () => { if (laidOut) setupCanvases(); });
+
+        // ---- incoming state ----
+        function onPacket(pk) {
+          if (!pk || pk.t !== 'state') return;
+          if (!laidOut) {
+            resultPanel.classList.remove('hidden');
+            // Force a layout pass so the canvases inherit their rendered
+            // size before the core samples clientWidth/clientHeight.
+            void resultPanel.offsetHeight;
+            setupCanvases();
+            laidOut = true;
+          }
+          R.fs = pk.fs; R.N = pk.N; R.nBins = pk.nBins;
+          // The curves arrive already scaled to their own maximum, so
+          // the drawing code divides by one.
+          R.hScale = 1;
+          for (let i = 0; i < pk.nBins; i++) {
+            R.h[i]  = pk.h[i] / 255;
+            R.bg[i] = pk.bg[i] / 255;
+          }
+          R.peakBin = pk.peakBin;
+          R.distCm = pk.distCm == null ? null : pk.distCm;
+          R.cirRate = pk.cirRate;
+          R.syncOff = pk.syncOff;
+          for (const col of (pk.cols || [])) R.colQueue.push(Uint8Array.from(col));
+          // Track samples carry their age, not the phone's clock: the two
+          // devices never agree on an epoch, but they agree on elapsed
+          // milliseconds, and a constant network delay just shifts the
+          // whole trace left by the same amount.
+          const now = performance.now();
+          const tr = pk.track || [];
+          for (let i = 0; i + 2 < tr.length; i += 3) {
+            pushTrack(now - tr[i], tr[i + 1] < 0 ? null : tr[i + 1] / 10, tr[i + 2] / 255);
+          }
+          if (pk.status) setStatus2(pk.status.msg, pk.status.kind);
+          if (!drawing) { drawing = true; requestAnimationFrame(hostLoop); }
+        }
+
+        // Drawing runs on the laptop's own animation frames, not on
+        // packet arrival: the tracked-distance plot scrolls against wall
+        // clock and would stutter at the packet rate.
+        function hostLoop() {
+          if (!drawing) return;
+          drawAll();
+          requestAnimationFrame(hostLoop);
+        }
+
+        // ---- pairing ----
+        const code = String(Math.floor(1000 + Math.random() * 9000));
+        $('pairCode').textContent = code.split('').join(' ');
+        let peer;
+        try {
+          peer = new Peer('sslab-fingerio-' + code);
+        } catch (e) {
+          setPair('Could not reach the pairing service: ' + e.message, 'error');
+          return;
+        }
+        peer.on('open', () => setPair('Waiting for a phone to join with code ' + code + '…', 'busy'));
+        peer.on('error', e => setPair('Pairing error (' + e.type + '). Reload to get a new code.', 'error'));
+        peer.on('connection', c => {
+          if (conn && conn.open) { c.close(); return; }
+          conn = c;
+          c.on('open', () => {
+            document.body.dataset.paired = '1';
+            setPair('Phone connected. Lay it flat with the screen up and press Start.', 'ok');
+            laidOut = false;
+            send('params');
+          });
+          c.on('data', onPacket);
+          c.on('close', () => {
+            conn = null;
+            drawing = false;
+            delete document.body.dataset.paired;
+            running = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            setPair('Phone disconnected.', 'error');
+          });
+          c.on('error', err => setPair('Link error: ' + err, 'error'));
+        });
+      }
+
+      // ============================================================
+      //  Phone: run the sonar, send the render buffers
+      // ============================================================
+      function initPhone() {
+        $('joinPanel').style.display = 'none';
+        $('phonePanel').style.display = '';
+        $('phoneLead').textContent = 'This phone is the sonar. Lay it flat, screen up, and wave a hand above it.';
+        const statusEl = $('phoneStatus'), btn = $('phoneBtn');
+        let unlocked = false, wantRunning = false, packets = 0, sendTimer = null;
+        let lastStatus = null, lastTrackT = 0, lastSentT = 0;
+
+        const say = (msg, kind) => {
+          statusEl.textContent = msg;
+          statusEl.classList.remove('error', 'busy', 'ok');
+          if (kind) statusEl.classList.add(kind);
+          lastStatus = { msg, kind: kind || '' };
+        };
+        onStatus = (msg, kind) => say(msg, kind);
+        onEngine = running => {
+          $('phoneState').textContent = running ? 'running' : (wantRunning ? 'tap to start' : 'idle');
+          btn.textContent = running ? 'Stop' : 'Tap to start the sonar';
+          if (running) { lastTrackT = 0; lastSentT = 0; }
+        };
+
+        function tryStart() {
+          if (!unlocked) {
+            $('phoneState').textContent = 'tap to start';
+            btn.textContent = 'Tap to start the sonar';
+            say('The laptop is ready — tap to allow audio on this phone.', 'busy');
+            return;
+          }
+          engStart();
+        }
+
+        btn.addEventListener('click', () => {
+          unlocked = true;
+          if (eng.running) { wantRunning = false; engStop(); }
+          else { wantRunning = true; tryStart(); }
+        });
+
+        function buildPacket() {
+          // The single-device page runs this from its render loop. The
+          // phone has no render loop, so it runs here: without it the
+          // DSP fills its buffers and nothing ever reads them, and every
+          // packet leaves carrying stale numbers.
+          prepareDraw();
+          const nB = R.nBins;
+          const hi = R.hScale > 0 ? R.hScale : 1;
+          const h = new Array(nB), bg = new Array(nB);
+          for (let i = 0; i < nB; i++) {
+            h[i]  = Math.round(255 * Math.min(1, R.h[i] / hi));
+            bg[i] = Math.round(255 * Math.min(1, R.bg[i] / hi));
+          }
+          // Queued heatmap columns ride along so the laptop's waterfall
+          // scrolls at the phone's rate. Cap the batch: if the link
+          // stalls, drop old columns rather than send a packet that
+          // stalls it further.
+          if (R.colQueue.length > MAX_COLS) R.colQueue.splice(0, R.colQueue.length - MAX_COLS);
+          const cols = R.colQueue.splice(0, R.colQueue.length).map(c => Array.from(c));
+
+          // New tracked-distance samples, thinned, as (age, cm×10, mag×255).
+          const now = performance.now();
+          const track = [];
+          for (const s of R.trackHist) {
+            if (s.t <= lastTrackT) continue;
+            lastTrackT = s.t;
+            if (s.t - lastSentT < TRACK_MS) continue;
+            lastSentT = s.t;
+            track.push(Math.round(now - s.t),
+                       s.cm == null ? -1 : Math.round(s.cm * 10),
+                       Math.round(s.mag * 255));
+          }
+
+          return {
+            t: 'state', running: eng.running,
+            fs: R.fs, N: R.N, nBins: nB,
+            h, bg, cols, track,
+            peakBin: R.peakBin, distCm: R.distCm,
+            cirRate: R.cirRate, syncOff: R.syncOff,
+            status: lastStatus
+          };
+        }
+
+        function startSender() {
+          if (sendTimer) return;
+          sendTimer = setInterval(() => {
+            if (!connOpen()) return;
+            if (!eng.running) { R.colQueue.length = 0; return; }
+            try {
+              conn.send(buildPacket());
+              $('phonePackets').textContent = ++packets;
+              $('phoneDist').textContent = R.distCm == null ? '—' : R.distCm.toFixed(1) + ' cm';
+              $('phoneRate').textContent = R.cirRate ? R.cirRate.toFixed(0) + ' Hz' : '—';
+              $('phoneState').textContent = 'running';
+            } catch (e) { /* a dropped packet is not worth stopping for */ }
+          }, PACKET_MS);
+        }
+
+        function onCmd(cmd) {
+          if (!cmd || cmd.t !== 'cmd') return;
+          if (cmd.P) Object.assign(P, cmd.P);
+          if (eng.gain && !cmd.restart) eng.gain.gain.value = P.gain;
+
+          switch (cmd.action) {
+            case 'start':
+              wantRunning = true;
+              tryStart();
+              break;
+            case 'stop':
+              wantRunning = false;
+              engStop();
+              break;
+            case 'params':
+              // Band and symbol length are baked into the waveform and
+              // the ring geometry, so those need the engine rebuilt.
+              if (eng.running && cmd.restart) tryStart();
+              break;
+          }
+        }
+
+        const peer = new Peer();
+        peer.on('open', () => {
+          say('Connecting to the laptop…', 'busy');
+          conn = peer.connect(hostId, { reliable: true });
+          conn.on('open', () => {
+            say('Connected. Waiting for the laptop to start.', 'ok');
+            startSender();
+          });
+          conn.on('data', onCmd);
+          conn.on('close', () => {
+            say('Laptop disconnected.', 'error');
+            engStop();
+          });
+          conn.on('error', err => say('Link error: ' + err, 'error'));
+        });
+        peer.on('error', e => say('Could not connect (' + e.type + '). Check the code and reload.', 'error'));
+      }
+
+      // ============================================================
+      //  Join form — a phone that opened the page without a code
+      // ============================================================
+      const joinForm = $('joinForm');
+      if (joinForm) {
+        joinForm.addEventListener('submit', ev => {
+          ev.preventDefault();
+          const c = ($('joinCode').value || '').replace(/\D/g, '').slice(0, 4);
+          if (c.length !== 4) { $('joinStatus').textContent = 'Enter the four digits shown on the laptop.'; return; }
+          location.search = '?code=' + c;
+        });
+      }
+
+      if (role === 'phone') {
+        initPhone();
+      } else if (matchMedia('(pointer: coarse)').matches) {
+        // A touch device that arrived without a code wants to join, not
+        // host: show the code form and start nothing.
+        document.body.dataset.role = 'phone';
+        $('joinPanel').style.display = '';
+        $('phonePanel').style.display = 'none';
+        $('phoneLead').textContent = 'Enter the code shown on the laptop to turn this phone into the sonar.';
+      } else {
+        initHost();
+      }
+      window.addEventListener('beforeunload', () => { if (eng.running) engStop(); });
+    </script>
+  </body>
+</html>

@@ -430,819 +430,98 @@
       </footer>
     </main>
 
+    <script src="fingerio-core.js"></script>
     <script>
       // ============================================================
-      //  FingerIO — single-device active-sonar finger tracking demo
+      //  FingerIO — single-device page
       //
-      //  Pipeline:
-      //   1. Build a length-N OFDM symbol with random ±1 BPSK on the
-      //      subcarriers inside [Fmin, Fmax], Hermitian-symmetric so
-      //      the IFFT is real.
-      //   2. Tile the symbol into an AudioBuffer and play it on loop.
-      //      Because the symbol repeats, every length-N window of the
-      //      received signal is a circular convolution with the channel.
-      //   3. Capture mic samples into a ring buffer.
-      //   4. Re-sync periodically by cross-correlating the most recent
-      //      ~2N received samples against one symbol.
-      //   5. For each new aligned frame: FFT → divide by X(k) on active
-      //      subcarriers → IFFT → |h[n]|.
-      //   6. Subtract a per-bin EMA to remove static clutter.
-      //   7. Push a column to the range×time heatmap; report the
-      //      strongest moving range bin as the "finger" distance.
+      //  The DSP, the audio engine, and every canvas live in
+      //  fingerio-core.js; this file is only the controls, the
+      //  render loop, and the copy of the UI into P.
       // ============================================================
+      const bandLoEl    = $('bandLo');
+      const bandHiEl    = $('bandHi');
+      const symNEl      = $('symN');
+      const bgTauEl     = $('bgTau');
+      const gainEl      = $('gain');
+      const dispRangeEl = $('dispRange');
 
-      const SOUND_C = 343;            // m/s
-      const ACTIVE_BIN_FLOOR = 1e-6;
+      const startBtn    = $('startBtn');
+      const stopBtn     = $('stopBtn');
+      const statusEl    = $('status');
+      const resultPanel = $('resultPanel');
 
-      // --- DOM ---
-      const bandLoEl   = document.getElementById('bandLo');
-      const bandHiEl   = document.getElementById('bandHi');
-      const symNEl     = document.getElementById('symN');
-      const bgTauEl    = document.getElementById('bgTau');
-      const gainEl     = document.getElementById('gain');
-      const dispRangeEl= document.getElementById('dispRange');
+      function fmtFreq(f) { return (f / 1000).toFixed(1) + ' kHz'; }
 
-      const bandLoVal   = document.getElementById('bandLoVal');
-      const bandHiVal   = document.getElementById('bandHiVal');
-      const symNVal     = document.getElementById('symNVal');
-      const bgTauVal    = document.getElementById('bgTauVal');
-      const gainVal     = document.getElementById('gainVal');
-      const dispRangeVal= document.getElementById('dispRangeVal');
-
-      const startBtn = document.getElementById('startBtn');
-      const stopBtn  = document.getElementById('stopBtn');
-      const statusEl = document.getElementById('status');
-      const resultPanel = document.getElementById('resultPanel');
-
-      const srStat   = document.getElementById('srStat');
-      const rateStat = document.getElementById('rateStat');
-      const syncStat = document.getElementById('syncStat');
-      const distStat = document.getElementById('distStat');
-
-      const rtCanvas    = document.getElementById('rtCanvas');
-      const cirCanvas   = document.getElementById('cirCanvas');
-      const trackCanvas = document.getElementById('trackCanvas');
-
-      // History of the strongest mover, used by the tracked-distance plot.
-      // Each entry is { t (ms), cm (number|null), mag (0..1 normalized) }.
-      const TRACK_WINDOW_S = 8;
-      const trackHist = [];
-
-      // --- UI helpers ---
-      function fmtFreq(f) {
-        return (f / 1000).toFixed(1) + ' kHz';
+      // The controls are the single source of truth for P.
+      function syncParams() {
+        P.bandLo = +bandLoEl.value;
+        P.bandHi = +bandHiEl.value;
+        P.symN = +symNEl.value;
+        P.bgTau = +bgTauEl.value;
+        P.gain = +gainEl.value;
+        P.dispRangeCm = +dispRangeEl.value;
       }
-      function refreshUI(sr) {
-        bandLoVal.textContent = fmtFreq(+bandLoEl.value);
-        bandHiVal.textContent = fmtFreq(+bandHiEl.value);
-        bgTauVal.textContent  = (+bgTauEl.value).toFixed(2) + ' s';
-        gainVal.textContent   = (+gainEl.value).toFixed(2);
-        dispRangeVal.textContent = (+dispRangeEl.value) + ' cm';
-        const N = +symNEl.value;
-        const fs = sr || 48000;
-        const symMs = (N / fs * 1000);
-        const maxRange = SOUND_C * N / (2 * fs);
-        symNVal.textContent = symMs.toFixed(1) + ' ms / ' + maxRange.toFixed(2) + ' m';
+      function refreshUI() {
         if (+bandHiEl.value <= +bandLoEl.value + 500) {
           bandHiEl.value = +bandLoEl.value + 500;
-          bandHiVal.textContent = fmtFreq(+bandHiEl.value);
         }
+        syncParams();
+        $('bandLoVal').textContent = fmtFreq(P.bandLo);
+        $('bandHiVal').textContent = fmtFreq(P.bandHi);
+        $('bgTauVal').textContent  = P.bgTau.toFixed(2) + ' s';
+        $('gainVal').textContent   = P.gain.toFixed(2);
+        $('dispRangeVal').textContent = P.dispRangeCm + ' cm';
+        const fs = R.fs || 48000;
+        const symMs = P.symN / fs * 1000;
+        const maxRange = SOUND_C * P.symN / (2 * fs);
+        $('symNVal').textContent = symMs.toFixed(1) + ' ms / ' + maxRange.toFixed(2) + ' m';
       }
       [bandLoEl, bandHiEl, symNEl, bgTauEl, gainEl, dispRangeEl]
-        .forEach(e => e.addEventListener('input', () => refreshUI(state.sampleRate)));
+        .forEach(el => el.addEventListener('input', refreshUI));
       refreshUI();
 
-      function setStatus(msg, kind) {
+      onStatus = (msg, kind) => {
         statusEl.textContent = msg;
         statusEl.classList.remove('error', 'busy', 'ok');
         if (kind) statusEl.classList.add(kind);
-      }
-
-      // ============================================================
-      //  Tiny radix-2 complex FFT (in place).
-      //  Input arrays re[], im[] of length n = 2^k.
-      // ============================================================
-      function fft(re, im, inverse) {
-        const n = re.length;
-        // bit-reverse
-        for (let i = 1, j = 0; i < n; i++) {
-          let bit = n >> 1;
-          for (; j & bit; bit >>= 1) j ^= bit;
-          j ^= bit;
-          if (i < j) {
-            let t = re[i]; re[i] = re[j]; re[j] = t;
-            t = im[i]; im[i] = im[j]; im[j] = t;
-          }
-        }
-        for (let len = 2; len <= n; len <<= 1) {
-          const half = len >> 1;
-          const ang = (inverse ? 2 : -2) * Math.PI / len;
-          const wRe = Math.cos(ang), wIm = Math.sin(ang);
-          for (let i = 0; i < n; i += len) {
-            let pRe = 1, pIm = 0;
-            for (let k = 0; k < half; k++) {
-              const aRe = re[i + k],         aIm = im[i + k];
-              const bRe = re[i + k + half],  bIm = im[i + k + half];
-              const tRe = bRe * pRe - bIm * pIm;
-              const tIm = bRe * pIm + bIm * pRe;
-              re[i + k]        = aRe + tRe;
-              im[i + k]        = aIm + tIm;
-              re[i + k + half] = aRe - tRe;
-              im[i + k + half] = aIm - tIm;
-              const npRe = pRe * wRe - pIm * wIm;
-              pIm = pRe * wIm + pIm * wRe;
-              pRe = npRe;
-            }
-          }
-        }
-        if (inverse) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
-      }
-
-      // ============================================================
-      //  Build one OFDM symbol of length N for sample rate fs and
-      //  active band [fmin, fmax]. Returns { x: Float32Array(N),
-      //  Xre, Xim, active: Uint8Array(N) }.
-      // ============================================================
-      function buildSymbol(N, fs, fmin, fmax) {
-        const Xre = new Float64Array(N);
-        const Xim = new Float64Array(N);
-        const active = new Uint8Array(N);
-        const kmin = Math.max(1, Math.ceil(fmin * N / fs));
-        const kmax = Math.min(N / 2 - 1, Math.floor(fmax * N / fs));
-        // Use a deterministic but well-distributed seed so the symbol
-        // is identical between transmit and receive expectations.
-        let seed = 0x13371337 >>> 0;
-        function rnd() {
-          // xorshift32
-          seed ^= seed << 13; seed >>>= 0;
-          seed ^= seed >>> 17;
-          seed ^= seed << 5;  seed >>>= 0;
-          return ((seed & 0x7fffffff) / 0x7fffffff) * 2 - 1;
-        }
-        for (let k = kmin; k <= kmax; k++) {
-          // BPSK
-          const sgn = rnd() >= 0 ? 1 : -1;
-          Xre[k] = sgn;
-          Xim[k] = 0;
-          Xre[N - k] = sgn;
-          Xim[N - k] = 0;
-          active[k] = 1;
-          active[N - k] = 1;
-        }
-        // IFFT to time domain
-        const re = Xre.slice();
-        const im = Xim.slice();
-        fft(re, im, true);
-        const x = new Float32Array(N);
-        let peak = 0;
-        for (let n = 0; n < N; n++) {
-          x[n] = re[n];
-          if (Math.abs(x[n]) > peak) peak = Math.abs(x[n]);
-        }
-        if (peak > 0) for (let n = 0; n < N; n++) x[n] /= peak;
-        return { x, Xre, Xim, active, kmin, kmax };
-      }
-
-      // ============================================================
-      //  Audio engine state
-      // ============================================================
-      const state = {
-        ctx: null,
-        srcNode: null,
-        gainNode: null,
-        micStream: null,
-        micSrc: null,
-        scriptNode: null,
-        running: false,
-        sampleRate: 0,
-        N: 256,
-        symbol: null,             // { x, Xre, Xim, active, kmin, kmax }
-        ring: null,               // Float32Array, 2-power length
-        ringMask: 0,
-        ringWrite: 0,             // monotonically increasing absolute index
-        nextFrame: 0,             // absolute index of the next aligned frame
-        lastSyncAt: 0,
-        bgEMA: null,              // Float32Array(N), per-bin running mean of |h|
-        cirRateEMA: 0,
-        lastFrameWall: 0,
-        rt: null,                 // range×time heatmap state
+      };
+      onEngine = running => {
+        startBtn.disabled = running;
+        stopBtn.disabled = !running;
+        if (running) requestAnimationFrame(uiLoop);
+      };
+      onLayout = () => {
+        resultPanel.classList.remove('hidden');
+        // Force a layout pass so the canvases inherit their rendered
+        // size before the core samples clientWidth/clientHeight.
+        void resultPanel.offsetHeight;
+        refreshUI();
       };
 
-      // ============================================================
-      //  Heatmap / waterfall — stored as ImageData we shift each frame
-      // ============================================================
-      function setupRangeTime() {
-        const w = rtCanvas.clientWidth || 800;
-        const h = rtCanvas.clientHeight || 320;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const W = Math.max(200, Math.floor(w * dpr));
-        const H = Math.max(120, Math.floor(h * dpr));
-        rtCanvas.width = W;
-        rtCanvas.height = H;
-        const ctx = rtCanvas.getContext('2d');
-        ctx.fillStyle = '#0c0c0e';
-        ctx.fillRect(0, 0, W, H);
-        cirCanvas.width  = Math.max(200, Math.floor((cirCanvas.clientWidth  || 800) * dpr));
-        cirCanvas.height = Math.max(80,  Math.floor((cirCanvas.clientHeight || 180) * dpr));
-        trackCanvas.width  = Math.max(200, Math.floor((trackCanvas.clientWidth  || 800) * dpr));
-        trackCanvas.height = Math.max(80,  Math.floor((trackCanvas.clientHeight || 180) * dpr));
-        state.rt = { ctx, W, H, dpr };
-      }
-      window.addEventListener('resize', () => { if (state.rt) setupRangeTime(); });
-
-      // Color ramp: black → red → gold → white, normalized v in [0,1]
-      function colorRamp(v) {
-        v = Math.max(0, Math.min(1, v));
-        // 4-stop LUT-ish
-        if (v < 0.33) {
-          const t = v / 0.33;
-          return [Math.round(188 * t), Math.round(18 * t), Math.round(42 * t)];
-        } else if (v < 0.66) {
-          const t = (v - 0.33) / 0.33;
-          return [188 + Math.round((232 - 188) * t),
-                  18  + Math.round((185 - 18)  * t),
-                  42  + Math.round((35  - 42)  * t)];
-        } else {
-          const t = (v - 0.66) / 0.34;
-          return [232 + Math.round((255 - 232) * t),
-                  185 + Math.round((255 - 185) * t),
-                  35  + Math.round((255 - 35)  * t)];
-        }
-      }
-
-      // ============================================================
-      //  Per-frame processing: take N aligned samples, recover h[n],
-      //  update background, push a column to the heatmap, draw CIR.
-      // ============================================================
-      const work = { re: null, im: null };
-      function ensureWork(N) {
-        if (!work.re || work.re.length !== N) {
-          work.re = new Float64Array(N);
-          work.im = new Float64Array(N);
-        }
-      }
-
-      function processFrame(yStart) {
-        const N = state.N;
-        const ring = state.ring;
-        const mask = state.ringMask;
-        ensureWork(N);
-        const Yre = work.re, Yim = work.im;
-        for (let n = 0; n < N; n++) {
-          Yre[n] = ring[(yStart + n) & mask];
-          Yim[n] = 0;
-        }
-        // FFT(y)
-        fft(Yre, Yim, false);
-        // Divide by X(k) on active bins only; |X(k)| = 1 so it is a
-        // multiplication by the conjugate. Inactive bins are zeroed.
-        const Xre = state.symbol.Xre;
-        const Xim = state.symbol.Xim;
-        const active = state.symbol.active;
-        for (let k = 0; k < N; k++) {
-          if (active[k]) {
-            // H = Y * conj(X) / |X|^2; |X|^2 = 1
-            const a = Yre[k], b = Yim[k];
-            const c = Xre[k], d = Xim[k];
-            Yre[k] = a * c + b * d;
-            Yim[k] = b * c - a * d;
-          } else {
-            Yre[k] = 0; Yim[k] = 0;
-          }
-        }
-        // IFFT → time-domain CIR
-        fft(Yre, Yim, true);
-
-        // |h[n]| (we only care about magnitude)
-        const h = new Float32Array(N);
-        let hPeak = ACTIVE_BIN_FLOOR;
-        for (let n = 0; n < N; n++) {
-          const m = Math.hypot(Yre[n], Yim[n]);
-          h[n] = m;
-          if (m > hPeak) hPeak = m;
-        }
-
-        // Update background EMA
-        const fs = state.sampleRate;
-        const dt = N / fs;
-        const tau = Math.max(0.05, +bgTauEl.value);
-        const alpha = 1 - Math.exp(-dt / tau);
-        const bg = state.bgEMA;
-        if (!bg) {
-          state.bgEMA = h.slice();
-        } else {
-          for (let n = 0; n < N; n++) bg[n] = bg[n] + alpha * (h[n] - bg[n]);
-        }
-
-        // Motion = max(0, |h| - bg)
-        const bgArr = state.bgEMA;
-        const motion = new Float32Array(N);
-        let movePeak = 0, movePeakBin = -1;
-        // Skip the immediate direct-path bins (first ~3 cm). Speaker→mic
-        // direct coupling lives there and dominates.
-        const minBin = Math.max(2, Math.round(0.03 * 2 * fs / SOUND_C));
-        for (let n = 0; n < N / 2; n++) {
-          let v = h[n] - bgArr[n];
-          if (v < 0) v = 0;
-          motion[n] = v;
-          if (n >= minBin && v > movePeak) { movePeak = v; movePeakBin = n; }
-        }
-
-        return { h, motion, hPeak, movePeak, movePeakBin };
-      }
-
-      function drawColumn(motion, hPeak) {
-        const rt = state.rt;
-        if (!rt) return;
-        const { ctx, W, H } = rt;
-        // Scroll left by 1 pixel
-        const img = ctx.getImageData(1, 0, W - 1, H);
-        ctx.putImageData(img, 0, 0);
-        // Fill the rightmost column
-        const col = ctx.createImageData(1, H);
-        const N = state.N;
-        const fs = state.sampleRate;
-        const maxRangeM = (+dispRangeEl.value) / 100;
-        const maxBinFloat = maxRangeM * 2 * fs / SOUND_C;
-        const maxBin = Math.min(N / 2, Math.max(8, Math.ceil(maxBinFloat)));
-        // Display gain: normalize by a slow upper-percentile of motion
-        const norm = Math.max(0.02, hPeak * 0.6);
-        for (let y = 0; y < H; y++) {
-          // Top of canvas = farthest range; bottom of canvas = closest.
-          const r = (H - 1 - y) / (H - 1);
-          const binFloat = r * maxBin;
-          const b0 = Math.floor(binFloat);
-          const b1 = Math.min(maxBin - 1, b0 + 1);
-          const f = binFloat - b0;
-          const v = motion[b0] * (1 - f) + motion[b1] * f;
-          const t = Math.min(1, v / norm);
-          // Mild gamma to lift mid-tones
-          const g = Math.pow(t, 0.7);
-          const [R, G, B] = colorRamp(g);
-          const idx = y * 4;
-          col.data[idx]     = R;
-          col.data[idx + 1] = G;
-          col.data[idx + 2] = B;
-          col.data[idx + 3] = 255;
-        }
-        ctx.putImageData(col, W - 1, 0);
-      }
-
-      function drawCIR(h, bg, peakBin) {
-        const dpr = state.rt ? state.rt.dpr : 1;
-        const W = cirCanvas.width, H = cirCanvas.height;
-        const ctx = cirCanvas.getContext('2d');
-        ctx.fillStyle = '#0c0c0e';
-        ctx.fillRect(0, 0, W, H);
-        const N = state.N;
-        const fs = state.sampleRate;
-        const maxRangeM = (+dispRangeEl.value) / 100;
-        const maxBinFloat = maxRangeM * 2 * fs / SOUND_C;
-        const maxBin = Math.min(N / 2, Math.max(8, Math.ceil(maxBinFloat)));
-        let lo = 0, hi = 0;
-        for (let n = 0; n < maxBin; n++) {
-          if (h[n]  > hi) hi = h[n];
-          if (bg[n] > hi) hi = bg[n];
-        }
-        if (hi <= 0) hi = 1;
-        const padX = 24 * dpr, padTop = 8 * dpr, padBot = 18 * dpr;
-        const plotW = W - padX - 8 * dpr;
-        const plotH = H - padTop - padBot;
-        // gridlines at 10, 20, 30, ... cm
-        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-        ctx.lineWidth = 1 * dpr;
-        ctx.font = (10 * dpr) + 'px "Roboto Mono", monospace';
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
-        ctx.textAlign = 'center';
-        for (let cm = 10; cm <= maxRangeM * 100; cm += 10) {
-          const m = cm / 100;
-          const binF = m * 2 * fs / SOUND_C;
-          const x = padX + (binF / maxBin) * plotW;
-          ctx.beginPath();
-          ctx.moveTo(x, padTop);
-          ctx.lineTo(x, padTop + plotH);
-          ctx.stroke();
-          ctx.fillText(cm + ' cm', x, H - 4 * dpr);
-        }
-        // background curve
-        ctx.strokeStyle = '#5b6068';
-        ctx.lineWidth = 1.5 * dpr;
-        ctx.beginPath();
-        for (let n = 0; n < maxBin; n++) {
-          const x = padX + (n / maxBin) * plotW;
-          const y = padTop + plotH - (bg[n] / hi) * plotH;
-          if (n === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        // h[n] curve
-        ctx.strokeStyle = '#bc122a';
-        ctx.lineWidth = 1.6 * dpr;
-        ctx.beginPath();
-        for (let n = 0; n < maxBin; n++) {
-          const x = padX + (n / maxBin) * plotW;
-          const y = padTop + plotH - (h[n] / hi) * plotH;
-          if (n === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        // peak marker
-        if (peakBin >= 0 && peakBin < maxBin) {
-          const x = padX + (peakBin / maxBin) * plotW;
-          const y = padTop + plotH - (h[peakBin] / hi) * plotH;
-          ctx.fillStyle = '#E8B923';
-          ctx.beginPath(); ctx.arc(x, y, 3 * dpr, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-
-      // ============================================================
-      //  Sync: cross-correlate the most recent 2N samples of received
-      //  signal against the known symbol; the lag at the peak is the
-      //  start of an aligned period in the ring buffer.
-      //
-      //  We use FFT-based correlation: pad x and y to length L = 2N,
-      //  compute Y * conj(X), inverse FFT, take magnitude, find peak
-      //  in the first N taps.
-      // ============================================================
-      const sync = { Xre: null, Xim: null, L: 0 };
-      function ensureSync(N) {
-        const L = 2 * N;
-        if (sync.L === L) return;
-        sync.L = L;
-        sync.Xre = new Float64Array(L);
-        sync.Xim = new Float64Array(L);
-        const x = state.symbol.x;
-        for (let n = 0; n < N; n++) sync.Xre[n] = x[n];
-        for (let n = N; n < L; n++) sync.Xre[n] = 0;
-        // forward FFT in place
-        fft(sync.Xre, sync.Xim, false);
-      }
-
-      function findSync(yEnd) {
-        // yEnd is the absolute write index (one past the last received
-        // sample). Pull the last 2N samples ending at yEnd.
-        const N = state.N;
-        const L = 2 * N;
-        ensureSync(N);
-        const ring = state.ring;
-        const mask = state.ringMask;
-        const Yre = new Float64Array(L);
-        const Yim = new Float64Array(L);
-        const start = yEnd - L;
-        for (let n = 0; n < L; n++) {
-          Yre[n] = ring[(start + n) & mask];
-        }
-        fft(Yre, Yim, false);
-        // Y * conj(X)
-        for (let k = 0; k < L; k++) {
-          const a = Yre[k], b = Yim[k];
-          const c = sync.Xre[k], d = -sync.Xim[k];
-          Yre[k] = a * c - b * d;
-          Yim[k] = a * d + b * c;
-        }
-        fft(Yre, Yim, true);
-        // Pick best lag in [0, N)
-        let best = -1, bestVal = -1;
-        for (let n = 0; n < N; n++) {
-          const m = Yre[n] * Yre[n] + Yim[n] * Yim[n];
-          if (m > bestVal) { bestVal = m; best = n; }
-        }
-        // Lag `best` means: the symbol begins at sample (start + best)
-        // in the absolute index. Return that absolute index.
-        return start + best;
-      }
-
-      // ============================================================
-      //  Main start/stop
-      // ============================================================
-      async function start() {
-        try {
-          startBtn.disabled = true;
-          setStatus('Setting up audio...', 'busy');
-          state.ctx = new (window.AudioContext || window.webkitAudioContext)();
-          if (state.ctx.state === 'suspended') await state.ctx.resume();
-          state.sampleRate = state.ctx.sampleRate;
-          srStat.innerHTML = Math.round(state.sampleRate) + '<span class="unit"> Hz</span>';
-
-          state.N = +symNEl.value;
-          const fmin = +bandLoEl.value;
-          const fmax = +bandHiEl.value;
-          state.symbol = buildSymbol(state.N, state.sampleRate, fmin, fmax);
-          if (state.symbol.kmax < state.symbol.kmin) {
-            throw new Error('Empty band — band low >= band high.');
-          }
-
-          // Output: tile the symbol into a buffer that the source loops.
-          // Need a multiple of N samples to keep the loop seamless.
-          const tileCount = Math.max(8, Math.ceil(state.sampleRate / state.N));
-          const bufLen = tileCount * state.N;
-          const buf = state.ctx.createBuffer(1, bufLen, state.sampleRate);
-          const ch = buf.getChannelData(0);
-          for (let t = 0; t < tileCount; t++) {
-            ch.set(state.symbol.x, t * state.N);
-          }
-          state.srcNode = state.ctx.createBufferSource();
-          state.srcNode.buffer = buf;
-          state.srcNode.loop = true;
-          state.srcNode.loopStart = 0;
-          state.srcNode.loopEnd = bufLen / state.sampleRate;
-          state.gainNode = state.ctx.createGain();
-          state.gainNode.gain.value = +gainEl.value;
-          state.srcNode.connect(state.gainNode).connect(state.ctx.destination);
-
-          // Ring buffer for received samples: must be >> 2N.
-          const ringSize = 1 << Math.max(15, Math.ceil(Math.log2(state.N * 16)));
-          state.ring = new Float32Array(ringSize);
-          state.ringMask = ringSize - 1;
-          state.ringWrite = 0;
-          state.nextFrame = 0;
-          state.lastSyncAt = -1e9;
-          state.bgEMA = null;
-          trackHist.length = 0;
-
-          // Microphone
-          setStatus('Requesting microphone...', 'busy');
-          state.micStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false,
-              channelCount: 1
-            }
-          });
-          state.micSrc = state.ctx.createMediaStreamSource(state.micStream);
-
-          // ScriptProcessor — deprecated but works everywhere and is
-          // perfectly adequate at 256-sample frame rates.
-          const procSize = 1024;
-          state.scriptNode = state.ctx.createScriptProcessor(procSize, 1, 1);
-          state.scriptNode.onaudioprocess = onAudio;
-          state.micSrc.connect(state.scriptNode);
-          // ScriptProcessor needs a downstream connection to fire,
-          // but we don't actually want the mic in the speakers.
-          const sink = state.ctx.createGain();
-          sink.gain.value = 0;
-          state.scriptNode.connect(sink).connect(state.ctx.destination);
-
-          resultPanel.classList.remove('hidden');
-          // Force a layout pass so the canvas inherits its rendered
-          // size before we sample clientWidth/clientHeight.
-          void resultPanel.offsetHeight;
-          setupRangeTime();
-          state.srcNode.start();
-
-          state.running = true;
-          stopBtn.disabled = false;
-          setStatus('Listening — wave a hand above the speaker.', 'ok');
-          refreshUI(state.sampleRate);
-
-          requestAnimationFrame(uiLoop);
-        } catch (err) {
-          console.error(err);
-          setStatus('Could not start: ' + err.message, 'error');
-          stop();
-        }
-      }
-
-      function stop() {
-        state.running = false;
-        try { state.srcNode && state.srcNode.stop(); } catch (e) {}
-        if (state.scriptNode) try { state.scriptNode.disconnect(); } catch (e) {}
-        if (state.micSrc) try { state.micSrc.disconnect(); } catch (e) {}
-        if (state.gainNode) try { state.gainNode.disconnect(); } catch (e) {}
-        if (state.micStream) state.micStream.getTracks().forEach(t => t.stop());
-        if (state.ctx) try { state.ctx.close(); } catch (e) {}
-        state.ctx = null; state.srcNode = null; state.scriptNode = null;
-        state.micSrc = null; state.gainNode = null; state.micStream = null;
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-        setStatus('Stopped.', '');
-      }
-
-      // Live volume update without restarting
+      // Volume follows the slider without restarting the engine; the
+      // waveform-defining knobs only take effect on the next Start.
       gainEl.addEventListener('input', () => {
-        if (state.gainNode) state.gainNode.gain.value = +gainEl.value;
+        if (eng.gain) eng.gain.gain.value = P.gain;
       });
 
-      // ============================================================
-      //  Audio callback: write incoming samples to the ring buffer
-      //  and process every full frame past nextFrame.
-      // ============================================================
-      function onAudio(ev) {
-        if (!state.running) return;
-        const input = ev.inputBuffer.getChannelData(0);
-        const ring = state.ring;
-        const mask = state.ringMask;
-        const len = input.length;
-        for (let i = 0; i < len; i++) {
-          ring[(state.ringWrite + i) & mask] = input[i];
-        }
-        state.ringWrite += len;
-
-        // Re-sync about every 0.5 s, and once at the very start.
-        const N = state.N;
-        if (state.ringWrite - state.lastSyncAt > state.sampleRate * 0.5
-            && state.ringWrite > 2 * N) {
-          const lag = findSync(state.ringWrite);
-          if (lag >= 0) {
-            // Snap nextFrame onto the new alignment, just past whatever
-            // point we have already consumed.
-            const delta = state.ringWrite - lag;
-            const periods = Math.ceil(delta / N);
-            state.nextFrame = lag + periods * N;
-            state.lastSyncAt = state.ringWrite;
-          }
-        }
-
-        // Pull every aligned frame whose end has arrived.
-        const frames = [];
-        while (state.nextFrame + N <= state.ringWrite
-               && state.nextFrame > 0
-               && state.ringWrite - state.nextFrame < state.ring.length - N) {
-          frames.push(state.nextFrame);
-          state.nextFrame += N;
-        }
-        for (const f of frames) {
-          const r = processFrame(f);
-          state._lastResult = r;
-          state._frameCount = (state._frameCount || 0) + 1;
-          // CIR rate — exponential moving average of inter-frame interval
-          const now = performance.now();
-          if (state.lastFrameWall) {
-            const dt = (now - state.lastFrameWall) / 1000;
-            const rate = 1 / dt;
-            state.cirRateEMA = state.cirRateEMA
-              ? state.cirRateEMA + 0.05 * (rate - state.cirRateEMA)
-              : rate;
-          }
-          state.lastFrameWall = now;
-
-          // Record one tracked-distance sample per CIR frame.
-          const valid = r.movePeakBin >= 0 && r.movePeak > 0.02 * r.hPeak;
-          const cm = valid
-            ? (r.movePeakBin * SOUND_C / (2 * state.sampleRate)) * 100
-            : null;
-          const mag = r.hPeak > 0 ? Math.min(1, r.movePeak / r.hPeak) : 0;
-          trackHist.push({ t: now, cm, mag });
-          // Drop entries older than the window (plus a small margin).
-          const cutoff = now - (TRACK_WINDOW_S + 1) * 1000;
-          while (trackHist.length && trackHist[0].t < cutoff) trackHist.shift();
-        }
-      }
-
-      // ============================================================
-      //  Tracked-distance plot: hand position over the last few seconds
-      // ============================================================
-      function drawTrack() {
-        if (!trackCanvas.width) return;
-        const dpr = state.rt ? state.rt.dpr : 1;
-        const W = trackCanvas.width, H = trackCanvas.height;
-        const ctx = trackCanvas.getContext('2d');
-        ctx.fillStyle = '#0c0c0e';
-        ctx.fillRect(0, 0, W, H);
-
-        const padL = 32 * dpr, padR = 8 * dpr;
-        const padT = 10 * dpr, padB = 16 * dpr;
-        const plotW = W - padL - padR;
-        const plotH = H - padT - padB;
-        const maxCm = +dispRangeEl.value;
-        const now = performance.now();
-        const tEnd = now;
-        const tStart = now - TRACK_WINDOW_S * 1000;
-
-        // y from cm: y = 0 cm at bottom, y = maxCm at top
-        const yOf = cm => padT + plotH * (1 - cm / maxCm);
-        const xOf = t  => padL + plotW * (t - tStart) / (tEnd - tStart);
-
-        // Horizontal grid + cm labels every 10 cm
-        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-        ctx.lineWidth = 1 * dpr;
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
-        ctx.font = (10 * dpr) + 'px "Roboto Mono", monospace';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        const cmStep = maxCm <= 30 ? 5 : 10;
-        for (let cm = 0; cm <= maxCm; cm += cmStep) {
-          const y = yOf(cm);
-          ctx.beginPath();
-          ctx.moveTo(padL, y);
-          ctx.lineTo(W - padR, y);
-          ctx.stroke();
-          ctx.fillText(cm + ' cm', padL - 4 * dpr, y);
-        }
-        // Time axis ticks at -8, -6, -4, -2, 0 s
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        for (let s = 0; s <= TRACK_WINDOW_S; s += 2) {
-          const t = tEnd - s * 1000;
-          const x = xOf(t);
-          ctx.beginPath();
-          ctx.moveTo(x, padT);
-          ctx.lineTo(x, padT + plotH);
-          ctx.stroke();
-          ctx.fillText('-' + s + 's', x, padT + plotH + 2 * dpr);
-        }
-
-        // Filter samples within the window
-        const samples = [];
-        for (const s of trackHist) {
-          if (s.t < tStart) continue;
-          samples.push(s);
-        }
-        if (samples.length < 2) return;
-
-        // Light EMA smoothing on cm so the line reads cleanly.
-        // Skips invalid samples; resets after long invalid gaps.
-        const smoothed = new Array(samples.length);
-        let sm = null, lastValidT = -1e9;
-        for (let i = 0; i < samples.length; i++) {
-          const s = samples[i];
-          if (s.cm == null) {
-            smoothed[i] = { t: s.t, cm: null, mag: s.mag };
-            continue;
-          }
-          if (sm == null || s.t - lastValidT > 250) sm = s.cm;
-          else sm = sm + 0.35 * (s.cm - sm);
-          lastValidT = s.t;
-          smoothed[i] = { t: s.t, cm: sm, mag: s.mag };
-        }
-
-        // Draw line connecting adjacent valid samples (gap on invalid).
-        ctx.strokeStyle = '#E8B923';
-        ctx.lineWidth = 2 * dpr;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        let pen = false;
-        for (const s of smoothed) {
-          if (s.cm == null) { pen = false; continue; }
-          const x = xOf(s.t), y = yOf(s.cm);
-          if (!pen) { ctx.moveTo(x, y); pen = true; } else { ctx.lineTo(x, y); }
-        }
-        ctx.stroke();
-
-        // Strength dots — size proportional to motion magnitude.
-        for (const s of smoothed) {
-          if (s.cm == null) continue;
-          const x = xOf(s.t), y = yOf(s.cm);
-          const r = Math.max(1, Math.min(5, s.mag * 12)) * dpr;
-          ctx.fillStyle = 'rgba(188,18,42,0.45)';
-          ctx.beginPath();
-          ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Latest-point readout (big yellow dot + label) at the right edge.
-        let latest = null;
-        for (let i = smoothed.length - 1; i >= 0; i--) {
-          if (smoothed[i].cm != null) { latest = smoothed[i]; break; }
-        }
-        if (latest && now - latest.t < 300) {
-          const x = xOf(latest.t), y = yOf(latest.cm);
-          ctx.fillStyle = '#E8B923';
-          ctx.beginPath();
-          ctx.arc(x, y, 4 * dpr, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#0c0c0e';
-          ctx.beginPath();
-          ctx.arc(x, y, 1.6 * dpr, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#E8B923';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'bottom';
-          ctx.font = 'bold ' + (11 * dpr) + 'px "Roboto Mono", monospace';
-          ctx.fillText(latest.cm.toFixed(1) + ' cm', x - 6 * dpr, y - 4 * dpr);
-        }
-      }
-
-      // ============================================================
-      //  UI loop: draws latest CIR + heatmap column, updates stats
-      // ============================================================
       function uiLoop() {
-        if (!state.running) return;
-        const r = state._lastResult;
-        if (r) {
-          drawColumn(r.motion, r.hPeak);
-          drawCIR(r.h, state.bgEMA, r.movePeakBin);
-          drawTrack();
-          // stats
-          rateStat.innerHTML = state.cirRateEMA
-            ? state.cirRateEMA.toFixed(0) + '<span class="unit"> Hz</span>'
-            : '—<span class="unit"> Hz</span>';
-          syncStat.innerHTML = (state.nextFrame % state.N)
-            + '<span class="unit"> mod N</span>';
-          if (r.movePeakBin >= 0 && r.movePeak > 0.01 * r.hPeak) {
-            const cm = (r.movePeakBin * SOUND_C / (2 * state.sampleRate)) * 100;
-            distStat.innerHTML = cm.toFixed(1)
-              + '<span class="unit"> cm</span>';
-          } else {
-            distStat.innerHTML = '—<span class="unit"> cm</span>';
-          }
-        }
+        if (!eng.running) return;
+        prepareDraw();
+        drawAll();
         requestAnimationFrame(uiLoop);
       }
 
-      startBtn.addEventListener('click', start);
-      stopBtn.addEventListener('click', stop);
-      window.addEventListener('beforeunload', stop);
+      startBtn.addEventListener('click', () => {
+        // Disabled here rather than in onEngine: the microphone prompt can
+        // sit there for seconds, and a second click would start a second
+        // engine on top of the first.
+        startBtn.disabled = true;
+        syncParams();
+        engStart();
+      });
+      stopBtn.addEventListener('click', engStop);
+      window.addEventListener('beforeunload', engStop);
     </script>
   </body>
 </html>

@@ -1420,6 +1420,60 @@
             <span class="arrow">Open</span>
           </div>
         </a>
+        <a class="card-link" href="fingerio-remote/">
+          <div class="cover" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">
+                <line x1="50"  y1="0" x2="50"  y2="100"/>
+                <line x1="100" y1="0" x2="100" y2="100"/>
+                <line x1="150" y1="0" x2="150" y2="100"/>
+              </g>
+              <!-- phone lying flat on the desk, doing the sonar -->
+              <g transform="translate(10 62)">
+                <rect x="0" y="0" width="42" height="20" rx="3" fill="none" stroke="#bc122a" stroke-width="1.7"/>
+                <circle cx="21" cy="10" r="3.0" fill="none" stroke="#bc122a" stroke-width="1.2"/>
+                <circle cx="21" cy="10" r="1.1" fill="#bc122a"/>
+                <line x1="-3" y1="24" x2="45" y2="24" stroke="rgba(255,255,255,0.18)" stroke-width="0.8"/>
+              </g>
+              <!-- emitted arcs going up toward the finger -->
+              <g fill="none" stroke="rgba(232,185,35,0.85)" stroke-width="1.1" stroke-linecap="round">
+                <path d="M 12 56 Q 31 44 50 56"/>
+                <path d="M 8  50 Q 31 34 54 50"/>
+                <path d="M 4  44 Q 31 24 58 44"/>
+              </g>
+              <!-- pointing finger above the phone -->
+              <g transform="translate(20 2)" fill="none" stroke="#bc122a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+                <path d="M 12 0 L 12 20 L 6 20 L 6 32 L 26 32 L 26 20 L 20 20 L 20 0 Z"/>
+                <line x1="6" y1="25" x2="26" y2="25"/>
+              </g>
+              <!-- echo back down to the phone -->
+              <g fill="none" stroke="#5cd7e0" stroke-width="1.0" stroke-linecap="round" opacity="0.9">
+                <path d="M 46 38 Q 44 50 40 60"/>
+                <path d="M 52 42 Q 50 54 46 62"/>
+              </g>
+              <!-- the finished picture crossing the link to the laptop -->
+              <g stroke="rgba(255,255,255,0.35)" stroke-width="0.9" stroke-dasharray="3 3" fill="none">
+                <path d="M 58 68 Q 82 66 104 60"/>
+              </g>
+              <!-- laptop screen showing the range-time waterfall -->
+              <g transform="translate(108 22)">
+                <rect x="0" y="0" width="78" height="48" rx="2" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.28)" stroke-width="1.1"/>
+                <path d="M -6 52 L 84 52" stroke="rgba(255,255,255,0.28)" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M 6 40 C 20 32 28 20 42 14 S 62 8 72 6"
+                      fill="none" stroke="#E8B923" stroke-width="2.2" stroke-linecap="round"/>
+                <path d="M 6 40 C 20 32 28 20 42 14 S 62 8 72 6"
+                      fill="none" stroke="#fff" stroke-width="0.8" stroke-linecap="round" opacity="0.7"/>
+                <line x1="4" y1="44" x2="74" y2="44" stroke="#bc122a" stroke-width="0.8" opacity="0.5"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="setup-chip pair">Phone + laptop</span>
+            <h3>FingerIO Remote</h3>
+            <p>FingerIO on the device it was designed for. The phone emits the OFDM symbol, records its own echoes and estimates the channel on board &mdash; the laptop is only the screen.</p>
+            <span class="arrow">Open</span>
+          </div>
+        </a>
         <a class="card-link" href="breathing-sonar/">
           <div class="cover" aria-hidden="true">
             <svg viewBox="0 0 200 100" preserveAspectRatio="none">
