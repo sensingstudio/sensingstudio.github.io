@@ -1,0 +1,1911 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Breathing Sonar · Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+        --cyan: #5cd7e0;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 960px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 62ch;
+        line-height: 1.5;
+      }
+      p.lead a { color: var(--black); }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel.teach p, .panel.teach li { font-size: 14px; line-height: 1.65; color: #2a2d31; }
+      .panel.teach p { margin: 0 0 12px; }
+      .panel.teach p:last-child { margin-bottom: 0; }
+      .panel.teach code {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 12.5px;
+        background: #f2f3f5;
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+      .eq {
+        text-align: center;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 13px;
+        margin: 16px 0;
+        color: var(--black);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 120px;
+      }
+      input[type="range"] { flex: 1 1 200px; min-width: 200px; }
+      select {
+        font-family: inherit;
+        font-size: 13px;
+        padding: 7px 10px;
+        border: 1px solid var(--grey-line);
+        border-radius: 6px;
+        background: #fff;
+      }
+      .val {
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 500;
+        font-size: 14px;
+        min-width: 96px;
+        text-align: right;
+        color: var(--black);
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.big { font-size: 14px; padding: 14px 28px; }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--black);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .seg button {
+        border: 0;
+        border-radius: 0;
+        background: #fff;
+        color: var(--black);
+        text-transform: none;
+        letter-spacing: 0.3px;
+        font-size: 13.5px;
+        padding: 11px 20px;
+      }
+      .seg button + button { border-left: 1px solid var(--black); }
+      .seg button.active { background: var(--black); color: #fff; }
+      .checkrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--grey-text);
+      }
+      .checkrow input { width: 16px; height: 16px; }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 14px 18px;
+      }
+      .stat .label {
+        font-size: 11px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .stat .num {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 4px;
+        letter-spacing: -0.5px;
+      }
+      .stat .num .unit {
+        font-size: 12px;
+        color: var(--grey-text);
+        font-weight: 500;
+        margin-left: 4px;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      .canvas-wrap.tall   { aspect-ratio: 16 / 9; }
+      .canvas-wrap.mid    { aspect-ratio: 16 / 7; }
+      .canvas-wrap.short  { aspect-ratio: 16 / 5; }
+      .canvas-wrap.strip  { aspect-ratio: 16 / 3.2; }
+      .canvas-wrap.square { aspect-ratio: 1 / 1; }
+      canvas { width: 100%; height: 100%; display: block; }
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 16px;
+        align-items: start;
+      }
+      @media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+      .canvas-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--black);
+        margin: 18px 0 8px;
+      }
+      .canvas-title:first-child { margin-top: 0; }
+      .canvas-title .sub {
+        font-weight: 400;
+        color: var(--grey-text);
+        font-size: 12px;
+        margin-left: 8px;
+      }
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 6px;
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      .legend .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 3px;
+        vertical-align: 2px;
+        margin-right: 6px;
+        border-radius: 1px;
+      }
+      .status { font-size: 13px; color: var(--grey-text); margin-top: 0; }
+      .status.error { color: var(--red); }
+      .status.busy  { color: #9a7a10; }
+      .status.ok    { color: var(--green); }
+      .hidden { display: none !important; }
+      .note {
+        font-size: 12.5px;
+        color: var(--grey-text);
+        margin-top: 14px;
+        line-height: 1.5;
+      }
+      .param-hint {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin: 0 0 14px 136px;
+        line-height: 1.45;
+        max-width: 60ch;
+      }
+      .disclaimer {
+        border-left: 3px solid var(--red);
+        background: #fff5f6;
+        padding: 14px 18px;
+        border-radius: 0 6px 6px 0;
+        font-size: 13px;
+        line-height: 1.55;
+        color: #2a2d31;
+      }
+      .event-badge {
+        display: inline-block;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        background: #eef4ee;
+        color: var(--green);
+      }
+      .event-badge.warn { background: #fdf6e0; color: #9a7a10; }
+      .event-badge.bad  { background: #fdeced; color: var(--red); }
+      .event-badge.idle { background: #f2f3f5; color: var(--grey-text); }
+      @media (max-width: 600px) {
+        .param-hint { margin-left: 0; }
+        label { min-width: 0; flex-basis: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="Breathing Sonar"></header>
+    <script src="../nav.js" defer></script>
+
+    <main>
+      <h1>Breathing Sonar</h1>
+      <p class="lead">Your chest moves a few millimetres when you breathe. That is enough to be seen from across the desk with nothing but a laptop speaker and its microphone: emit an inaudible tone above 18&nbsp;kHz, listen to what comes back, and watch the echo breathe. Two methods, side by side &mdash; a single-tone phase tracker, and the FMCW range-bin pipeline from Nandakumar, Gollakota &amp; Watson, <a href="https://apnea.cs.washington.edu/apneaapp.pdf" target="_blank" rel="noopener">ApneaApp (MobiSys&nbsp;2015)</a>.</p>
+
+      <section class="panel teach">
+        <h2>The idea in one minute</h2>
+        <p>Sound leaves the speaker, bounces off your torso, and returns to the microphone. The round trip takes <code>2d/c</code> seconds. Inhale and <code>d</code> shrinks by a few millimetres; exhale and it grows back. Every method here is a different way of noticing that few-millimetre change against a room full of much stronger, perfectly stationary echoes.</p>
+        <p><strong>Method 1 &mdash; CW phase.</strong> Hold one tone. At 18&nbsp;kHz a wavelength is 19&nbsp;mm, so a 1&nbsp;mm chest displacement changes the round-trip path by 2&nbsp;mm and rotates the returning echo by <code>4&pi;&middot;1&nbsp;mm/&lambda;</code> = 38&deg;. You cannot measure absolute distance this way &mdash; but you can measure <em>change</em> with absurd sensitivity, because phase is a ruler with 19&nbsp;mm markings.</p>
+        <p><strong>Method 2 &mdash; FMCW range bins (ApneaApp).</strong> Sweep 18&rarr;20&nbsp;kHz over and over. Mixing the echo with the sweep turns delay into a beat frequency, so one FFT sorts the room into range bins. Breathing then shows up as the energy in a bin rising and falling. Because it resolves range, this one tells you <em>where</em> the sleeper is &mdash; and can track two of them at different distances at once.</p>
+        <p>Both end the same way: take the slow, wobbling signal you extracted, run a 30-second FFT, and look for a peak between 0.1 and 0.7&nbsp;Hz. That peak is a breathing rate.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Method</h2>
+        <div class="row">
+          <div class="seg" id="methodSeg">
+            <button class="active" data-method="cw">1 &middot; CW phase</button>
+            <button data-method="fmcw">2 &middot; FMCW range bins (ApneaApp)</button>
+          </div>
+        </div>
+        <p class="param-hint" id="methodHint" style="margin-left:0;">A single inaudible tone. The complex baseband echo is one vector; the room pins it in place and your chest rotates it. Most sensitive, but blind to distance.</p>
+      </section>
+
+      <section class="panel" id="cwParams">
+        <h2>Parameters &middot; CW phase</h2>
+        <div class="row">
+          <label for="cwFreq">Tone</label>
+          <input type="range" id="cwFreq" min="16000" max="22000" step="100" value="18000" />
+          <span class="val" id="cwFreqVal">18.0 kHz</span>
+        </div>
+        <p class="param-hint">Carrier frequency. Higher &rarr; shorter wavelength &rarr; more phase per millimetre of chest movement, but laptop tweeters and microphones both roll off hard above 20&nbsp;kHz. If the echo looks dead, come down to 17&nbsp;kHz.</p>
+
+        <div class="row">
+          <label for="cwClutter">Clutter &tau;</label>
+          <input type="range" id="cwClutter" min="1" max="20" step="0.5" value="6" />
+          <span class="val" id="cwClutterVal">6.0 s</span>
+        </div>
+        <p class="param-hint">Time constant of the running average that estimates the static part of the echo &mdash; walls, desk, the direct speaker-to-mic leak. Subtracting it re-centres the constellation on the origin so the breathing arc is what is left. Too short and it starts eating slow breaths.</p>
+
+        <div class="row">
+          <label for="cwSmooth">Echo smoothing</label>
+          <input type="range" id="cwSmooth" min="0.05" max="1" step="0.05" value="0.25" />
+          <span class="val" id="cwSmoothVal">0.25 s</span>
+        </div>
+        <p class="param-hint">Low-pass on the complex echo before the phase is taken. Breathing lives below 1&nbsp;Hz, so heavy smoothing costs nothing and keeps the phase from random-walking when the echo is weak.</p>
+      </section>
+
+      <section class="panel hidden" id="fmcwParams">
+        <h2>Parameters &middot; FMCW</h2>
+        <div class="row">
+          <label for="fmBandLo">Sweep from</label>
+          <input type="range" id="fmBandLo" min="15000" max="19000" step="250" value="18000" />
+          <span class="val" id="fmBandLoVal">18.0 kHz</span>
+        </div>
+        <div class="row">
+          <label for="fmBandHi">Sweep to</label>
+          <input type="range" id="fmBandHi" min="16000" max="22000" step="250" value="20000" />
+          <span class="val" id="fmBandHiVal">20.0 kHz</span>
+        </div>
+        <p class="param-hint">The paper sweeps 18&ndash;20&nbsp;kHz: above hearing for most adults, still inside what a phone speaker can produce. Bandwidth <code>B</code> alone sets how finely two <em>separate</em> reflectors can be told apart: <code>c/2B</code> = 8.6&nbsp;cm at 2&nbsp;kHz.</p>
+
+        <div class="row">
+          <label for="fmChirpN">Chirp length</label>
+          <select id="fmChirpN">
+            <option value="512" selected>512 samples</option>
+            <option value="1024">1024 samples</option>
+            <option value="2048">2048 samples</option>
+          </select>
+          <span class="val" id="fmChirpNVal">10.7 ms</span>
+        </div>
+        <p class="param-hint">ApneaApp uses 10.7&nbsp;ms &mdash; exactly 512 samples at 48&nbsp;kHz &mdash; chosen so echoes from the whole operating range arrive before the sweep ends. Longer sweeps wrap less energy but update more slowly.</p>
+
+        <div class="row">
+          <label for="fmChirps">Chirps per frame</label>
+          <select id="fmChirps">
+            <option value="4">4</option>
+            <option value="8" selected>8</option>
+            <option value="16">16</option>
+          </select>
+          <span class="val" id="fmChirpsVal">85 ms frame</span>
+        </div>
+        <p class="param-hint">The ApneaApp trick. A single-sweep FFT has 93.75&nbsp;Hz-wide bins &mdash; far too coarse for the frequency wobble breathing produces. Transform over <em>M</em> consecutive sweeps instead and every bin narrows by a factor of M. The paper uses M&nbsp;=&nbsp;10 (107&nbsp;ms, 9.375&nbsp;Hz bins).</p>
+
+        <div class="row">
+          <label for="fmRange">Display range</label>
+          <input type="range" id="fmRange" min="30" max="200" step="10" value="120" />
+          <span class="val" id="fmRangeVal">120 cm</span>
+        </div>
+        <p class="param-hint">Furthest range plotted. ApneaApp claims reliable operation to about a metre, blanket included.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Run</h2>
+        <div class="row">
+          <button id="startBtn" class="big">Start</button>
+          <button id="stopBtn" class="secondary" disabled>Stop</button>
+          <button id="resyncBtn" class="secondary hidden" disabled>Re-sync</button>
+          <span class="status" id="status">Sit 30&ndash;80&nbsp;cm in front of the laptop, chest facing it, then press Start and breathe normally.</span>
+        </div>
+        <div class="row">
+          <label for="gain">Volume</label>
+          <input type="range" id="gain" min="0" max="0.9" step="0.01" value="0.35" />
+          <span class="val" id="gainVal">0.35</span>
+        </div>
+        <div class="row">
+          <span class="checkrow"><input type="checkbox" id="demoChk" /><label for="demoChk" style="min-width:0; text-transform:none; letter-spacing:0; font-size:13px;">Demo signal &mdash; synthesise the echo instead of using the microphone (15&nbsp;breaths/min at 45&nbsp;cm, with a 10&nbsp;s breath-hold every 45&nbsp;s)</label></span>
+        </div>
+        <p class="note">Echo cancellation, noise suppression, and AGC are all switched off so the microphone reports the sonar honestly. <strong>Headphones will not work</strong> &mdash; the sound has to reach your chest through the air. Hold reasonably still: the same physics that sees a 1&nbsp;mm breath sees a 1&nbsp;cm fidget far more loudly.</p>
+      </section>
+
+      <section class="panel hidden" id="cwResults">
+        <h2>Live &middot; CW phase</h2>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Breathing rate</div>
+            <div class="num" id="cwBpm">&mdash;<span class="unit"> /min</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Displacement</div>
+            <div class="num" id="cwDisp">&mdash;<span class="unit"> mm p-p</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Echo / clutter</div>
+            <div class="num" id="cwSnr">&mdash;<span class="unit"> dB</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Baseband rate</div>
+            <div class="num" id="cwRate">&mdash;<span class="unit"> Hz</span></div>
+          </div>
+        </div>
+
+        <div class="split">
+          <div>
+            <div class="canvas-title">Echo in the complex plane
+              <span class="sub">last 12 s</span>
+            </div>
+            <div class="canvas-wrap square"><canvas id="iqCanvas"></canvas></div>
+            <div class="legend">
+              <span><span class="swatch" style="background:#5b6068"></span>static clutter (removed)</span>
+              <span><span class="swatch" style="background:#E8B923"></span>breathing arc</span>
+            </div>
+          </div>
+          <div>
+            <div class="canvas-title">Chest displacement
+              <span class="sub">&lambda;&middot;&Delta;&phi;/4&pi;, last 30 s</span>
+            </div>
+            <div class="canvas-wrap mid"><canvas id="cwDispCanvas"></canvas></div>
+            <div class="canvas-title">Breathing spectrum
+              <span class="sub">30 s FFT of the trace above</span>
+            </div>
+            <div class="canvas-wrap short"><canvas id="cwSpecCanvas"></canvas></div>
+          </div>
+        </div>
+
+        <div class="canvas-title">Motion envelope
+          <span class="sub">RMS of the breathing signal against its own baseline &mdash; ApneaApp&rsquo;s event test</span>
+          <span class="event-badge idle" id="cwEvent" style="float:right;">waiting</span>
+        </div>
+        <div class="canvas-wrap strip"><canvas id="cwEnvCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#E8B923"></span>envelope / baseline</span>
+          <span><span class="swatch" style="background:rgba(255,255,255,0.25)"></span>70% &mdash; reduced</span>
+          <span><span class="swatch" style="background:#bc122a"></span>30% &mdash; hypopnea threshold</span>
+        </div>
+      </section>
+
+      <section class="panel hidden" id="fmcwResults">
+        <h2>Live &middot; FMCW range bins</h2>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Breathing rate</div>
+            <div class="num" id="fmBpm">&mdash;<span class="unit"> /min</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Subject range</div>
+            <div class="num" id="fmRangeStat">&mdash;<span class="unit"> cm</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Bin spacing</div>
+            <div class="num" id="fmBinStat">&mdash;<span class="unit"> cm</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Frame rate</div>
+            <div class="num" id="fmFrameStat">&mdash;<span class="unit"> Hz</span></div>
+          </div>
+        </div>
+
+        <div class="canvas-title">Range &times; time
+          <span class="sub">per-bin magnitude, slow drift removed &mdash; the row that ripples is a chest</span>
+        </div>
+        <div class="canvas-wrap tall"><canvas id="fmWaterfall"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#0c0c0e"></span>steady</span>
+          <span><span class="swatch" style="background:#bc122a"></span>weak fluctuation</span>
+          <span><span class="swatch" style="background:#E8B923"></span>strong fluctuation</span>
+          <span><span class="swatch" style="background:#5cd7e0"></span>locked bin</span>
+        </div>
+
+        <div class="canvas-title">Breathing energy vs range
+          <span class="sub">strength of the 0.1&ndash;0.7 Hz peak in each bin &mdash; click to lock a bin</span>
+        </div>
+        <div class="canvas-wrap short"><canvas id="fmProfCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#bc122a"></span>periodicity score</span>
+          <span><span class="swatch" style="background:#5cd7e0"></span>primary subject</span>
+          <span><span class="swatch" style="background:#E8B923"></span>second subject, if any</span>
+        </div>
+
+        <div class="canvas-title">Chest motion signal
+          <span class="sub">magnitude of the locked range bin, last 30 s</span>
+        </div>
+        <div class="canvas-wrap mid"><canvas id="fmMotionCanvas"></canvas></div>
+
+        <div class="canvas-title">Breathing spectrum
+          <span class="sub">30 s FFT of the trace above</span>
+        </div>
+        <div class="canvas-wrap short"><canvas id="fmSpecCanvas"></canvas></div>
+
+        <div class="canvas-title">Motion envelope
+          <span class="sub">RMS against baseline &mdash; ApneaApp&rsquo;s event test</span>
+          <span class="event-badge idle" id="fmEvent" style="float:right;">waiting</span>
+        </div>
+        <div class="canvas-wrap strip"><canvas id="fmEnvCanvas"></canvas></div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#E8B923"></span>envelope / baseline</span>
+          <span><span class="swatch" style="background:rgba(255,255,255,0.25)"></span>70% &mdash; reduced</span>
+          <span><span class="swatch" style="background:#bc122a"></span>30% &mdash; hypopnea threshold</span>
+        </div>
+      </section>
+
+      <section class="panel teach">
+        <h2>Method 1 &mdash; how phase becomes millimetres</h2>
+        <p><strong>Transmit.</strong> One sine at <code>f<sub>0</sub></code>, looped from an audio buffer holding a whole number of cycles so the loop point is silent. The buffer length rounds the frequency slightly; the receiver uses the rounded value, so transmitter and receiver share one clock and one frequency exactly.</p>
+        <p><strong>Receive and demodulate.</strong> Multiply each microphone sample by <code>e<sup>&minus;j2&pi;f<sub>0</sub>t</sup></code> and average over 512 samples. That is a quadrature demodulator followed by a very blunt low-pass: the 18&nbsp;kHz carrier collapses to DC, everything else averages away, and what drops out at ~94&nbsp;Hz is one complex number per block:</p>
+        <p class="eq">z(t) = &Sigma;<sub>k</sub> A<sub>k</sub> e<sup>&minus;j&middot;4&pi;d<sub>k</sub>(t)/&lambda;</sup></p>
+        <p>One term per echo path. The wall, the desk, and the speaker-to-mic leak have fixed <code>d<sub>k</sub></code>, so they sum to a large constant vector. Your chest is a small term whose angle sweeps as you breathe.</p>
+        <p><strong>Cancel the room.</strong> Subtract a running average of <code>z</code> with time constant &tau;. The constant vector vanishes; what remains is a small arc centred on the origin. That is the whole clutter-cancellation step, and it is why the constellation plot above starts as a blob and opens into an arc after a few seconds.</p>
+        <p><strong>Read the angle.</strong> Unwrap <code>&ang;z</code> across time and convert:</p>
+        <p class="eq">&Delta;d = &lambda;&middot;&Delta;&phi; / 4&pi; &nbsp;&nbsp;&nbsp; (&lambda; = c/f<sub>0</sub> &asymp; 19 mm at 18 kHz)</p>
+        <p>The 4&pi; rather than 2&pi; is the round trip &mdash; the path changes by twice the chest displacement. Note what this measurement is <em>not</em>: absolute distance is unrecoverable, since every added half-wavelength returns the same phase. And it is not selective &mdash; every mover in the room lands in the same single number.</p>
+      </section>
+
+      <section class="panel teach">
+        <h2>Method 2 &mdash; ApneaApp&rsquo;s pipeline, step by step</h2>
+        <p><strong>1. Sweep.</strong> Transmit a linear chirp from <code>f<sub>0</sub></code> to <code>f<sub>1</sub></code> over <code>T<sub>sweep</sub></code>, on repeat. An echo delayed by <code>&Delta;t</code> is a copy of the sweep shifted in time, which &mdash; because frequency rises linearly &mdash; means shifted in frequency:</p>
+        <p class="eq">&Delta;f = (f<sub>1</sub> &minus; f<sub>0</sub>) / T<sub>sweep</sub> &middot; &Delta;t, &nbsp;&nbsp; &Delta;t = 2d/c</p>
+        <p><strong>2. Dechirp.</strong> Multiply the received signal by the conjugate of the sweep the transmitter is playing at that instant. Each echo collapses from a 2&nbsp;kHz-wide chirp to a steady tone at its own <code>&Delta;f</code>. Delay has become frequency, so one FFT is a range profile.</p>
+        <p><strong>3. Transform over M sweeps, not one.</strong> This is the paper&rsquo;s contribution. A 512-sample FFT at 48&nbsp;kHz has 93.75&nbsp;Hz bins, while a 2&nbsp;cm chest excursion moves the beat frequency by only ~12&nbsp;Hz &mdash; invisible. Transform over M consecutive sweeps and the bins narrow M-fold: at M&nbsp;=&nbsp;10 the paper gets 9.375&nbsp;Hz bins from a 107&nbsp;ms frame, short enough that nothing meaningful moves during it.</p>
+        <p>Careful about what those extra bins buy you. Bandwidth still sets true resolution &mdash; two people less than <code>c/2B</code> = 8.6&nbsp;cm apart stay merged no matter how you transform. What the M-sweep FFT does is <em>oversample</em> that 8.6&nbsp;cm cell into bins of <code>c/2BM</code> &asymp; 1&nbsp;cm, so the minute redistribution of energy between neighbouring bins as your chest moves becomes something you can plot.</p>
+        <p><strong>4. Find the person.</strong> Take the magnitude of each range bin as a function of frame number &mdash; a signal sampled at the frame rate, ~12&nbsp;Hz here. Run a 30-second FFT on every bin and score the strength of any peak in the breathing band. ApneaApp scans outward from zero and stops at the first bin that shows one; keep scanning and a second peak, well separated in range, is a second sleeper. The scan is repeated whenever the subject shifts position, which is why the system never needs to be told how far away the bed is.</p>
+        <p><strong>5. Score events.</strong> Track the amplitude of the chest-motion signal. ApneaApp calls a hypopnea when it drops below 30% of baseline while staying periodic, and a central apnea when it goes to nothing. In a 296-hour clinical study across 37 patients at the UW Medicine Sleep Center, event counts correlated with polysomnography at 0.9957 (central), 0.9860 (obstructive) and 0.9533 (hypopnea), with an average error of 1.9 events per hour.</p>
+      </section>
+
+      <section class="panel teach">
+        <h2>Things to try</h2>
+        <ul>
+          <li>Start with CW, sit still, and watch the constellation. For the first few seconds it is a tight knot &mdash; the clutter average has not converged. Then the knot cancels and an arc opens up, one sweep out and back per breath.</li>
+          <li>Hold your breath. The arc collapses to a point, the spectrum flattens, and the envelope strip crosses its threshold within about ten seconds.</li>
+          <li>Breathe deliberately fast, then slow. The spectral peak walks across the axis. Deep breaths widen the arc &mdash; and if you exceed half a wavelength of chest travel the phase wraps, which the unwrapper handles but the constellation shows as a full loop.</li>
+          <li>Switch to FMCW and move your chair 20&nbsp;cm back. The bright ripple in the waterfall and the peak in the energy-vs-range plot both follow you. That is the coordinate CW cannot see.</li>
+          <li>Get a second person to sit a metre behind you. Two peaks in the energy profile, two independent breathing rates &mdash; click either to lock it.</li>
+          <li>Drop the FMCW bandwidth to 500&nbsp;Hz. Range resolution falls to 34&nbsp;cm, the peaks smear together, and two people become one. Bandwidth is resolution, always.</li>
+          <li>Set chirps-per-frame to 4 and watch the breathing signal get noisier: fewer sweeps per transform means coarser bins and less of the modulation captured.</li>
+          <li>Cover the laptop microphone with a finger. Both methods should fall to noise &mdash; a useful reminder of how much of this is real echo and how much is wishful thinking.</li>
+        </ul>
+      </section>
+
+      <section class="panel teach">
+        <h2>What this isn&rsquo;t</h2>
+        <p>This page is the sensing front end only, running on whatever single speaker and single microphone the browser hands it. ApneaApp ran on a phone placed beside a bed for eight hours a night, with a sleep-staging stage, a peak detector tuned against scored polysomnography, and an event classifier that separates obstructive from central apnea by looking for the effortful chest motion that continues during an obstruction. None of that is here.</p>
+        <div class="disclaimer">
+          <strong>Not a medical device.</strong> The envelope strip reproduces the shape of ApneaApp&rsquo;s amplitude test as a teaching aid, not a diagnosis. Sleep apnea is diagnosed with a sleep study. If you are worried about your breathing during sleep, talk to a physician &mdash; do not consult a web page.
+        </div>
+      </section>
+
+      <style>
+        .attribution { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--grey-line); width: 100%; font-size: 13px; letter-spacing: 0.5px; color: var(--grey-text); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .attribution a { display: inline-flex; align-items: center; gap: 8px; color: var(--black); text-decoration: none; font-weight: 700; transition: color 0.15s, opacity 0.15s; }
+        .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+        .attribution a:hover { color: var(--red); }
+        .attribution a:hover img { opacity: 0.85; }
+      </style>
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      // ============================================================
+      //  Breathing Sonar — single-device active sonar for respiration
+      //
+      //  Method 1 (CW):    one tone, quadrature demodulation, clutter
+      //                    cancellation, unwrapped phase -> displacement.
+      //  Method 2 (FMCW):  repeating 18-20 kHz sweep, dechirp, FFT over
+      //                    M sweeps -> oversampled range bins, then a
+      //                    30 s FFT of each bin's magnitude to find the
+      //                    range and rate of a breathing target.
+      //                    After Nandakumar et al., ApneaApp, MobiSys'15.
+      // ============================================================
+
+      const C_SOUND   = 343;      // m/s
+      const BR_LO_HZ  = 0.08;     // 4.8 breaths/min
+      const BR_HI_HZ  = 0.80;     // 48 breaths/min
+      const BR_WIN_S  = 30;       // paper: 30 s FFT for the breathing peak
+      const ENV_WIN_S = 8;        // RMS window for the amplitude envelope
+      const ENV_HIST_S = 120;     // envelope strip span
+
+      // ---------- DOM ----------
+      const $ = id => document.getElementById(id);
+      const methodSeg = $('methodSeg');
+      const methodHint = $('methodHint');
+      const cwParams = $('cwParams'), fmcwParams = $('fmcwParams');
+      const cwResults = $('cwResults'), fmcwResults = $('fmcwResults');
+      const startBtn = $('startBtn'), stopBtn = $('stopBtn'), resyncBtn = $('resyncBtn');
+      const statusEl = $('status'), demoChk = $('demoChk');
+      const gainEl = $('gain'), gainVal = $('gainVal');
+
+      const cwFreqEl = $('cwFreq'), cwClutterEl = $('cwClutter'), cwSmoothEl = $('cwSmooth');
+      const fmBandLoEl = $('fmBandLo'), fmBandHiEl = $('fmBandHi');
+      const fmChirpNEl = $('fmChirpN'), fmChirpsEl = $('fmChirps'), fmRangeEl = $('fmRange');
+
+      const HINTS = {
+        cw: 'A single inaudible tone. The complex baseband echo is one vector; the room pins it in place and your chest rotates it. Most sensitive, but blind to distance.',
+        fmcw: 'A repeating 18–20 kHz sweep sorts the room into range bins. Slower and less sensitive per millimetre, but it reports how far away the sleeper is — and can follow two of them at once.'
+      };
+
+      let method = 'cw';
+
+      // ============================================================
+      //  Radix-2 complex FFT, in place. Length must be a power of two.
+      // ============================================================
+      function fft(re, im, inverse) {
+        const n = re.length;
+        for (let i = 1, j = 0; i < n; i++) {
+          let bit = n >> 1;
+          for (; j & bit; bit >>= 1) j ^= bit;
+          j ^= bit;
+          if (i < j) {
+            let t = re[i]; re[i] = re[j]; re[j] = t;
+            t = im[i]; im[i] = im[j]; im[j] = t;
+          }
+        }
+        for (let len = 2; len <= n; len <<= 1) {
+          const half = len >> 1;
+          const ang = (inverse ? 2 : -2) * Math.PI / len;
+          const wRe = Math.cos(ang), wIm = Math.sin(ang);
+          for (let i = 0; i < n; i += len) {
+            let pRe = 1, pIm = 0;
+            for (let k = 0; k < half; k++) {
+              const aRe = re[i + k], aIm = im[i + k];
+              const bRe = re[i + k + half], bIm = im[i + k + half];
+              const tRe = bRe * pRe - bIm * pIm;
+              const tIm = bRe * pIm + bIm * pRe;
+              re[i + k] = aRe + tRe;
+              im[i + k] = aIm + tIm;
+              re[i + k + half] = aRe - tRe;
+              im[i + k + half] = aIm - tIm;
+              const npRe = pRe * wRe - pIm * wIm;
+              pIm = pRe * wIm + pIm * wRe;
+              pRe = npRe;
+            }
+          }
+        }
+        if (inverse) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+      }
+
+      // ============================================================
+      //  Tiny ring buffer of floats, newest-last semantics.
+      // ============================================================
+      function makeRing(n) { return { buf: new Float32Array(n), n, w: 0, filled: 0 }; }
+      function ringPush(r, v) {
+        r.buf[r.w] = v;
+        r.w = (r.w + 1) % r.n;
+        if (r.filled < r.n) r.filled++;
+      }
+      function ringLast(r, count, out) {
+        count = Math.min(count, r.filled);
+        let idx = (r.w - count + r.n) % r.n;
+        for (let i = 0; i < count; i++) {
+          out[i] = r.buf[idx];
+          idx = idx + 1 === r.n ? 0 : idx + 1;
+        }
+        return count;
+      }
+
+      // ============================================================
+      //  Breathing analysis: 30 s window, Hann, zero-padded FFT, peak
+      //  hunt inside the respiration band. Shared by both methods.
+      // ============================================================
+      const anaWork = { buf: null, re: null, im: null };
+      function analyzeBreathing(ring, rate) {
+        const want = Math.round(BR_WIN_S * rate);
+        const L = Math.min(ring.filled, want);
+        if (L < Math.max(32, rate * 8)) return null;   // need ~8 s before guessing
+        if (!anaWork.buf || anaWork.buf.length < L) anaWork.buf = new Float32Array(want + 8);
+        const x = anaWork.buf;
+        ringLast(ring, L, x);
+
+        let mean = 0;
+        for (let i = 0; i < L; i++) mean += x[i];
+        mean /= L;
+
+        let NFFT = 1;
+        while (NFFT < L * 2) NFFT <<= 1;
+        if (!anaWork.re || anaWork.re.length !== NFFT) {
+          anaWork.re = new Float64Array(NFFT);
+          anaWork.im = new Float64Array(NFFT);
+        }
+        const re = anaWork.re, im = anaWork.im;
+        re.fill(0); im.fill(0);
+        let winPow = 0;
+        for (let i = 0; i < L; i++) {
+          const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (L - 1));
+          re[i] = (x[i] - mean) * w;
+          winPow += w * w;
+        }
+        fft(re, im, false);
+
+        const df = rate / NFFT;
+        const kLo = Math.max(1, Math.ceil(BR_LO_HZ / df));
+        const kHi = Math.min(NFFT / 2 - 2, Math.floor(BR_HI_HZ / df));
+        if (kHi <= kLo) return null;
+        const scale = 2 / Math.sqrt(winPow * L);
+        const kEnd = Math.min(NFFT / 2 - 1, Math.floor(1.05 / df));
+        const spec = new Float32Array(kEnd);
+        for (let k = 0; k < kEnd; k++) spec[k] = Math.hypot(re[k], im[k]) * scale;
+
+        let peakK = kLo, peakV = -1, bandSum = 0;
+        for (let k = kLo; k <= kHi; k++) {
+          bandSum += spec[k];
+          if (spec[k] > peakV) { peakV = spec[k]; peakK = k; }
+        }
+        const bandMean = bandSum / (kHi - kLo + 1);
+        // Parabolic interpolation around the peak for sub-bin frequency.
+        const a = spec[peakK - 1], b = spec[peakK], c = spec[peakK + 1];
+        const denom = (a - 2 * b + c);
+        const delta = denom !== 0 ? 0.5 * (a - c) / denom : 0;
+        const fPeak = (peakK + Math.max(-1, Math.min(1, delta))) * df;
+
+        // Amplitude of the periodic component, peak-to-peak, from the
+        // windowed spectrum around the peak (parseval-ish, good enough).
+        const ampPP = 2 * peakV;
+        return {
+          bpm: fPeak * 60,
+          conf: bandMean > 0 ? peakV / bandMean : 0,
+          ampPP, spec, df, kLo, kHi, peakK, fPeak, seconds: L / rate
+        };
+      }
+
+      // Running RMS of the last ENV_WIN_S seconds of a ring.
+      function envelopeRms(ring, rate) {
+        const L = Math.min(ring.filled, Math.round(ENV_WIN_S * rate));
+        if (L < 8) return 0;
+        if (!anaWork.buf || anaWork.buf.length < L) anaWork.buf = new Float32Array(L + 8);
+        const x = anaWork.buf;
+        ringLast(ring, L, x);
+        let m = 0;
+        for (let i = 0; i < L; i++) m += x[i];
+        m /= L;
+        let s = 0;
+        for (let i = 0; i < L; i++) { const d = x[i] - m; s += d * d; }
+        return Math.sqrt(s / L);
+      }
+
+      // Event scoring in the spirit of ApneaApp's amplitude test.
+      function makeEventState() {
+        return { baseline: 0, hist: makeRing(Math.round(ENV_HIST_S * 2) + 4), label: 'waiting', cls: 'idle' };
+      }
+      function updateEvent(ev, env, conf) {
+        if (ev.baseline <= 0) ev.baseline = env;
+        // Rise quickly, decay slowly, so a long pause cannot redefine "normal".
+        const a = env > ev.baseline ? 0.08 : 0.004;
+        ev.baseline += a * (env - ev.baseline);
+        const ratio = ev.baseline > 0 ? env / ev.baseline : 0;
+        ringPush(ev.hist, ratio);
+        if (ev.baseline <= 1e-9) { ev.label = 'waiting'; ev.cls = 'idle'; }
+        else if (ratio < 0.15 || (ratio < 0.3 && conf < 2.5)) { ev.label = 'no motion — apnea-like'; ev.cls = 'bad'; }
+        else if (ratio < 0.3) { ev.label = 'reduced <30% — hypopnea-like'; ev.cls = 'warn'; }
+        else if (ratio < 0.7) { ev.label = 'reduced'; ev.cls = 'warn'; }
+        else { ev.label = 'breathing'; ev.cls = ''; }
+        return ratio;
+      }
+      function paintBadge(el, ev) {
+        el.textContent = ev.label;
+        el.className = 'event-badge' + (ev.cls ? ' ' + ev.cls : '');
+      }
+
+      // ============================================================
+      //  Canvas helpers
+      // ============================================================
+      function prep(cv, clear) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const W = Math.max(160, Math.floor((cv.clientWidth || 600) * dpr));
+        const H = Math.max(80, Math.floor((cv.clientHeight || 200) * dpr));
+        if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+        const ctx = cv.getContext('2d');
+        if (clear !== false) { ctx.fillStyle = '#0c0c0e'; ctx.fillRect(0, 0, W, H); }
+        return { ctx, W, H, dpr };
+      }
+      function axisText(ctx, dpr) {
+        ctx.font = (10 * dpr) + 'px "Roboto Mono", monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      }
+
+      // Time-series plot. data holds `n` chronological samples.
+      function drawTrace(cv, data, n, opts) {
+        const o = opts || {};
+        const { ctx, W, H, dpr } = prep(cv);
+        const padL = 40 * dpr, padR = 8 * dpr, padT = 10 * dpr, padB = 18 * dpr;
+        const plotW = W - padL - padR, plotH = H - padT - padB;
+        if (n < 2) {
+          axisText(ctx, dpr);
+          ctx.textAlign = 'center';
+          ctx.fillText(o.waiting || 'collecting…', W / 2, H / 2);
+          return;
+        }
+        let lo = Infinity, hi = -Infinity;
+        for (let i = 0; i < n; i++) { const v = data[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+        if (o.symmetric) { const m = Math.max(Math.abs(lo), Math.abs(hi), o.minSpan || 1e-9); lo = -m; hi = m; }
+        if (hi - lo < (o.minSpan || 1e-9)) { const mid = (hi + lo) / 2, h = (o.minSpan || 1e-9) / 2; lo = mid - h; hi = mid + h; }
+        const pad = (hi - lo) * 0.12;
+        lo -= pad; hi += pad;
+        const yOf = v => padT + plotH - (v - lo) / (hi - lo) * plotH;
+        const xOf = i => padL + (i / (n - 1)) * plotW;
+
+        // zero line + y labels
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 1 * dpr;
+        axisText(ctx, dpr);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (let g = 0; g <= 2; g++) {
+          const v = lo + (hi - lo) * g / 2;
+          const y = yOf(v);
+          ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+          ctx.fillText(o.fmtY ? o.fmtY(v) : v.toFixed(1), padL - 5 * dpr, y);
+        }
+        // x labels in seconds before now
+        if (o.spanSec) {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'alphabetic';
+          for (let f = 0; f <= 1.0001; f += 0.25) {
+            const x = padL + f * plotW;
+            const sec = Math.round(o.spanSec * (1 - f));
+            ctx.fillText(sec === 0 ? 'now' : '-' + sec + 's', x, H - 5 * dpr);
+          }
+        }
+        ctx.strokeStyle = o.color || '#E8B923';
+        ctx.lineWidth = (o.width || 1.8) * dpr;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+          const x = xOf(i), y = yOf(data[i]);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        if (o.label) {
+          axisText(ctx, dpr);
+          ctx.textAlign = 'left';
+          ctx.fillText(o.label, padL + 6 * dpr, padT + 11 * dpr);
+        }
+      }
+
+      // Breathing spectrum, x axis in breaths per minute.
+      function drawSpectrum(cv, res) {
+        const { ctx, W, H, dpr } = prep(cv);
+        const padL = 40 * dpr, padR = 8 * dpr, padT = 10 * dpr, padB = 20 * dpr;
+        const plotW = W - padL - padR, plotH = H - padT - padB;
+        axisText(ctx, dpr);
+        if (!res) {
+          ctx.textAlign = 'center';
+          ctx.fillText('collecting… (needs ~8 s)', W / 2, H / 2);
+          return;
+        }
+        const maxBpm = 60;
+        const kMax = Math.min(res.spec.length - 1, Math.floor((maxBpm / 60) / res.df));
+        let peak = 1e-12;
+        for (let k = 1; k <= kMax; k++) if (res.spec[k] > peak) peak = res.spec[k];
+        const xOf = bpm => padL + (bpm / maxBpm) * plotW;
+        // band shading
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fillRect(xOf(BR_LO_HZ * 60), padT, xOf(BR_HI_HZ * 60) - xOf(BR_LO_HZ * 60), plotH);
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.textAlign = 'center';
+        for (let bpm = 0; bpm <= maxBpm; bpm += 10) {
+          const x = xOf(bpm);
+          ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+          ctx.fillText(bpm, x, H - 6 * dpr);
+        }
+        // curve
+        ctx.strokeStyle = '#bc122a';
+        ctx.lineWidth = 1.8 * dpr;
+        ctx.beginPath();
+        for (let k = 1; k <= kMax; k++) {
+          const x = xOf(k * res.df * 60);
+          const y = padT + plotH - (res.spec[k] / peak) * plotH;
+          if (k === 1) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        // peak marker
+        const px = xOf(res.bpm);
+        ctx.strokeStyle = '#E8B923';
+        ctx.setLineDash([4 * dpr, 3 * dpr]);
+        ctx.beginPath(); ctx.moveTo(px, padT); ctx.lineTo(px, padT + plotH); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#E8B923';
+        ctx.textAlign = px > W * 0.75 ? 'right' : 'left';
+        ctx.font = 'bold ' + (11 * dpr) + 'px "Roboto Mono", monospace';
+        ctx.fillText(res.bpm.toFixed(1) + ' /min', px + (px > W * 0.75 ? -6 : 6) * dpr, padT + 12 * dpr);
+        axisText(ctx, dpr);
+        ctx.textAlign = 'right';
+        ctx.fillText('breaths per minute', W - padR, H - 6 * dpr);
+      }
+
+      // Envelope strip: ratio of current RMS to its own baseline.
+      function drawEnvelope(cv, ev) {
+        const { ctx, W, H, dpr } = prep(cv);
+        const padL = 34 * dpr, padR = 8 * dpr, padT = 6 * dpr, padB = 14 * dpr;
+        const plotW = W - padL - padR, plotH = H - padT - padB;
+        const yOf = r => padT + plotH - Math.max(0, Math.min(1.3, r)) / 1.3 * plotH;
+        axisText(ctx, dpr);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (const [r, col] of [[1.0, 'rgba(255,255,255,0.12)'], [0.7, 'rgba(255,255,255,0.25)'], [0.3, 'rgba(188,18,42,0.8)']]) {
+          const y = yOf(r);
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1 * dpr;
+          ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.fillText(Math.round(r * 100) + '%', padL - 5 * dpr, y);
+        }
+        const n = ev.hist.filled;
+        if (n < 2) return;
+        const tmp = new Float32Array(n);
+        ringLast(ev.hist, n, tmp);
+        const cap = ev.hist.n;
+        ctx.strokeStyle = '#E8B923';
+        ctx.lineWidth = 1.8 * dpr;
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+          const x = padL + ((cap - n + i) / (cap - 1)) * plotW;
+          const y = yOf(tmp[i]);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        axisText(ctx, dpr);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText('last ' + ENV_HIST_S + ' s', W - padR, H - 3 * dpr);
+      }
+
+      // ============================================================
+      //  Method 1 — continuous wave, quadrature demodulation, phase
+      // ============================================================
+      const IQ_HIST_S = 12;
+      const cw = {
+        fs: 48000, f0: 18000, lam: 0.019, decim: 512, bbRate: 0,
+        loPhase: 0, dPhase: 0, accI: 0, accQ: 0, accN: 0,
+        clRe: 0, clIm: 0, haveCl: false,
+        smRe: 0, smIm: 0, prevAng: 0, cum: 0, havePrev: false,
+        driftMm: 0, ampEMA: 0, clMag: 0,
+        disp: null, iqRe: null, iqIm: null,
+        res: null, ev: null, txCycles: 0, txLen: 0
+      };
+
+      // Build a looping tone whose buffer holds a whole number of cycles,
+      // so the loop point is phase-continuous. The rounded frequency is
+      // what the demodulator uses — transmitter and receiver stay locked.
+      function cwBuildTx(fs) {
+        const target = +cwFreqEl.value;
+        const len = Math.round(fs * 0.25);
+        const cycles = Math.max(1, Math.round(target * len / fs));
+        cw.txLen = len;
+        cw.txCycles = cycles;
+        return cycles * fs / len;   // exact transmitted frequency
+      }
+
+      function cwInit(fs) {
+        cw.fs = fs;
+        cw.f0 = cwBuildTx(fs);
+        cw.lam = C_SOUND / cw.f0;
+        cw.decim = 512;
+        cw.bbRate = fs / cw.decim;
+        cw.loPhase = 0;
+        cw.dPhase = 2 * Math.PI * cw.f0 / fs;
+        cw.accI = cw.accQ = cw.accN = 0;
+        cw.clRe = cw.clIm = 0; cw.haveCl = false;
+        cw.smRe = cw.smIm = 0;
+        cw.prevAng = 0; cw.cum = 0; cw.havePrev = false;
+        cw.driftMm = 0; cw.ampEMA = 0; cw.clMag = 0;
+        cw.disp = makeRing(Math.round(BR_WIN_S * cw.bbRate) + 8);
+        const iqN = Math.round(IQ_HIST_S * cw.bbRate);
+        cw.iqRe = makeRing(iqN); cw.iqIm = makeRing(iqN);
+        cw.res = null;
+        cw.ev = makeEventState();
+        $('cwRate').innerHTML = cw.bbRate.toFixed(1) + '<span class="unit"> Hz</span>';
+      }
+
+      // One complex baseband sample: cancel clutter, smooth, unwrap.
+      function cwEmit(zr, zi) {
+        const rate = cw.bbRate;
+        const aCl = 1 - Math.exp(-1 / (rate * Math.max(0.5, +cwClutterEl.value)));
+        if (!cw.haveCl) { cw.clRe = zr; cw.clIm = zi; cw.haveCl = true; }
+        else { cw.clRe += aCl * (zr - cw.clRe); cw.clIm += aCl * (zi - cw.clIm); }
+        cw.clMag = Math.hypot(cw.clRe, cw.clIm);
+
+        let rr = zr - cw.clRe, ri = zi - cw.clIm;
+        const aSm = 1 - Math.exp(-1 / (rate * Math.max(0.02, +cwSmoothEl.value)));
+        cw.smRe += aSm * (rr - cw.smRe);
+        cw.smIm += aSm * (ri - cw.smIm);
+        rr = cw.smRe; ri = cw.smIm;
+
+        const amp = Math.hypot(rr, ri);
+        cw.ampEMA += 0.02 * (amp - cw.ampEMA);
+        ringPush(cw.iqRe, rr); ringPush(cw.iqIm, ri);
+
+        const ang = Math.atan2(ri, rr);
+        if (!cw.havePrev) { cw.prevAng = ang; cw.havePrev = true; }
+        let d = ang - cw.prevAng;
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        cw.prevAng = ang;
+        cw.cum += d;
+
+        // phase -> displacement; the 4pi is the round trip
+        const mm = 1000 * cw.lam * cw.cum / (4 * Math.PI);
+        const aDrift = 1 - Math.exp(-1 / (rate * 12));
+        cw.driftMm += aDrift * (mm - cw.driftMm);
+        ringPush(cw.disp, mm - cw.driftMm);
+      }
+
+      function cwSamples(input, n) {
+        for (let i = 0; i < n; i++) {
+          const s = input[i];
+          cw.accI += s * Math.cos(cw.loPhase);
+          cw.accQ -= s * Math.sin(cw.loPhase);
+          cw.loPhase += cw.dPhase;
+          if (cw.loPhase > 2 * Math.PI) cw.loPhase -= 2 * Math.PI;
+          if (++cw.accN >= cw.decim) {
+            cwEmit(cw.accI / cw.decim, cw.accQ / cw.decim);
+            cw.accI = cw.accQ = cw.accN = 0;
+          }
+        }
+      }
+
+      function cwAnalyze() {
+        cw.res = analyzeBreathing(cw.disp, cw.bbRate);
+        const env = envelopeRms(cw.disp, cw.bbRate);
+        updateEvent(cw.ev, env, cw.res ? cw.res.conf : 0);
+        paintBadge($('cwEvent'), cw.ev);
+
+        if (cw.res && cw.res.conf > 1.8) {
+          $('cwBpm').innerHTML = cw.res.bpm.toFixed(1) + '<span class="unit"> /min</span>';
+        } else {
+          $('cwBpm').innerHTML = '&mdash;<span class="unit"> /min</span>';
+        }
+        // Peak-to-peak displacement over the last 10 s of the trace.
+        const L = Math.min(cw.disp.filled, Math.round(10 * cw.bbRate));
+        if (L > 8) {
+          const tmp = new Float32Array(L);
+          ringLast(cw.disp, L, tmp);
+          let lo = Infinity, hi = -Infinity;
+          for (let i = 0; i < L; i++) { if (tmp[i] < lo) lo = tmp[i]; if (tmp[i] > hi) hi = tmp[i]; }
+          $('cwDisp').innerHTML = (hi - lo).toFixed(2) + '<span class="unit"> mm p-p</span>';
+        }
+        const snr = cw.clMag > 0 && cw.ampEMA > 0 ? 20 * Math.log10(cw.ampEMA / cw.clMag) : NaN;
+        $('cwSnr').innerHTML = isFinite(snr)
+          ? snr.toFixed(1) + '<span class="unit"> dB</span>'
+          : '&mdash;<span class="unit"> dB</span>';
+      }
+
+      function cwDrawIQ() {
+        const cv = $('iqCanvas');
+        const { ctx, W, H, dpr } = prep(cv);
+        const n = cw.iqRe.filled;
+        const cx = W / 2, cy = H / 2;
+        const R = Math.min(W, H) * 0.42;
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.beginPath(); ctx.moveTo(cx - R * 1.15, cy); ctx.lineTo(cx + R * 1.15, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, cy - R * 1.15); ctx.lineTo(cx, cy + R * 1.15); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+        axisText(ctx, dpr);
+        ctx.textAlign = 'left';  ctx.fillText('I', cx + R * 1.15 - 10 * dpr, cy - 6 * dpr);
+        ctx.textAlign = 'center'; ctx.fillText('Q', cx + 9 * dpr, cy - R * 1.15 + 10 * dpr);
+        // clutter marker at the origin
+        ctx.strokeStyle = '#5b6068';
+        ctx.lineWidth = 1.4 * dpr;
+        const k = 5 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(cx - k, cy - k); ctx.lineTo(cx + k, cy + k);
+        ctx.moveTo(cx - k, cy + k); ctx.lineTo(cx + k, cy - k);
+        ctx.stroke();
+        if (n < 4) {
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.textAlign = 'center';
+          ctx.fillText('collecting…', cx, cy + R + 14 * dpr);
+          return;
+        }
+        const re = new Float32Array(n), im = new Float32Array(n);
+        ringLast(cw.iqRe, n, re); ringLast(cw.iqIm, n, im);
+        let mx = 1e-9;
+        for (let i = 0; i < n; i++) { const m = Math.hypot(re[i], im[i]); if (m > mx) mx = m; }
+        const sc = R / mx;
+        ctx.lineWidth = 1.6 * dpr;
+        for (let i = 1; i < n; i++) {
+          const t = i / (n - 1);
+          ctx.strokeStyle = 'rgba(232,185,35,' + (0.08 + 0.9 * t * t).toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.moveTo(cx + re[i - 1] * sc, cy - im[i - 1] * sc);
+          ctx.lineTo(cx + re[i] * sc, cy - im[i] * sc);
+          ctx.stroke();
+        }
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(cx + re[n - 1] * sc, cy - im[n - 1] * sc, 3 * dpr, 0, 2 * Math.PI);
+        ctx.fill();
+        axisText(ctx, dpr);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('full scale ' + (mx * 1000).toFixed(2) + ' mU', 6 * dpr, 6 * dpr);
+        ctx.fillText('λ/2 = ' + (cw.lam * 500).toFixed(1) + ' mm per turn', 6 * dpr, 20 * dpr);
+      }
+
+      function cwDraw() {
+        cwDrawIQ();
+        const L = Math.min(cw.disp.filled, Math.round(BR_WIN_S * cw.bbRate));
+        const tmp = new Float32Array(Math.max(2, L));
+        const got = ringLast(cw.disp, L, tmp);
+        drawTrace($('cwDispCanvas'), tmp, got, {
+          color: '#E8B923', symmetric: true, minSpan: 0.4,
+          spanSec: BR_WIN_S, fmtY: v => v.toFixed(2),
+          label: 'mm'
+        });
+        drawSpectrum($('cwSpecCanvas'), cw.res);
+        drawEnvelope($('cwEnvCanvas'), cw.ev);
+      }
+
+      // ============================================================
+      //  Method 2 — FMCW range cells (ApneaApp)
+      //
+      //  Note on bin structure. The sweep repeats every N samples, so a
+      //  static echo dechirps to a signal that is *periodic* with the
+      //  sweep. Transforming over M sweeps therefore puts all of its
+      //  energy on bins that are multiples of M — one comb line per
+      //  physical range cell, spaced c/2B apart. The M-1 fine bins in
+      //  between are Doppler bins for that cell. Breathing is far too
+      //  slow to leave a cell, so the signal we track is the way the
+      //  energy of a cell rises and falls as the chest moves inside it.
+      // ============================================================
+      const fm = {
+        fs: 48000, N: 512, M: 8, frameLen: 4096, T: 0, f0: 18000, f1: 20000, B: 2000,
+        chirp: null, refCos: null, refSin: null, win: null,
+        ring: null, mask: 0, write: 0, nextFrame: 0, synced: false, syncReq: true,
+        cmPerCell: 8.6, nCells: 0, minCell: 2,
+        histRe: null, histIm: null, HISTN: 0, fw: 0, ffilled: 0,
+        bg: null, mag: null, motion: null, motionN: 0, dispPP: NaN, lam: 0.018,
+        frameRate: 0, lastFrameWall: 0, rateEMA: 0,
+        profile: null, sharp: null, prof2nd: -1, lockCell: -1, manualLock: false, rangeCm: NaN,
+        res: null, ev: null, scratch: null, wf: null, work: null
+      };
+
+      // Linear sweep, phase-continuous across the loop point: the centre
+      // frequency is snapped so the sweep spans a whole number of cycles.
+      function fmBuildChirp(fs) {
+        const N = +fmChirpNEl.value;
+        let lo = +fmBandLoEl.value, hi = +fmBandHiEl.value;
+        if (hi < lo + 250) { hi = lo + 250; fmBandHiEl.value = hi; }
+        const B = hi - lo;
+        const k = Math.max(1, Math.round(((lo + hi) / 2) * N / fs));
+        const fc = k * fs / N;
+        fm.N = N; fm.B = B;
+        fm.f0 = fc - B / 2; fm.f1 = fc + B / 2;
+        fm.T = N / fs;
+        const x = new Float32Array(N), rc = new Float32Array(N), rs = new Float32Array(N);
+        const rate = B / fm.T;
+        for (let n = 0; n < N; n++) {
+          const t = n / fs;
+          const ph = 2 * Math.PI * (fm.f0 * t + 0.5 * rate * t * t);
+          x[n] = Math.sin(ph);
+          // Mix with e^{+j phi}: an echo delayed by dt beats at
+          // +(B/T)·dt, so range lands on positive FFT bins.
+          rc[n] = Math.cos(ph);
+          rs[n] = Math.sin(ph);
+        }
+        fm.chirp = x; fm.refCos = rc; fm.refSin = rs;
+      }
+
+      function fmInit(fs) {
+        fm.fs = fs;
+        fmBuildChirp(fs);
+        fm.M = +fmChirpsEl.value;
+        fm.frameLen = fm.N * fm.M;
+        fm.frameRate = fs / fm.frameLen;
+        // One range cell per comb line: spacing is set by bandwidth alone.
+        fm.cmPerCell = 100 * C_SOUND / (2 * fm.B);
+        fm.nCells = Math.max(6, Math.min(Math.floor((fm.frameLen / 2 - 2) / fm.M),
+                                         Math.ceil(200 / fm.cmPerCell) + 2));
+        fm.minCell = Math.max(1, Math.ceil(12 / fm.cmPerCell));
+
+        // Hann across the whole frame. Without it the direct-path leak —
+        // three orders of magnitude louder than a chest — smears over
+        // every cell and buries the target.
+        fm.win = new Float32Array(fm.frameLen);
+        for (let i = 0; i < fm.frameLen; i++) {
+          fm.win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (fm.frameLen - 1));
+        }
+
+        const ringSize = 1 << Math.ceil(Math.log2(fm.frameLen * 4));
+        fm.ring = new Float32Array(ringSize);
+        fm.mask = ringSize - 1;
+        fm.write = 0; fm.nextFrame = 0; fm.synced = false; fm.syncReq = true;
+
+        fm.HISTN = Math.ceil(BR_WIN_S * fm.frameRate) + 8;
+        // Keep the complex cell value, not just its magnitude: the range
+        // search wants magnitude, but the rate readout wants phase.
+        fm.histRe = new Float32Array(fm.nCells * fm.HISTN);
+        fm.histIm = new Float32Array(fm.nCells * fm.HISTN);
+        fm.motion = new Float32Array(fm.HISTN);
+        fm.motionN = 0; fm.dispPP = NaN;
+        fm.lam = C_SOUND / ((fm.f0 + fm.f1) / 2);
+        fm.fw = 0; fm.ffilled = 0;
+        fm.bg = new Float32Array(fm.nCells);
+        fm.mag = new Float32Array(fm.nCells);
+        fm.profile = new Float32Array(fm.nCells);
+        fm.sharp = new Float32Array(fm.nCells);
+        fm.lockCell = -1; fm.manualLock = false; fm.prof2nd = -1; fm.rangeCm = NaN;
+        fm.res = null;
+        fm.ev = makeEventState();
+        fm.scratch = makeRing(fm.HISTN);
+        fm.work = { re: new Float64Array(fm.frameLen), im: new Float64Array(fm.frameLen) };
+        fm.rateEMA = 0; fm.lastFrameWall = 0;
+
+        $('fmBinStat').innerHTML = fm.cmPerCell.toFixed(1) + '<span class="unit"> cm</span>';
+        $('fmFrameStat').innerHTML = fm.frameRate.toFixed(1) + '<span class="unit"> Hz</span>';
+        fmSetupWaterfall();
+      }
+
+      // Cross-correlate the newest 2N samples against one sweep; the peak
+      // lag is where a sweep begins in the ring. Run once at start (and on
+      // demand) — the frame grid must stay fixed or slow-time analysis
+      // sees jumps that are not breathing.
+      const fmSync = { Xre: null, Xim: null, L: 0 };
+      function fmFindSync(end) {
+        const N = fm.N, L = 2 * N;
+        if (fmSync.L !== L) {
+          fmSync.L = L;
+          fmSync.Xre = new Float64Array(L);
+          fmSync.Xim = new Float64Array(L);
+        }
+        fmSync.Xre.fill(0); fmSync.Xim.fill(0);
+        for (let n = 0; n < N; n++) fmSync.Xre[n] = fm.chirp[n];
+        fft(fmSync.Xre, fmSync.Xim, false);
+        const Yre = new Float64Array(L), Yim = new Float64Array(L);
+        const start = end - L;
+        for (let n = 0; n < L; n++) Yre[n] = fm.ring[(start + n) & fm.mask];
+        fft(Yre, Yim, false);
+        for (let k = 0; k < L; k++) {
+          const a = Yre[k], b = Yim[k], c = fmSync.Xre[k], d = -fmSync.Xim[k];
+          Yre[k] = a * c - b * d;
+          Yim[k] = a * d + b * c;
+        }
+        fft(Yre, Yim, true);
+        let best = 0, bestV = -1;
+        for (let n = 0; n < N; n++) {
+          const m = Yre[n] * Yre[n] + Yim[n] * Yim[n];
+          if (m > bestV) { bestV = m; best = n; }
+        }
+        return start + best;
+      }
+
+      // Dechirp M sweeps and transform: delay becomes beat frequency, so
+      // the comb line at bin c·M is the range cell at c·(c_sound/2B).
+      function fmProcessFrame(startAbs) {
+        const { re, im } = fm.work;
+        const N = fm.N, FL = fm.frameLen;
+        for (let m = 0; m < FL; m++) {
+          const s = fm.ring[(startAbs + m) & fm.mask] * fm.win[m];
+          const p = m % N;
+          re[m] = s * fm.refCos[p];
+          im[m] = s * fm.refSin[p];
+        }
+        fft(re, im, false);
+        const mag = fm.mag;
+        const aBg = 1 - Math.exp(-1 / (fm.frameRate * 4));
+        const f = fm.fw;
+        for (let c = 0; c < fm.nCells; c++) {
+          const k = c * fm.M;
+          const zr = re[k] / FL, zi = im[k] / FL;
+          mag[c] = Math.hypot(zr, zi);
+          fm.histRe[c * fm.HISTN + f] = zr;
+          fm.histIm[c * fm.HISTN + f] = zi;
+          fm.bg[c] += aBg * (mag[c] - fm.bg[c]);
+        }
+        fm.fw = (fm.fw + 1) % fm.HISTN;
+        if (fm.ffilled < fm.HISTN) fm.ffilled++;
+
+        const now = performance.now();
+        if (fm.lastFrameWall) {
+          const r = 1000 / (now - fm.lastFrameWall);
+          fm.rateEMA = fm.rateEMA ? fm.rateEMA + 0.05 * (r - fm.rateEMA) : r;
+        }
+        fm.lastFrameWall = now;
+        fmDrawColumn(mag);
+      }
+
+      function fmSamples(input, n) {
+        const ring = fm.ring, mask = fm.mask;
+        for (let i = 0; i < n; i++) ring[(fm.write + i) & mask] = input[i];
+        fm.write += n;
+
+        if (fm.syncReq && fm.write > 4 * fm.N) {
+          const lag = fmFindSync(fm.write);
+          const delta = fm.write - lag;
+          fm.nextFrame = lag + Math.ceil(delta / fm.N) * fm.N;
+          fm.syncReq = false;
+          fm.synced = true;
+        }
+        if (!fm.synced) return;
+        while (fm.nextFrame + fm.frameLen <= fm.write
+               && fm.write - fm.nextFrame < fm.ring.length - fm.frameLen) {
+          fmProcessFrame(fm.nextFrame);
+          fm.nextFrame += fm.frameLen;
+        }
+      }
+
+      // Chest motion for one cell, read from phase rather than magnitude.
+      // ApneaApp watches a bin's amplitude rise and fall; that works, but
+      // it folds once the chest sweeps past half a wavelength (18 mm here),
+      // reporting double the true rate. The phase of the same complex bin
+      // does not fold, and comes out in millimetres.
+      function fmCellMotion(cell, L) {
+        const base = cell * fm.HISTN;
+        let idx = (fm.fw - L + fm.HISTN) % fm.HISTN;
+        let mr = 0, mi = 0;
+        const zr = new Float64Array(L), zi = new Float64Array(L);
+        for (let i = 0; i < L; i++) {
+          zr[i] = fm.histRe[base + idx];
+          zi[i] = fm.histIm[base + idx];
+          mr += zr[i]; mi += zi[i];
+          idx = idx + 1 === fm.HISTN ? 0 : idx + 1;
+        }
+        mr /= L; mi /= L;
+        // Clutter removal, then a light complex low-pass before the angle.
+        const a = 1 - Math.exp(-1 / (fm.frameRate * 0.4));
+        let sr = 0, si = 0, prev = 0, cum = 0, sum = 0;
+        const out = fm.motion;
+        for (let i = 0; i < L; i++) {
+          const dr = zr[i] - mr, di = zi[i] - mi;
+          if (i === 0) { sr = dr; si = di; } else { sr += a * (dr - sr); si += a * (di - si); }
+          const ang = Math.atan2(si, sr);
+          if (i === 0) prev = ang;
+          let d = ang - prev;
+          while (d > Math.PI) d -= 2 * Math.PI;
+          while (d < -Math.PI) d += 2 * Math.PI;
+          prev = ang;
+          cum += d;
+          out[i] = 1000 * fm.lam * cum / (4 * Math.PI);
+          sum += out[i];
+        }
+        const mean = sum / L;
+        let lo = Infinity, hi = -Infinity;
+        fm.scratch.w = 0; fm.scratch.filled = 0;
+        for (let i = 0; i < L; i++) {
+          out[i] -= mean;
+          if (out[i] < lo) lo = out[i];
+          if (out[i] > hi) hi = out[i];
+          ringPush(fm.scratch, out[i]);
+        }
+        fm.motionN = L;
+        fm.dispPP = hi - lo;
+      }
+
+      // Per-cell breathing test: absolute strength of the strongest peak
+      // in the respiration band, plus how sharp that peak is against the
+      // rest of the band. Strength alone would follow the loudest echo;
+      // sharpness alone would happily lock onto numerical noise.
+      const scanWork = { re: null, im: null, x: null, NFFT: 0 };
+      function fmScanCell(cell, L, out) {
+        const base = cell * fm.HISTN;
+        if (!scanWork.x || scanWork.x.length < L) scanWork.x = new Float32Array(L + 8);
+        const x = scanWork.x;
+        let idx = (fm.fw - L + fm.HISTN) % fm.HISTN;
+        let mean = 0;
+        for (let i = 0; i < L; i++) {
+          x[i] = fm.hist[base + idx];
+          mean += x[i];
+          idx = idx + 1 === fm.HISTN ? 0 : idx + 1;
+        }
+        mean /= L;
+        let NFFT = 1;
+        while (NFFT < L * 2) NFFT <<= 1;
+        if (scanWork.NFFT !== NFFT) {
+          scanWork.NFFT = NFFT;
+          scanWork.re = new Float64Array(NFFT);
+          scanWork.im = new Float64Array(NFFT);
+        }
+        const re = scanWork.re, im = scanWork.im;
+        re.fill(0); im.fill(0);
+        for (let i = 0; i < L; i++) {
+          const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (L - 1));
+          re[i] = (x[i] - mean) * w;
+        }
+        fft(re, im, false);
+        const df = fm.frameRate / NFFT;
+        const kLo = Math.max(1, Math.ceil(BR_LO_HZ / df));
+        const kHi = Math.min(NFFT / 2 - 2, Math.floor(BR_HI_HZ / df));
+        let peak = 0, sum = 0;
+        for (let k = kLo; k <= kHi; k++) {
+          const m = Math.hypot(re[k], im[k]);
+          sum += m;
+          if (m > peak) peak = m;
+        }
+        const bandMean = sum / (kHi - kLo + 1);
+        out.amp = peak / L;
+        out.sharp = bandMean > 0 ? peak / bandMean : 0;
+        out.mean = mean;
+      }
+
+      const scanOut = { amp: 0, sharp: 0, mean: 0 };
+      function fmAnalyze() {
+        const L = Math.min(fm.ffilled, Math.round(BR_WIN_S * fm.frameRate));
+        if (L < Math.max(24, fm.frameRate * 8)) return;
+        // ApneaApp scans outward from the phone until a cell shows a
+        // breathing peak; we score every cell so the search is visible.
+        const amps = new Float32Array(fm.nCells);
+        const means = new Float32Array(fm.nCells);
+        const list = [];
+        for (let c = fm.minCell; c < fm.nCells; c++) {
+          fmScanCell(c, L, scanOut);
+          amps[c] = scanOut.amp;
+          means[c] = scanOut.mean;
+          fm.sharp[c] = scanOut.sharp;
+          list.push(scanOut.amp);
+        }
+        list.sort((a, b) => a - b);
+        const medAmp = list.length ? list[Math.floor(list.length / 2)] : 0;
+        let best = -1, bestV = 0;
+        for (let c = fm.minCell; c < fm.nCells; c++) {
+          const score = amps[c] / (medAmp + 1e-12);
+          fm.profile[c] = fm.profile[c] * 0.5 + score * 0.5;
+          if (fm.sharp[c] > 3 && fm.profile[c] > bestV) { bestV = fm.profile[c]; best = c; }
+        }
+        // A second subject, if one sits more than a cell away from the first.
+        let second = -1, secondV = 0;
+        for (let c = fm.minCell; c < fm.nCells; c++) {
+          if (best >= 0 && Math.abs(c - best) < 2) continue;
+          if (fm.sharp[c] > 3 && fm.profile[c] > secondV) { secondV = fm.profile[c]; second = c; }
+        }
+        fm.prof2nd = secondV > 3 ? second : -1;
+
+        if (!fm.manualLock && bestV > 3) fm.lockCell = best;
+        if (fm.lockCell < fm.minCell || fm.lockCell >= fm.nCells) fm.lockCell = best;
+        if (fm.lockCell < 0) return;
+
+        // Cells are 8.6 cm apart; interpolate the neighbours by echo
+        // strength for a range estimate finer than one cell.
+        const lo = Math.max(fm.minCell, fm.lockCell - 1);
+        const hi = Math.min(fm.nCells - 1, fm.lockCell + 1);
+        let wsum = 0, num = 0;
+        for (let c = lo; c <= hi; c++) { wsum += means[c]; num += means[c] * c; }
+        fm.rangeCm = (wsum > 0 ? num / wsum : fm.lockCell) * fm.cmPerCell;
+
+        fmFillScratch(fm.lockCell, L);
+        fm.res = analyzeBreathing(fm.scratch, fm.frameRate);
+        const env = envelopeRms(fm.scratch, fm.frameRate);
+        updateEvent(fm.ev, env, fm.res ? fm.res.conf : 0);
+        paintBadge($('fmEvent'), fm.ev);
+
+        if (fm.res && fm.res.conf > 2.5) {
+          $('fmBpm').innerHTML = fm.res.bpm.toFixed(1) + '<span class="unit"> /min</span>';
+          $('fmRangeStat').innerHTML = fm.rangeCm.toFixed(0) + '<span class="unit"> cm</span>';
+        } else {
+          $('fmBpm').innerHTML = '&mdash;<span class="unit"> /min</span>';
+        }
+        $('fmFrameStat').innerHTML = (fm.rateEMA || fm.frameRate).toFixed(1) + '<span class="unit"> Hz</span>';
+      }
+
+      // ---- waterfall ----
+      function fmSetupWaterfall() {
+        const cv = $('fmWaterfall');
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const W = Math.max(200, Math.floor((cv.clientWidth || 800) * dpr));
+        const H = Math.max(120, Math.floor((cv.clientHeight || 320) * dpr));
+        cv.width = W; cv.height = H;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, W, H);
+        fm.wf = { ctx, W, H, dpr, gutter: Math.round(40 * dpr) };
+      }
+
+      function fmColor(v) {
+        v = Math.max(0, Math.min(1, v));
+        if (v < 0.33) { const t = v / 0.33; return [Math.round(188 * t), Math.round(18 * t), Math.round(42 * t)]; }
+        if (v < 0.66) { const t = (v - 0.33) / 0.33; return [188 + Math.round(44 * t), 18 + Math.round(167 * t), 42 - Math.round(7 * t)]; }
+        const t = (v - 0.66) / 0.34;
+        return [232 + Math.round(23 * t), 185 + Math.round(70 * t), 35 + Math.round(220 * t)];
+      }
+
+      function fmDrawColumn(mag) {
+        if (!fm.wf) return;
+        const { ctx, W, H, dpr, gutter } = fm.wf;
+        const plotW = W - gutter;
+        if (plotW < 8) return;
+        const img = ctx.getImageData(gutter + 1, 0, plotW - 1, H);
+        ctx.putImageData(img, gutter, 0);
+        const col = ctx.createImageData(1, H);
+        const maxCm = +fmRangeEl.value;
+        const maxCell = Math.min(fm.nCells - 1, Math.max(3, Math.ceil(maxCm / fm.cmPerCell)));
+        // Normalise the fluctuation by the strongest deviation on screen.
+        let norm = 1e-12;
+        for (let c = fm.minCell; c <= maxCell; c++) {
+          const d = Math.abs(mag[c] - fm.bg[c]);
+          if (d > norm) norm = d;
+        }
+        for (let y = 0; y < H; y++) {
+          const r = (H - 1 - y) / (H - 1);
+          const cf = r * maxCell;
+          const c0 = Math.floor(cf), c1 = Math.min(maxCell, c0 + 1), f = cf - c0;
+          const d0 = Math.abs(mag[c0] - fm.bg[c0]), d1 = Math.abs(mag[c1] - fm.bg[c1]);
+          const v = (d0 * (1 - f) + d1 * f) / norm;
+          const [R, G, Bc] = fmColor(Math.pow(v, 0.6));
+          const i = y * 4;
+          col.data[i] = R; col.data[i + 1] = G; col.data[i + 2] = Bc; col.data[i + 3] = 255;
+        }
+        ctx.putImageData(col, W - 1, 0);
+        // locked-cell tick on the newest column, leaving a scrolling trail
+        if (fm.lockCell >= 0 && fm.lockCell <= maxCell) {
+          const y = Math.round((H - 1) * (1 - fm.lockCell / maxCell));
+          ctx.fillStyle = '#5cd7e0';
+          ctx.fillRect(W - 2, y - 1, 2, 2);
+        }
+        // range gutter, repainted every frame so it never scrolls away
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, gutter, H);
+        ctx.font = (10 * dpr) + 'px "Roboto Mono", monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        const step = maxCm > 120 ? 40 : 20;
+        for (let cm = 0; cm <= maxCm; cm += step) {
+          const y = (H - 1) * (1 - (cm / fm.cmPerCell) / maxCell);
+          if (y < 6 * dpr || y > H - 4 * dpr) continue;
+          ctx.fillText(cm + ' cm', gutter - 5 * dpr, y);
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+          ctx.beginPath(); ctx.moveTo(gutter, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+      }
+
+      function fmDrawProfile() {
+        const cv = $('fmProfCanvas');
+        const { ctx, W, H, dpr } = prep(cv);
+        const padL = 34 * dpr, padR = 8 * dpr, padT = 10 * dpr, padB = 20 * dpr;
+        const plotW = W - padL - padR, plotH = H - padT - padB;
+        const maxCm = +fmRangeEl.value;
+        const maxCell = Math.min(fm.nCells - 1, Math.max(3, Math.ceil(maxCm / fm.cmPerCell)));
+        let hi = 4;
+        for (let c = fm.minCell; c <= maxCell; c++) if (fm.profile[c] > hi) hi = fm.profile[c];
+        const xOf = c => padL + (c / maxCell) * plotW;
+        const yOf = v => padT + plotH - Math.max(0, Math.min(1, v / hi)) * plotH;
+        axisText(ctx, dpr);
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.textAlign = 'center';
+        const step = maxCm > 120 ? 40 : 20;
+        for (let cm = 0; cm <= maxCm; cm += step) {
+          const x = xOf(cm / fm.cmPerCell);
+          ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+          ctx.fillText(cm + ' cm', x, H - 6 * dpr);
+        }
+        // one bar per range cell — the profile really is this coarse
+        const bw = Math.max(2 * dpr, (plotW / (maxCell + 1)) * 0.6);
+        for (let c = fm.minCell; c <= maxCell; c++) {
+          const x = xOf(c), y = yOf(fm.profile[c]);
+          ctx.fillStyle = fm.sharp[c] > 3 ? '#bc122a' : 'rgba(188,18,42,0.35)';
+          ctx.fillRect(x - bw / 2, y, bw, padT + plotH - y);
+        }
+        const mark = (c, col, txt) => {
+          if (c < 0 || c > maxCell) return;
+          const x = xOf(c);
+          ctx.strokeStyle = col;
+          ctx.setLineDash([4 * dpr, 3 * dpr]);
+          ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = col;
+          ctx.font = 'bold ' + (10 * dpr) + 'px "Roboto Mono", monospace';
+          ctx.textAlign = x > W * 0.7 ? 'right' : 'left';
+          ctx.fillText(txt + ' ' + (c * fm.cmPerCell).toFixed(0) + ' cm', x + (x > W * 0.7 ? -5 : 5) * dpr, padT + 11 * dpr);
+        };
+        mark(fm.prof2nd, '#E8B923', '2nd');
+        mark(fm.lockCell, '#5cd7e0', fm.manualLock ? 'locked' : 'auto');
+      }
+
+      $('fmProfCanvas').addEventListener('click', ev => {
+        if (!fm.nCells) return;
+        const rect = ev.currentTarget.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const W = ev.currentTarget.width;
+        const padL = 34 * dpr, padR = 8 * dpr;
+        const px = (ev.clientX - rect.left) * (W / rect.width);
+        const maxCm = +fmRangeEl.value;
+        const maxCell = Math.min(fm.nCells - 1, Math.max(3, Math.ceil(maxCm / fm.cmPerCell)));
+        const c = Math.round(((px - padL) / (W - padL - padR)) * maxCell);
+        if (c < fm.minCell || c > maxCell) { fm.manualLock = false; return; }
+        fm.lockCell = c;
+        fm.manualLock = true;
+        fm.res = null;
+        fm.ev = makeEventState();
+      });
+
+      function fmDraw() {
+        fmDrawProfile();
+        const L = Math.min(fm.ffilled, Math.round(BR_WIN_S * fm.frameRate));
+        if (fm.lockCell >= 0 && L > 4) {
+          const base = fm.lockCell * fm.HISTN;
+          const tmp = new Float32Array(L);
+          let idx = (fm.fw - L + fm.HISTN) % fm.HISTN;
+          let mean = 0;
+          for (let i = 0; i < L; i++) {
+            tmp[i] = fm.hist[base + idx];
+            mean += tmp[i];
+            idx = idx + 1 === fm.HISTN ? 0 : idx + 1;
+          }
+          mean /= L;
+          for (let i = 0; i < L; i++) tmp[i] = (tmp[i] - mean) * 1e3;
+          drawTrace($('fmMotionCanvas'), tmp, L, {
+            color: '#5cd7e0', symmetric: true, minSpan: 0.002,
+            spanSec: BR_WIN_S, fmtY: v => v.toFixed(3),
+            label: 'cell magnitude ×10⁻³, mean removed'
+          });
+        } else {
+          drawTrace($('fmMotionCanvas'), new Float32Array(2), 0, { waiting: 'searching for a breathing cell…' });
+        }
+        drawSpectrum($('fmSpecCanvas'), fm.res);
+        drawEnvelope($('fmEnvCanvas'), fm.ev);
+      }
+
+      // ============================================================
+      //  Demo signal — synthesises the received waveform (direct leak,
+      //  a static wall, and one breathing chest) and feeds it through
+      //  the identical processing chain. No microphone involved.
+      // ============================================================
+      const demo = { n: 0, t0: 0, timer: null, chunk: new Float32Array(4096) };
+      function smoothstep(x) { return x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x); }
+      function demoDist(t) {
+        const CYCLE = 45;
+        const ph = t % CYCLE;
+        // 4 mm of chest travel at 15 breaths/min, with a 10 s hold each cycle
+        const hold = smoothstep(ph - 34) - smoothstep(ph - 44);
+        const amp = 0.004 * (1 - hold);
+        return 0.45 + amp * Math.sin(2 * Math.PI * 0.25 * t);
+      }
+      function wrap(u, n) { const m = u % n; return m < 0 ? m + n : m; }
+      function chirpAt(u) {
+        const N = fm.N;
+        const p = wrap(u, N);
+        const i0 = Math.floor(p), i1 = (i0 + 1) % N, f = p - i0;
+        return fm.chirp[i0] * (1 - f) + fm.chirp[i1] * f;
+      }
+      function demoGenerate(out, count, fs) {
+        const noise = 0.003;
+        if (method === 'cw') {
+          const len = cw.txLen, w = cw.dPhase;
+          const tone = u => Math.sin(w * wrap(u, len));
+          for (let i = 0; i < count; i++) {
+            const n = demo.n + i, t = n / fs;
+            const dChest = demoDist(t);
+            out[i] = 0.50 * tone(n - 2 * 0.03 / C_SOUND * fs)
+                   + 0.10 * tone(n - 2 * 1.35 / C_SOUND * fs)
+                   + 0.045 * tone(n - 2 * dChest / C_SOUND * fs)
+                   + noise * (Math.random() * 2 - 1);
+          }
+        } else {
+          for (let i = 0; i < count; i++) {
+            const n = demo.n + i, t = n / fs;
+            const dChest = demoDist(t);
+            out[i] = 0.50 * chirpAt(n - 2 * 0.03 / C_SOUND * fs)
+                   + 0.12 * chirpAt(n - 2 * 1.35 / C_SOUND * fs)
+                   + 0.055 * chirpAt(n - 2 * dChest / C_SOUND * fs)
+                   + noise * (Math.random() * 2 - 1);
+          }
+        }
+        demo.n += count;
+      }
+      function demoTick() {
+        const fs = 48000;
+        const want = Math.round((performance.now() - demo.t0) / 1000 * fs);
+        let todo = Math.min(want - demo.n, fs * 0.3);
+        while (todo > 0) {
+          const c = Math.min(todo, demo.chunk.length);
+          demoGenerate(demo.chunk, c, fs);
+          if (method === 'cw') cwSamples(demo.chunk, c); else fmSamples(demo.chunk, c);
+          todo -= c;
+        }
+      }
+
+      // ============================================================
+      //  Audio engine
+      // ============================================================
+      const eng = { ctx: null, src: null, gain: null, mic: null, sp: null, stream: null, running: false, demoMode: false };
+
+      function setStatus(msg, kind) {
+        statusEl.textContent = msg;
+        statusEl.classList.remove('error', 'busy', 'ok');
+        if (kind) statusEl.classList.add(kind);
+      }
+
+      function buildTxBuffer(ctx) {
+        const fs = ctx.sampleRate;
+        if (method === 'cw') {
+          const buf = ctx.createBuffer(1, cw.txLen, fs);
+          const ch = buf.getChannelData(0);
+          for (let n = 0; n < cw.txLen; n++) ch[n] = Math.sin(cw.dPhase * n);
+          return buf;
+        }
+        const tiles = Math.max(8, Math.ceil(fs / fm.N));
+        const buf = ctx.createBuffer(1, tiles * fm.N, fs);
+        const ch = buf.getChannelData(0);
+        for (let t = 0; t < tiles; t++) ch.set(fm.chirp, t * fm.N);
+        return buf;
+      }
+
+      async function start() {
+        try {
+          startBtn.disabled = true;
+          eng.demoMode = demoChk.checked;
+          cwResults.classList.toggle('hidden', method !== 'cw');
+          fmcwResults.classList.toggle('hidden', method !== 'fmcw');
+
+          if (eng.demoMode) {
+            const fs = 48000;
+            if (method === 'cw') cwInit(fs); else fmInit(fs);
+            void (method === 'cw' ? cwResults : fmcwResults).offsetHeight;
+            if (method === 'fmcw') fmSetupWaterfall();
+            demo.n = 0;
+            demo.t0 = performance.now();
+            demo.timer = setInterval(demoTick, 25);
+            eng.running = true;
+            stopBtn.disabled = false;
+            setStatus('Demo signal — synthetic echo, no microphone in use.', 'ok');
+            requestAnimationFrame(uiLoop);
+            return;
+          }
+
+          setStatus('Setting up audio…', 'busy');
+          eng.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (eng.ctx.state === 'suspended') await eng.ctx.resume();
+          const fs = eng.ctx.sampleRate;
+          if (method === 'cw') cwInit(fs); else fmInit(fs);
+
+          eng.src = eng.ctx.createBufferSource();
+          eng.src.buffer = buildTxBuffer(eng.ctx);
+          eng.src.loop = true;
+          eng.gain = eng.ctx.createGain();
+          eng.gain.gain.value = +gainEl.value;
+          eng.src.connect(eng.gain).connect(eng.ctx.destination);
+
+          setStatus('Requesting microphone…', 'busy');
+          eng.stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
+          });
+          eng.mic = eng.ctx.createMediaStreamSource(eng.stream);
+          eng.sp = eng.ctx.createScriptProcessor(1024, 1, 1);
+          eng.sp.onaudioprocess = ev => {
+            if (!eng.running) return;
+            const inp = ev.inputBuffer.getChannelData(0);
+            if (method === 'cw') cwSamples(inp, inp.length); else fmSamples(inp, inp.length);
+          };
+          eng.mic.connect(eng.sp);
+          const sink = eng.ctx.createGain();
+          sink.gain.value = 0;
+          eng.sp.connect(sink).connect(eng.ctx.destination);
+
+          void (method === 'cw' ? cwResults : fmcwResults).offsetHeight;
+          if (method === 'fmcw') fmSetupWaterfall();
+          eng.src.start();
+          eng.running = true;
+          stopBtn.disabled = false;
+          resyncBtn.disabled = method !== 'fmcw';
+          setStatus('Listening at ' + Math.round(fs) + ' Hz — sit still and breathe normally. Give it 30 s to fill the window.', 'ok');
+          requestAnimationFrame(uiLoop);
+        } catch (err) {
+          console.error(err);
+          setStatus('Could not start: ' + err.message, 'error');
+          stop();
+        }
+      }
+
+      function stop() {
+        eng.running = false;
+        if (demo.timer) { clearInterval(demo.timer); demo.timer = null; }
+        try { eng.src && eng.src.stop(); } catch (e) {}
+        for (const node of [eng.sp, eng.mic, eng.gain, eng.src]) {
+          if (node) try { node.disconnect(); } catch (e) {}
+        }
+        if (eng.stream) eng.stream.getTracks().forEach(t => t.stop());
+        if (eng.ctx) try { eng.ctx.close(); } catch (e) {}
+        eng.ctx = eng.src = eng.gain = eng.mic = eng.sp = eng.stream = null;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        resyncBtn.disabled = true;
+        setStatus('Stopped.', '');
+      }
+
+      // ============================================================
+      //  UI loop — analysis at ~1.2 Hz, redraw at ~12 Hz
+      // ============================================================
+      let lastAna = 0, lastDraw = 0;
+      function uiLoop(now) {
+        if (!eng.running) return;
+        if (now - lastAna > 800) {
+          lastAna = now;
+          if (method === 'cw') cwAnalyze(); else fmAnalyze();
+        }
+        if (now - lastDraw > 80) {
+          lastDraw = now;
+          if (method === 'cw') cwDraw(); else fmDraw();
+        }
+        requestAnimationFrame(uiLoop);
+      }
+
+      // ============================================================
+      //  Controls
+      // ============================================================
+      function fmtKHz(f) { return (f / 1000).toFixed(1) + ' kHz'; }
+      function refreshLabels() {
+        gainVal.textContent = (+gainEl.value).toFixed(2);
+        $('cwFreqVal').textContent = fmtKHz(+cwFreqEl.value);
+        $('cwClutterVal').textContent = (+cwClutterEl.value).toFixed(1) + ' s';
+        $('cwSmoothVal').textContent = (+cwSmoothEl.value).toFixed(2) + ' s';
+        if (+fmBandHiEl.value < +fmBandLoEl.value + 250) fmBandHiEl.value = +fmBandLoEl.value + 250;
+        $('fmBandLoVal').textContent = fmtKHz(+fmBandLoEl.value);
+        $('fmBandHiVal').textContent = fmtKHz(+fmBandHiEl.value);
+        const fs = eng.ctx ? eng.ctx.sampleRate : 48000;
+        const N = +fmChirpNEl.value, M = +fmChirpsEl.value;
+        $('fmChirpNVal').textContent = (N / fs * 1000).toFixed(1) + ' ms';
+        $('fmChirpsVal').textContent = (N * M / fs * 1000).toFixed(0) + ' ms frame';
+        $('fmRangeVal').textContent = (+fmRangeEl.value) + ' cm';
+      }
+      [gainEl, cwFreqEl, cwClutterEl, cwSmoothEl, fmBandLoEl, fmBandHiEl,
+       fmChirpNEl, fmChirpsEl, fmRangeEl].forEach(el =>
+        el.addEventListener('input', refreshLabels));
+      refreshLabels();
+
+      gainEl.addEventListener('input', () => {
+        if (eng.gain) eng.gain.gain.value = +gainEl.value;
+      });
+
+      // Waveform-defining parameters need the engine rebuilt.
+      [cwFreqEl, fmBandLoEl, fmBandHiEl, fmChirpNEl, fmChirpsEl].forEach(el =>
+        el.addEventListener('change', () => {
+          if (eng.running) { stop(); setTimeout(start, 120); }
+        }));
+
+      methodSeg.addEventListener('click', ev => {
+        const btn = ev.target.closest('button');
+        if (!btn || btn.dataset.method === method) return;
+        const wasRunning = eng.running;
+        if (wasRunning) stop();
+        method = btn.dataset.method;
+        [...methodSeg.querySelectorAll('button')].forEach(b =>
+          b.classList.toggle('active', b.dataset.method === method));
+        methodHint.textContent = HINTS[method];
+        cwParams.classList.toggle('hidden', method !== 'cw');
+        fmcwParams.classList.toggle('hidden', method !== 'fmcw');
+        cwResults.classList.add('hidden');
+        fmcwResults.classList.add('hidden');
+        resyncBtn.classList.toggle('hidden', method !== 'fmcw');
+        if (wasRunning) setTimeout(start, 120);
+      });
+
+      resyncBtn.addEventListener('click', () => {
+        if (!eng.running || method !== 'fmcw') return;
+        fm.syncReq = true;
+        fm.ffilled = 0; fm.fw = 0;
+        fm.hist.fill(0); fm.bg.fill(0); fm.profile.fill(0);
+        fm.res = null; fm.ev = makeEventState();
+        fmSetupWaterfall();
+        setStatus('Re-syncing the sweep grid — the 30 s window restarts.', 'busy');
+      });
+
+      window.addEventListener('resize', () => { if (eng.running && method === 'fmcw') fmSetupWaterfall(); });
+      startBtn.addEventListener('click', start);
+      stopBtn.addEventListener('click', stop);
+      window.addEventListener('beforeunload', stop);
+    </script>
+  </body>
+</html>

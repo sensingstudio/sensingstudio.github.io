@@ -604,7 +604,11 @@
       // initLaptop() builds the charts, which draw immediately, and a `const`
       // referenced before its declaration is evaluated throws (TDZ).
       const BPM_MIN = 30, BPM_MAX = 220;
-      const SNR_GOOD = 8; // spectral peak-to-mean below this reads as noise
+      // A pulse is only reported once the spectral peak clears this multiple of
+      // the in-band noise floor, and it stays reported until it falls back
+      // under CONF_DROP, so a borderline trace doesn't flicker between a rate
+      // and a dash. Pure camera noise measures under 10 on this scale.
+      const CONF_GOOD = 10, CONF_DROP = 7;
 
       // Surface a startup exception in the UI. Without this, anything thrown
       // in initLaptop() leaves the page sitting on "Generating session…" with
@@ -1026,6 +1030,62 @@
       }
 
       /**
+       * Choose the fundamental in a power spectrum, given the in-band search
+       * range [kLo, kHi].
+       *
+       * A plain argmax over the band is the wrong tool twice over. A fingertip
+       * pulse is sharply peaked, so its 2nd-4th harmonics can carry as much
+       * power as the fundamental and the argmax happily reports two or four
+       * times the real rate; and when the pulse is weak, the largest bin is
+       * simply the tallest lump of camera noise, which lands anywhere in
+       * 30-220 BPM. Scoring each candidate by its own power plus the power
+       * sitting at its harmonics fixes both: harmonics score below the
+       * fundamental that explains them, and a noise spike scores below a real
+       * pulse because nothing lines up above it.
+       *
+       * Returns the winning bin index.
+       */
+      const HARMONICS = 5;      // harmonics summed per candidate
+      const CAND_FLOOR = 0.12;  // candidate must hold this share of the band max
+      function pickFundamental(P, kLo, kHi) {
+        const nBins = P.length;
+        let maxP = 0, maxK = kLo;
+        for (let k = kLo; k <= kHi; k++) if (P[k] > maxP) { maxP = P[k]; maxK = k; }
+        if (!(maxP > 0)) return maxK;
+
+        // Weighting harmonics by 1/h keeps a bare sub-harmonic — a bin with no
+        // power of its own, sitting at half a real peak — from winning on the
+        // strength of somebody else's spectrum. The floor below does the rest.
+        const floor = maxP * CAND_FLOOR;
+        const score = k => {
+          let s = 0;
+          for (let h = 1; h <= HARMONICS; h++) {
+            const kh = k * h;
+            if (kh > nBins - 2) break;
+            // Harmonics of a real pulse drift a little off exact multiples.
+            const tol = Math.max(1, Math.round(kh * 0.02));
+            let best = 0;
+            for (let q = Math.max(1, kh - tol); q <= Math.min(nBins - 1, kh + tol); q++) {
+              if (P[q] > best) best = P[q];
+            }
+            s += best / h;
+          }
+          return s;
+        };
+
+        let bestK = -1, bestS = -1;
+        for (let k = kLo; k <= kHi; k++) {
+          if (P[k] < floor) continue;
+          if (P[k] < P[k - 1] || P[k] < P[k + 1]) continue;
+          const s = score(k);
+          if (s > bestS) { bestS = s; bestK = k; }
+        }
+        // Nothing cleared the floor as a local maximum (a very flat spectrum):
+        // fall back to the plain in-band argmax.
+        return bestK < 0 ? maxK : bestK;
+      }
+
+      /**
        * Periodogram of an unevenly-sampled trace: resample onto a uniform grid,
        * remove the linear trend, apply a Hann window, zero-pad and FFT.
        * Returns {bpm[], power[], peakBpm, snr} restricted to the heart-rate band.
@@ -1066,33 +1126,58 @@
           wss += w * w;
         }
 
-        // Zero-pad for a smoothly interpolated spectrum.
+        // Zero-pad for a smoothly interpolated spectrum. NFFT must never fall
+        // below N: transforming only the first NFFT samples would chop the Hann
+        // window in half and smear the whole spectrum. N passes 8192 on a 144 Hz
+        // display running the 60 s analysis window.
         let NFFT = 1;
         while (NFFT < N) NFFT <<= 1;
-        NFFT = Math.min(8192, Math.max(1024, NFFT * 2));
+        NFFT = Math.min(32768, Math.max(1024, NFFT * 2));
+        if (NFFT < N) return null;
         const re = new Float64Array(NFFT), im = new Float64Array(NFFT);
-        re.set(x.subarray(0, Math.min(N, NFFT)));
+        re.set(x.subarray(0, N));
         fftInPlace(re, im);
+
+        // One-sided power spectrum across the whole Nyquist range: the search
+        // below needs bins well above the display band to see the harmonics of
+        // a candidate fundamental (5x of 220 BPM is 18 Hz).
+        const half = NFFT >> 1;
+        const norm = 2 / (fs * wss);
+        const raw = new Float64Array(half);
+        for (let k = 0; k < half; k++) raw[k] = (re[k] * re[k] + im[k] * im[k]) * norm;
+
+        // Smooth over a couple of bins. Zero-padding leaves the Hann main lobe
+        // ~4*NFFT/N bins wide, so this barely touches a real peak while it pulls
+        // down the spikes in the noise floor that the peak search competes with.
+        const P = new Float64Array(half);
+        for (let k = 0; k < half; k++) {
+          let s = 0, c = 0;
+          for (let d = -2; d <= 2; d++) {
+            const q = k + d;
+            if (q >= 0 && q < half) { s += raw[q]; c++; }
+          }
+          P[k] = s / c;
+        }
 
         const df = fs / NFFT;
         const fLo = BPM_MIN / 60, fHi = Math.min(BPM_MAX / 60, fs / 2);
         const kLo = Math.max(1, Math.ceil(fLo / df));
-        const kHi = Math.min((NFFT >> 1) - 1, Math.floor(fHi / df));
+        const kHi = Math.min(half - 2, Math.floor(fHi / df));
         if (kHi <= kLo + 2) return null;
 
-        const norm = 2 / (fs * wss);
         const m = kHi - kLo + 1;
         const bpm = new Float64Array(m);
         const power = new Float64Array(m);
-        let peakI = 0, peakP = -1, sumP = 0;
+        let maxP = -1;
         for (let k = kLo; k <= kHi; k++) {
-          const p = (re[k] * re[k] + im[k] * im[k]) * norm;
           const i = k - kLo;
           bpm[i] = k * df * 60;
-          power[i] = p;
-          sumP += p;
-          if (p > peakP) { peakP = p; peakI = i; }
+          power[i] = P[k];
+          if (P[k] > maxP) maxP = P[k];
         }
+
+        const kPeak = pickFundamental(P, kLo, kHi);
+        const peakI = kPeak - kLo;
 
         // Parabolic refinement of the peak location.
         let peakBpm = bpm[peakI];
@@ -1104,12 +1189,19 @@
             if (Math.abs(shift) <= 1) peakBpm = (bpm[peakI] + shift * (bpm[1] - bpm[0]));
           }
         }
-        const mean = sumP / m;
+
+        // Confidence: the chosen peak over the *median* in-band power. The mean
+        // is dragged up by the peak and its harmonics, which flattered a
+        // noise-driven peak into scoring as well as a real pulse.
+        const sorted = Float64Array.from(power).sort();
+        const mid = m >> 1;
+        const noiseFloor = m % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+
         return {
           bpm, power,
-          maxPower: peakP,
+          maxPower: maxP,
           peakBpm,
-          snr: mean > 0 ? peakP / mean : 0,
+          snr: noiseFloor > 0 ? P[kPeak] / noiseFloor : 0,
           fs,
           dur,
         };
@@ -1155,6 +1247,7 @@
 
         let peakTimes = [];   // {t, v} of detected systolic peaks
         let spec = null;      // last periodogram
+        let confident = false; // spectral peak currently clears the noise floor
         let lastAnalysisAt = 0;
 
         function keepSec() { return Math.max(windowSec * 1.2, analysisSec + 1); }
@@ -1165,7 +1258,7 @@
           buf.length = 0;
           firstT = null; lastT = 0;
           smoothedMin = smoothedMax = null;
-          peakTimes = []; spec = null; lastAnalysisAt = 0;
+          peakTimes = []; spec = null; confident = false; lastAnalysisAt = 0;
           placeholder.style.display = '';
           val.textContent = '—';
           peakVal.textContent = '— BPM';
@@ -1201,7 +1294,7 @@
           }
           const n = ts.length;
           if (n < 32 || ts[n - 1] - ts[0] < 2) {
-            peakTimes = []; spec = null;
+            peakTimes = []; spec = null; confident = false;
             peakVal.textContent = '— BPM';
             fftVal.textContent = '— BPM';
             return;
@@ -1209,14 +1302,24 @@
           const fs = (n - 1) / (ts[n - 1] - ts[0]);
           // Spectrum first: its dominant frequency seeds the peak detector.
           spec = periodogram(ts, vs);
-          fftVal.textContent = spec ? spec.peakBpm.toFixed(1) + ' BPM' : '— BPM';
           const idx = detectPeaks(ts, vs, fs, spec ? spec.peakBpm : NaN);
           peakTimes = idx.map(i => ({ t: ts[i], v: vs[i] }));
           const bpmP = bpmFromPeaks(ts, idx);
+
+          // With no pulse in the frame the dominant bin is just the tallest lump
+          // of camera noise, and it lands anywhere in the band — which is what
+          // produced confident-looking rates well over 100 BPM. Report nothing
+          // until the peak actually stands above the noise floor.
+          const conf = spec ? spec.snr : 0;
+          confident = confident ? conf >= CONF_DROP : conf >= CONF_GOOD;
+          if (!confident) {
+            peakVal.textContent = '— BPM';
+            fftVal.textContent = '— BPM';
+            return;
+          }
+          fftVal.textContent = spec.peakBpm.toFixed(1) + ' BPM';
           peakVal.textContent = isFinite(bpmP) ? bpmP.toFixed(1) + ' BPM' : '— BPM';
-          // Below this spectral SNR the dominant bin is indistinguishable from
-          // camera noise — show the numbers, but mark them as untrustworthy.
-          const weak = !spec || spec.snr < SNR_GOOD;
+          const weak = conf < CONF_GOOD;
           peakVal.classList.toggle('weak', weak);
           fftVal.classList.toggle('weak', weak);
         }
@@ -1332,7 +1435,7 @@
 
           // Detected systolic peaks: dropline + marker, with the instantaneous
           // interval printed between consecutive beats.
-          if (showPeaks && peakTimes.length) {
+          if (showPeaks && confident && peakTimes.length) {
             ctx.font = (9 * dpr) + 'px Roboto, sans-serif';
             let prev = null;
             for (const pk of peakTimes) {
@@ -1427,27 +1530,41 @@
           }
           sctx.stroke();
 
-          // Dominant frequency marker.
-          const px = xOf(spec.peakBpm);
-          sctx.setLineDash([3 * dpr, 3 * dpr]);
-          sctx.strokeStyle = 'rgba(255,255,255,0.55)';
-          sctx.lineWidth = 1 * dpr;
-          sctx.beginPath(); sctx.moveTo(px, padT - 6 * dpr); sctx.lineTo(px, padT + plotH); sctx.stroke();
-          sctx.setLineDash([]);
+          if (confident) {
+            // Fundamental, plus faint ticks at the harmonics that support it.
+            const px = xOf(spec.peakBpm);
+            sctx.strokeStyle = 'rgba(255,255,255,0.18)';
+            sctx.lineWidth = 1 * dpr;
+            for (let h = 2; h <= 4; h++) {
+              const hb = spec.peakBpm * h;
+              if (hb > BPM_MAX) break;
+              const hx = xOf(hb);
+              sctx.beginPath(); sctx.moveTo(hx, padT + plotH - 6 * dpr); sctx.lineTo(hx, padT + plotH); sctx.stroke();
+            }
+            sctx.setLineDash([3 * dpr, 3 * dpr]);
+            sctx.strokeStyle = 'rgba(255,255,255,0.55)';
+            sctx.beginPath(); sctx.moveTo(px, padT - 6 * dpr); sctx.lineTo(px, padT + plotH); sctx.stroke();
+            sctx.setLineDash([]);
 
-          const weak = spec.snr < SNR_GOOD;
-          sctx.fillStyle = weak ? 'rgba(255,255,255,0.45)' : '#fff';
-          sctx.font = '700 ' + (12 * dpr) + 'px Roboto, sans-serif';
-          sctx.textAlign = px > w * 0.6 ? 'right' : 'left';
-          const lx = px + (px > w * 0.6 ? -5 * dpr : 5 * dpr);
-          sctx.fillText(spec.peakBpm.toFixed(1) + ' BPM' + (weak ? ' ?' : ''), lx, 13 * dpr);
+            const weak = spec.snr < CONF_GOOD;
+            sctx.fillStyle = weak ? 'rgba(255,255,255,0.45)' : '#fff';
+            sctx.font = '700 ' + (12 * dpr) + 'px Roboto, sans-serif';
+            sctx.textAlign = px > w * 0.6 ? 'right' : 'left';
+            const lx = px + (px > w * 0.6 ? -5 * dpr : 5 * dpr);
+            sctx.fillText(spec.peakBpm.toFixed(1) + ' BPM' + (weak ? ' ?' : ''), lx, 13 * dpr);
+          } else {
+            sctx.fillStyle = 'rgba(255,255,255,0.45)';
+            sctx.font = '700 ' + (12 * dpr) + 'px Roboto, sans-serif';
+            sctx.textAlign = 'left';
+            sctx.fillText('no pulse detected', padL, 13 * dpr);
+          }
 
           sctx.font = (9 * dpr) + 'px Roboto, sans-serif';
           sctx.fillStyle = 'rgba(255,255,255,0.4)';
           sctx.textAlign = 'right';
           sctx.fillText(
-            (spec.peakBpm / 60).toFixed(2) + ' Hz · SNR ' + spec.snr.toFixed(1) +
-            ' · ' + spec.dur.toFixed(0) + ' s',
+            (confident ? (spec.peakBpm / 60).toFixed(2) + ' Hz · ' : '') +
+            'SNR ' + spec.snr.toFixed(spec.snr >= 100 ? 0 : 1) + ' · ' + spec.dur.toFixed(0) + ' s',
             w - 5 * dpr, h - 5 * dpr
           );
           sctx.textAlign = 'left';
