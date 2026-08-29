@@ -485,19 +485,23 @@
             <div class="label">Clipped samples</div>
             <div class="num" id="sigClip">0</div>
           </div>
+          <div class="stat">
+            <div class="label">Capture rate</div>
+            <div class="num" id="sigCapture">&mdash;<span class="unit"> kS/s</span></div>
+          </div>
         </div>
 
         <div class="canvas-title">Microphone waveform
-          <span class="sub">raw samples, last 20 ms</span>
+          <span class="sub">raw samples from the phone, last 20 ms</span>
         </div>
         <div class="canvas-wrap short"><canvas id="scopeCanvas"></canvas></div>
         <div class="legend">
-          <span><span class="swatch" style="background:#E8B923"></span>mic input</span>
-          <span><span class="swatch" style="background:rgba(188,18,42,0.8)"></span>&plusmn;1.0 full scale</span>
+          <span><span class="swatch" style="background:#E8B923"></span>phone mic, auto-scaled to its own peak</span>
+          <span><span class="swatch" style="background:rgba(188,18,42,0.8)"></span>&plusmn;1.0 clip rails, shown once the signal is near them</span>
         </div>
 
         <div class="canvas-title">Received spectrum
-          <span class="sub">85 ms of microphone audio, 0 dBFS = full-scale sine</span>
+          <span class="sub">85 ms of the phone's microphone, 0 dBFS = full-scale sine</span>
         </div>
         <div class="canvas-wrap mid"><canvas id="rxSpecCanvas"></canvas></div>
         <div class="legend">
@@ -660,6 +664,7 @@
           <h2>Why the phone does the maths</h2>
           <p>The obvious split &mdash; phone streams its microphone, laptop does the signal processing &mdash; cannot work here, and it is worth knowing why. A WebRTC audio track is Opus-coded and resampled through a jitter buffer. Opus is a perceptual codec: it preserves what you hear and discards phase relationships you do not, and the jitter buffer stretches and shrinks the stream by fractions of a sample to keep the clocks aligned. Both are harmless for speech and fatal here, because the entire measurement <em>is</em> the phase of an 18&nbsp;kHz carrier, and 1&nbsp;mm of chest movement is 38&deg; of it.</p>
           <p>So the phone keeps the samples. It plays the tone or the sweep, captures its own microphone at the native rate, and runs the identical <code>sonar-core.js</code> that the single-device page runs. What crosses the network is the finished picture: a few hundred numbers per packet &mdash; the motion trace, the breathing spectrum, the range profile, the envelope, and enough of the raw waveform and spectrum to fill the signal-check panel. About 40&nbsp;kB/s, four packets a second.</p>
+          <p>The capture-rate readout in the signal panel is the phone's, not the laptop's: it counts the samples the phone's DSP actually consumed. If it sags below the sample rate, the phone is the bottleneck &mdash; close its other apps, or drop the chirps-per-frame.</p>
           <p>The controls above are commands, not settings: change a parameter here and the phone re-initialises its DSP and answers with new packets. That is also why the layout is identical to the single-device page &mdash; both pages call the same drawing code over the same render buffers, so what you see here is what the phone computed, not an approximation of it.</p>
         </section>
 
@@ -926,11 +931,16 @@
             R.specN = copyInto(R.spec, pk.sig.spec);
             R.specDf = pk.sig.specDf;
             R.rms = pk.sig.rms; R.peak = pk.sig.peak; R.clip = pk.sig.clip; R.band = pk.sig.band;
+            R.capRate = pk.sig.capRate; R.capDrop = pk.sig.capDrop;
             cw.f0 = pk.sig.f0; fm.f0 = pk.sig.fmF0; fm.f1 = pk.sig.fmF1;
+            R.sigFresh = true;
           }
           for (const id of STAT_IDS) if (pk.stats && pk.stats[id] != null) setStat(id, pk.stats[id]);
 
           if (!laidOut) { layout(); laidOut = true; }
+          // The signal-check pair is redrawn only when a heavy packet
+          // actually brought new waveform and spectrum data.
+          if (R.sigFresh) { drawSignalCheck(); R.sigFresh = false; }
 
           if (method === 'cw') {
             R.cwArcN = copyInto(R.cwArcR, pk.cw.arcR);
@@ -1043,6 +1053,7 @@
               fs: R.fs, wave: Array.from(R.wave.subarray(0, R.waveN)),
               spec: Array.from(R.spec.subarray(0, R.specN)), specDf: R.specDf,
               rms: R.rms, peak: R.peak, clip: R.clip, band: R.band,
+              capRate: R.capRate, capDrop: R.capDrop,
               f0: cw.f0, fmF0: fm.f0, fmF1: fm.f1
             };
           }

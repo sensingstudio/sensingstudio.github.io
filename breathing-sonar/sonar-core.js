@@ -250,7 +250,7 @@ function drawTrace(cv, data, n, opts) {
   if (n < 2) {
     axisText(ctx, dpr);
     ctx.textAlign = 'center';
-    ctx.fillText(o.waiting || 'collecting…', W / 2, H / 2);
+    ctx.fillText(o.waiting || waitingText('collecting…'), W / 2, H / 2);
     return;
   }
   let lo = Infinity, hi = -Infinity;
@@ -308,7 +308,7 @@ function drawSpectrum(cv, res) {
   axisText(ctx, dpr);
   if (!res) {
     ctx.textAlign = 'center';
-    ctx.fillText('collecting… (needs ~8 s)', W / 2, H / 2);
+    ctx.fillText(waitingText('collecting…'), W / 2, H / 2);
     return;
   }
   const maxBpm = 60;
@@ -427,44 +427,60 @@ function dbfs(v) { return 20 * Math.log10(v + 1e-9); }
 function drawScope() {
   const cv = $('scopeCanvas');
   const { ctx, W, H, dpr } = prep(cv);
-  const padL = 40 * dpr, padR = 8 * dpr, padT = 8 * dpr, padB = 16 * dpr;
+  const padL = 46 * dpr, padR = 8 * dpr, padT = 8 * dpr, padB = 16 * dpr;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const n = R.waveN;
+  const buf = R.wave;
+  // Auto-scale. A microphone 40 dB below full scale drawn against ±1 rails
+  // is a flat line and tells you nothing; the rails come back into view on
+  // their own as the signal approaches them.
+  let pk = 0;
+  for (let i = 0; i < n; i++) { const a = Math.abs(buf[i]); if (a > pk) pk = a; }
+  const lim = pk > 0.75 ? 1.1 : Math.max(pk * 1.25, 1e-5);
+  const yOf = v => padT + plotH * (0.5 - Math.max(-1, Math.min(1, v / lim)) * 0.5);
   axisText(ctx, dpr);
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
-  // full scale rails
-  for (const v of [1, -1]) {
-    const y = padT + plotH * (0.5 - v * 0.5);
-    ctx.strokeStyle = 'rgba(188,18,42,0.8)';
-    ctx.setLineDash([3 * dpr, 3 * dpr]);
+  const fmt = v => Math.abs(v) >= 0.1 ? v.toFixed(2)
+                 : Math.abs(v) >= 0.001 ? v.toFixed(4) : v.toExponential(0);
+  for (const v of [lim, 0, -lim]) {
+    const y = yOf(v);
+    ctx.strokeStyle = v === 0 ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.16)';
     ctx.lineWidth = 1 * dpr;
     ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
-    ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText(v.toFixed(1), padL - 5 * dpr, y);
+    ctx.fillText(v === 0 ? '0' : fmt(v), padL - 5 * dpr, y);
   }
-  const yMid = padT + plotH * 0.5;
-  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-  ctx.beginPath(); ctx.moveTo(padL, yMid); ctx.lineTo(W - padR, yMid); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.fillText('0', padL - 5 * dpr, yMid);
+  // Clip rails, drawn only when they are actually on screen.
+  if (lim >= 1) {
+    for (const v of [1, -1]) {
+      const y = yOf(v);
+      ctx.strokeStyle = 'rgba(188,18,42,0.8)';
+      ctx.setLineDash([3 * dpr, 3 * dpr]);
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
   if (n < 4) {
     ctx.textAlign = 'center';
-    ctx.fillText('no audio yet', W / 2, yMid);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText('no audio yet', W / 2, padT + plotH / 2);
     return;
   }
-  const buf = R.wave;
   ctx.strokeStyle = '#E8B923';
   ctx.lineWidth = 1.4 * dpr;
   ctx.beginPath();
   for (let i = 0; i < n; i++) {
     const x = padL + (i / (n - 1)) * plotW;
-    const y = padT + plotH * (0.5 - Math.max(-1.2, Math.min(1.2, buf[i])) * 0.5);
+    const y = yOf(buf[i]);
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.stroke();
   axisText(ctx, dpr);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('peak ' + fmt(pk) + '  (' + dbfs(pk).toFixed(0) + ' dBFS)'
+    + (lim < 1 ? '  ·  zoomed ×' + (1 / lim).toFixed(0) : ''), padL + 6 * dpr, padT + 2 * dpr);
   ctx.textAlign = 'right';
   ctx.textBaseline = 'alphabetic';
   ctx.fillText(R.waveMs.toFixed(0) + ' ms', W - padR, H - 4 * dpr);
@@ -562,6 +578,9 @@ function drawSignalCheck() {
   setStat('sigBand', (isFinite(R.band) ? R.band.toFixed(1) : '&mdash;') + '<span class="unit"> dB of total</span>');
   const clipEl = $('sigClip');
   if (clipEl) clipEl.textContent = R.clip;
+  const drops = R.capDrop > 0 ? ' <span class="unit" style="color:#bc122a">' + R.capDrop + ' lost</span>' : '';
+  setStat('sigCapture', (R.capRate > 0 ? (R.capRate / 1000).toFixed(1) : '&mdash;')
+    + '<span class="unit"> kS/s</span>' + drops);
 }
 
 const IQ_HIST_S = 12;
@@ -725,8 +744,16 @@ const R = {
   fmProfile: null, fmSharp: null, fmFine: null,
   fmLock: -1, fm2nd: -1, fmManual: false,
   cmPerCell: 8.6, nCells: 0, minCell: 2, M: 8,
-  lam: 0.019, bpm: NaN, conf: 0, res: null
+  lam: 0.019, bpm: NaN, conf: 0, res: null,
+  fillSec: 0, capRate: 0, capDrop: 0, capQueue: 0
 };
+
+// "collecting…" with a number attached, so a stalled pipeline is visible
+// rather than merely patient.
+function waitingText(what) {
+  const need = Math.max(8, BR_WIN_S * 0.27);
+  return what + ' ' + R.fillSec.toFixed(1) + ' / ' + need.toFixed(0) + ' s';
+}
 
 // Evenly spaced resample of `n` samples (from `off`) down to at most maxN.
 function decimateInto(src, n, dst, maxN, off) {
@@ -760,6 +787,12 @@ function prepareDraw(heavy) {
     R.band = bandFraction();
   }
   const S = method === 'cw' ? cw : fm;
+  R.fillSec = method === 'cw'
+    ? (cw.zRe ? cw.zRe.filled / cw.bbRate : 0)
+    : (fm.frameRate ? fm.ffilled / fm.frameRate : 0);
+  R.capRate = eng.rateEMA;
+  R.capDrop = eng.dropped;
+  R.capQueue = eng.qLen;
   R.motionN = decimateInto(S.motion, S.motionN, R.motion, 400);
   R.scaled = S.scaled; R.span = S.span; R.lam = S.lam || cw.lam;
   R.res = S.res;
@@ -791,6 +824,7 @@ function prepareDraw(heavy) {
 const cw = {
   fs: 48000, f0: 18000, lam: 0.019, decim: 512, bbRate: 0,
   loPhase: 0, dPhase: 0, accI: 0, accQ: 0, accN: 0,
+  loCos: null, loSin: null, loIdx: 0,
   clRe: 0, clIm: 0, haveCl: false, ampEMA: 0, clMag: 0,
   zRe: null, zIm: null, lvlSig: null, lvlClu: null,
   motion: null, motionAlt: null, motionN: 0, scaled: false, span: 0,
@@ -818,6 +852,18 @@ function cwInit(fs) {
   cw.bbRate = fs / cw.decim;
   cw.loPhase = 0;
   cw.dPhase = 2 * Math.PI * cw.f0 / fs;
+  // The transmitted tone spans a whole number of cycles in txLen samples,
+  // so the local oscillator is periodic with exactly that length. Tabulate
+  // it once: two trig calls per sample is 96k of them a second, inside the
+  // loop that must keep up with the microphone.
+  cw.loCos = new Float32Array(cw.txLen);
+  cw.loSin = new Float32Array(cw.txLen);
+  for (let i = 0; i < cw.txLen; i++) {
+    const ph = 2 * Math.PI * cw.txCycles * i / cw.txLen;
+    cw.loCos[i] = Math.cos(ph);
+    cw.loSin[i] = Math.sin(ph);
+  }
+  cw.loIdx = 0;
   cw.accI = cw.accQ = cw.accN = 0;
   cw.clRe = cw.clIm = 0; cw.haveCl = false;
   cw.ampEMA = 0; cw.clMag = 0;
@@ -850,17 +896,19 @@ function cwEmit(zr, zi) {
 }
 
 function cwSamples(input, n) {
+  const cos = cw.loCos, sin = cw.loSin, len = cw.txLen;
+  let k = cw.loIdx, accI = cw.accI, accQ = cw.accQ, accN = cw.accN;
   for (let i = 0; i < n; i++) {
     const s = input[i];
-    cw.accI += s * Math.cos(cw.loPhase);
-    cw.accQ -= s * Math.sin(cw.loPhase);
-    cw.loPhase += cw.dPhase;
-    if (cw.loPhase > 2 * Math.PI) cw.loPhase -= 2 * Math.PI;
-    if (++cw.accN >= cw.decim) {
-      cwEmit(cw.accI / cw.decim, cw.accQ / cw.decim);
-      cw.accI = cw.accQ = cw.accN = 0;
+    accI += s * cos[k];
+    accQ -= s * sin[k];
+    if (++k === len) k = 0;
+    if (++accN >= cw.decim) {
+      cwEmit(accI / cw.decim, accQ / cw.decim);
+      accI = accQ = accN = 0;
     }
   }
+  cw.loIdx = k; cw.accI = accI; cw.accQ = accQ; cw.accN = accN;
 }
 
 const cwWork = { zr: null, zi: null };
@@ -918,7 +966,7 @@ function cwDrawIQ() {
   if (n < 4) {
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.textAlign = 'center';
-    ctx.fillText('collecting…', cx, cy + rad + 14 * dpr);
+    ctx.fillText(waitingText('collecting…'), cx, cy + rad + 14 * dpr);
     return;
   }
   let mx = 1e-12;
@@ -960,7 +1008,7 @@ function cwDrawLevels() {
   axisText(ctx, dpr);
   if (n < 4) {
     ctx.textAlign = 'center';
-    ctx.fillText('collecting…', W / 2, H / 2);
+    ctx.fillText(waitingText('collecting…'), W / 2, H / 2);
     return;
   }
   const sig = new Float32Array(n), clu = new Float32Array(n);
@@ -999,7 +1047,6 @@ function cwDrawLevels() {
 }
 
 function cwDraw() {
-  drawSignalCheck();
   cwDrawLevels();
   cwDrawIQ();
   drawTrace($('cwDispCanvas'), R.motion, R.motionN, {
@@ -1367,7 +1414,14 @@ function fmSetupWaterfall() {
   const ctx = cv.getContext('2d');
   ctx.fillStyle = '#0c0c0e';
   ctx.fillRect(0, 0, W, H);
-  fm.wf = { ctx, W, H, dpr, gutter: Math.round(40 * dpr) };
+  // A 1-pixel-wide scratch canvas for the newest column. Writing pixels
+  // here and blitting costs nothing; getImageData on the full waterfall
+  // every frame is a GPU readback, and it is what makes this view stutter.
+  const col = document.createElement('canvas');
+  col.width = 1; col.height = H;
+  fm.wf = { ctx, W, H, dpr, gutter: Math.round(40 * dpr),
+            col, colCtx: col.getContext('2d'),
+            colImg: ctx.createImageData(1, H) };
 }
 
 function fmColor(v) {
@@ -1384,9 +1438,9 @@ function fmDrawColumn(dev) {
   const { ctx, W, H, dpr, gutter } = fm.wf;
   const plotW = W - gutter;
   if (plotW < 8) return;
-  const img = ctx.getImageData(gutter + 1, 0, plotW - 1, H);
-  ctx.putImageData(img, gutter, 0);
-  const col = ctx.createImageData(1, H);
+  // Scroll by blitting the canvas onto itself, one pixel left.
+  ctx.drawImage(ctx.canvas, gutter + 1, 0, plotW - 1, H, gutter, 0, plotW - 1, H);
+  const col = fm.wf.colImg;
   const maxCm = P.rangeCm;
   const maxCell = Math.min(R.nCells - 1, Math.max(3, Math.ceil(maxCm / R.cmPerCell)));
   // Normalise the fluctuation by the strongest deviation on screen.
@@ -1402,7 +1456,8 @@ function fmDrawColumn(dev) {
     const i = y * 4;
     col.data[i] = R; col.data[i + 1] = G; col.data[i + 2] = Bc; col.data[i + 3] = 255;
   }
-  ctx.putImageData(col, W - 1, 0);
+  fm.wf.colCtx.putImageData(col, 0, 0);
+  ctx.drawImage(fm.wf.col, W - 1, 0);
   // locked-cell tick on the newest column, leaving a scrolling trail
   if (R.fmLock >= 0 && R.fmLock <= maxCell) {
     const y = Math.round((H - 1) * (1 - R.fmLock / maxCell));
@@ -1547,7 +1602,6 @@ function fmDrawRawProfile() {
 }
 
 function fmDraw() {
-  drawSignalCheck();
   fmDrawRawProfile();
   fmDrawProfile();
   if (R.fmLock >= 0 && R.motionN > 4) {
@@ -1558,7 +1612,8 @@ function fmDraw() {
                       : 'arb. units — arc too short for a mm scale'
     });
   } else {
-    drawTrace($('fmMotionCanvas'), new Float32Array(2), 0, { waiting: 'searching for a breathing cell…' });
+    drawTrace($('fmMotionCanvas'), new Float32Array(2), 0,
+      { waiting: waitingText('searching for a breathing cell…') });
   }
   drawSpectrum($('fmSpecCanvas'), R.res);
   drawEnvelope($('fmEnvCanvas'));
@@ -1618,8 +1673,7 @@ function demoTick() {
   while (todo > 0) {
     const c = Math.min(todo, demo.chunk.length);
     demoGenerate(demo.chunk, c, fs);
-    scopePush(demo.chunk, c);
-    if (method === 'cw') cwSamples(demo.chunk, c); else fmSamples(demo.chunk, c);
+    pushCapture(demo.chunk.slice(0, c));
     todo -= c;
   }
 }
@@ -1627,7 +1681,78 @@ function demoTick() {
 // ============================================================
 //  Audio engine
 // ============================================================
-const eng = { ctx: null, src: null, gain: null, mic: null, sp: null, stream: null, running: false, demoMode: false };
+const eng = {
+  ctx: null, src: null, gain: null, mic: null, sp: null, node: null,
+  stream: null, running: false, demoMode: false,
+  // Capture is decoupled from processing. The audio thread only hands
+  // over samples; the DSP drains them on the main thread. If a frame
+  // runs long the queue grows and is caught up on the next tick —
+  // running the DSP inside the audio callback instead means the browser
+  // simply skips callbacks it cannot deliver, and the samples are gone.
+  queue: [], qLen: 0, drainTimer: null,
+  recv: 0, proc: 0, dropped: 0, rateEMA: 0, lastDrain: 0
+};
+
+const CAPTURE_WORKLET = `
+class SonarCapture extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.buf = new Float32Array(1024);
+    this.n = 0;
+  }
+  process(inputs) {
+    const ch = inputs[0] && inputs[0][0];
+    if (ch) {
+      for (let i = 0; i < ch.length; i++) {
+        this.buf[this.n++] = ch[i];
+        if (this.n === this.buf.length) {
+          this.port.postMessage(this.buf.slice(0));
+          this.n = 0;
+        }
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('sonar-capture', SonarCapture);
+`;
+
+// About four seconds of audio. Past that something is badly wrong and
+// holding the backlog only makes the catch-up worse.
+const MAX_QUEUE = 4 * 48000;
+
+function pushCapture(buf) {
+  if (!eng.running) return;
+  eng.queue.push(buf);
+  eng.qLen += buf.length;
+  eng.recv += buf.length;
+  while (eng.qLen > MAX_QUEUE) {
+    const old = eng.queue.shift();
+    eng.qLen -= old.length;
+    eng.dropped += old.length;
+  }
+}
+
+// Runs the DSP over everything captured since the last call.
+function drainCapture() {
+  if (!eng.running || !eng.queue.length) return;
+  const batch = eng.queue;
+  eng.queue = [];
+  eng.qLen = 0;
+  let count = 0;
+  for (const buf of batch) {
+    scopePush(buf, buf.length);
+    if (method === 'cw') cwSamples(buf, buf.length); else fmSamples(buf, buf.length);
+    count += buf.length;
+  }
+  eng.proc += count;
+  const now = performance.now();
+  if (eng.lastDrain) {
+    const rate = count / ((now - eng.lastDrain) / 1000);
+    eng.rateEMA = eng.rateEMA ? eng.rateEMA + 0.1 * (rate - eng.rateEMA) : rate;
+  }
+  eng.lastDrain = now;
+}
 
 // Page hooks. The defaults do nothing, so a page can ignore any of them.
 let onStatus = () => {};
@@ -1665,6 +1790,7 @@ async function engStart(demoMode) {
       demo.t0 = performance.now();
       demo.timer = setInterval(demoTick, 25);
       eng.running = true;
+      startDrain();
       setStatus('Demo signal — synthetic echo, no microphone in use.', 'ok');
       onEngine(true);
       return;
@@ -1691,22 +1817,42 @@ async function engStart(demoMode) {
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
     });
     eng.mic = eng.ctx.createMediaStreamSource(eng.stream);
-    eng.sp = eng.ctx.createScriptProcessor(1024, 1, 1);
-    eng.sp.onaudioprocess = ev => {
-      if (!eng.running) return;
-      const inp = ev.inputBuffer.getChannelData(0);
-      scopePush(inp, inp.length);
-      if (method === 'cw') cwSamples(inp, inp.length); else fmSamples(inp, inp.length);
-    };
-    eng.mic.connect(eng.sp);
     const sink = eng.ctx.createGain();
     sink.gain.value = 0;
-    eng.sp.connect(sink).connect(eng.ctx.destination);
+    sink.connect(eng.ctx.destination);
+
+    let worklet = false;
+    if (eng.ctx.audioWorklet) {
+      try {
+        if (!eng.workletReady) {
+          const url = URL.createObjectURL(new Blob([CAPTURE_WORKLET], { type: 'application/javascript' }));
+          eng.workletReady = eng.ctx.audioWorklet.addModule(url);
+        }
+        await eng.workletReady;
+        eng.node = new AudioWorkletNode(eng.ctx, 'sonar-capture', { numberOfOutputs: 1 });
+        eng.node.port.onmessage = e => pushCapture(e.data);
+        eng.mic.connect(eng.node);
+        eng.node.connect(sink);
+        worklet = true;
+      } catch (e) {
+        console.warn('AudioWorklet unavailable, falling back to ScriptProcessor', e);
+        eng.workletReady = null;
+      }
+    }
+    if (!worklet) {
+      // Same discipline as the worklet: copy out and leave; no DSP here.
+      eng.sp = eng.ctx.createScriptProcessor(2048, 1, 1);
+      eng.sp.onaudioprocess = ev => pushCapture(ev.inputBuffer.getChannelData(0).slice(0));
+      eng.mic.connect(eng.sp);
+      eng.sp.connect(sink);
+    }
+    eng.capture = worklet ? 'worklet' : 'scriptprocessor';
 
     onLayout();
     if (method === 'fmcw') fmSetupWaterfall();
     eng.src.start();
     eng.running = true;
+    startDrain();
     setStatus('Listening at ' + Math.round(fs) + ' Hz — sit still and breathe normally. Give it 30 s to fill the window.', 'ok');
     onEngine(true);
   } catch (err) {
@@ -1716,15 +1862,30 @@ async function engStart(demoMode) {
   }
 }
 
+function startDrain() {
+  resetCapture();
+  if (eng.drainTimer) return;
+  // A timer, not requestAnimationFrame: rAF stops entirely in a hidden
+  // tab, and a stalled DSP is worse than a stalled picture.
+  eng.drainTimer = setInterval(drainCapture, 16);
+}
+function resetCapture() {
+  eng.queue = []; eng.qLen = 0;
+  eng.recv = 0; eng.proc = 0; eng.dropped = 0;
+  eng.rateEMA = 0; eng.lastDrain = 0;
+}
+
 function engStop() {
   eng.running = false;
+  if (eng.drainTimer) { clearInterval(eng.drainTimer); eng.drainTimer = null; }
+  eng.queue = []; eng.qLen = 0;
   if (demo.timer) { clearInterval(demo.timer); demo.timer = null; }
   try { eng.src && eng.src.stop(); } catch (e) {}
-  for (const node of [eng.sp, eng.mic, eng.gain, eng.src]) {
+  for (const node of [eng.sp, eng.node, eng.mic, eng.gain, eng.src]) {
     if (node) try { node.disconnect(); } catch (e) {}
   }
   if (eng.stream) eng.stream.getTracks().forEach(t => t.stop());
-  eng.src = eng.gain = eng.mic = eng.sp = eng.stream = null;
+  eng.src = eng.gain = eng.mic = eng.sp = eng.node = eng.stream = null;
   setStatus('Stopped.', '');
   onEngine(false);
 }

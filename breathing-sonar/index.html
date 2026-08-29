@@ -427,7 +427,7 @@
 
       <section class="panel hidden" id="signalPanel">
         <h2>Signal check</h2>
-        <p class="note" style="margin-top:0">Look here first if nothing downstream makes sense. The waveform should be a steady oscillation, not a flat line and not a clipped square. The spectrum should show a clear hump inside the shaded transmit band &mdash; if that hump is missing, the speaker is not reaching those frequencies, the microphone is not hearing them, or the browser is filtering them out, and no amount of processing will invent a chest.</p>
+        <p class="note" style="margin-top:0">Look here first if nothing downstream makes sense. The waveform should be a steady oscillation, not a flat line and not a clipped square. The spectrum should show a clear hump inside the shaded transmit band &mdash; if that hump is missing, the speaker is not reaching those frequencies, the microphone is not hearing them, or the browser is filtering them out, and no amount of processing will invent a chest. <strong>Capture rate</strong> should sit at the sample rate (48&nbsp;kS/s on most machines); if it sags or reports lost samples, this tab is not getting enough CPU and every plot below it will crawl.</p>
         <div class="stats">
           <div class="stat">
             <div class="label">Input RMS</div>
@@ -445,15 +445,19 @@
             <div class="label">Clipped samples</div>
             <div class="num" id="sigClip">0</div>
           </div>
+          <div class="stat">
+            <div class="label">Capture rate</div>
+            <div class="num" id="sigCapture">&mdash;<span class="unit"> kS/s</span></div>
+          </div>
         </div>
 
         <div class="canvas-title">Microphone waveform
-          <span class="sub">raw samples, last 20 ms</span>
+          <span class="sub">raw samples, last 20 ms &mdash; the y axis follows the signal, so a quiet mic still shows a wave</span>
         </div>
         <div class="canvas-wrap short"><canvas id="scopeCanvas"></canvas></div>
         <div class="legend">
-          <span><span class="swatch" style="background:#E8B923"></span>mic input</span>
-          <span><span class="swatch" style="background:rgba(188,18,42,0.8)"></span>&plusmn;1.0 full scale</span>
+          <span><span class="swatch" style="background:#E8B923"></span>mic input, auto-scaled to its own peak</span>
+          <span><span class="swatch" style="background:rgba(188,18,42,0.8)"></span>&plusmn;1.0 clip rails, shown once the signal is near them</span>
         </div>
 
         <div class="canvas-title">Received spectrum
@@ -707,11 +711,21 @@
         statusEl.classList.remove('error', 'busy', 'ok');
         if (kind) statusEl.classList.add(kind);
       };
+      let loopGen = 0;
       onEngine = running => {
         startBtn.disabled = running;
         stopBtn.disabled = !running;
         resyncBtn.disabled = !running || method !== 'fmcw';
-        if (running) requestAnimationFrame(uiLoop);
+        loopGen++;                       // retire any loop already running
+        if (running) {
+          const gen = loopGen;
+          const step = now => {
+            if (!eng.running || gen !== loopGen) return;
+            uiTick(now);
+            requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        }
       };
       // Called once the DSP is initialised and before audio starts, so the
       // canvases exist at their rendered size when the waterfall is sized.
@@ -733,16 +747,21 @@
       // ============================================================
       //  UI loop — analysis at ~1.2 Hz, redraw at ~12 Hz
       // ============================================================
-      let lastAna = 0, lastDraw = 0;
-      function uiLoop(now) {
-        if (!eng.running) return;
+      // Analysis ~1.2 Hz, plots ~12 Hz, and the signal-check pair (a
+      // 4096-point FFT and two full-width canvases) at 5 Hz. Draining the
+      // capture queue comes first: the picture may skip, the DSP may not.
+      let lastAna = 0, lastDraw = 0, lastHeavy = 0;
+      function uiTick(now) {
+        drainCapture();
         if (now - lastAna > 800) {
           lastAna = now;
           if (method === 'cw') cwAnalyze(); else fmAnalyze();
         }
         if (now - lastDraw > 80) {
           lastDraw = now;
-          prepareDraw(true);
+          const heavy = now - lastHeavy > 200;
+          prepareDraw(heavy);
+          if (heavy) { lastHeavy = now; drawSignalCheck(); }
           if (method === 'cw') {
             cwDraw();
           } else {
@@ -750,7 +769,6 @@
             fmDraw();
           }
         }
-        requestAnimationFrame(uiLoop);
       }
 
       // ============================================================
