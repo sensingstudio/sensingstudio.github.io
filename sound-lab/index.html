@@ -126,6 +126,17 @@
         background: #1b1b1f; color: #fff; cursor: pointer; min-width: 130px;
       }
       .rowflex { display: flex; align-items: center; gap: 10px; }
+      .ctl.hidden { display: none; }
+      .vtabs { display: flex; gap: 6px; }
+      .vtabs button {
+        font-family: inherit; font-size: 12.5px; font-weight: 700;
+        padding: 7px 12px; border-radius: 6px; cursor: pointer;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: #1b1b1f; color: rgba(255,255,255,0.75);
+      }
+      .vtabs button:hover:not(:disabled) { border-color: rgba(255,255,255,0.45); color: #fff; }
+      .vtabs button.active { background: #fff; border-color: #fff; color: #111; }
+      .vtabs button:disabled { opacity: 0.4; cursor: not-allowed; }
 
       .plot-wrap { position: relative; }
       .plot-wrap.seekable { cursor: crosshair; }
@@ -248,7 +259,8 @@
         Record your voice, then read it two ways at once: a <strong>time-domain waveform</strong> (how loud, moment to moment)
         and a <strong>spectrogram</strong> (which frequencies are present over time). Then run a digital <strong>filter</strong>
         over your clip and watch energy vanish from the picture &mdash; the most intuitive way to learn what low-pass,
-        high-pass, band-pass and notch filters actually do.
+        high-pass, band-pass and notch filters actually do. Switch the lower plot to a <strong>mel spectrogram</strong>
+        or to <strong>MFCCs</strong> to see the same clip the way a speech recogniser does.
       </p>
 
       <!-- ============ LAB ============ -->
@@ -273,6 +285,33 @@
           </div>
 
           <div class="controls">
+            <div class="ctl">
+              <label>Lower Plot</label>
+              <div class="vtabs" id="viewTabs">
+                <button data-view="linear" class="active">Spectrogram</button>
+                <button data-view="mel">Mel</button>
+                <button data-view="mfcc">MFCC</button>
+              </div>
+            </div>
+            <div class="ctl hidden" id="melCtl">
+              <label for="melSel">Mel Bands</label>
+              <select id="melSel">
+                <option value="20">20</option>
+                <option value="26">26</option>
+                <option value="40" selected>40</option>
+                <option value="64">64</option>
+                <option value="80">80</option>
+              </select>
+            </div>
+            <div class="ctl hidden" id="coefCtl">
+              <label for="coefSel">Coefficients</label>
+              <select id="coefSel">
+                <option value="12">12</option>
+                <option value="13" selected>13</option>
+                <option value="20">20</option>
+                <option value="26">26</option>
+              </select>
+            </div>
             <div class="ctl">
               <label for="fftSel">Clip FFT Size</label>
               <select id="fftSel">
@@ -306,9 +345,9 @@
           <div class="playhead" id="playhead" style="display:none;"></div>
           <div class="hint" id="hint">Press the green record button (or <strong>R</strong>) and speak into your microphone</div>
           <div class="legend">
-            <div class="lab2">Graph Scale</div>
+            <div class="lab2" id="legendTitle">Graph Scale</div>
             <div class="bar" id="legendBar"></div>
-            <div class="ends"><span>Soft</span><span>Loud</span></div>
+            <div class="ends"><span id="legendLo">Soft</span><span id="legendHi">Loud</span></div>
           </div>
         </div>
 
@@ -377,6 +416,13 @@
           <h3>FFT size = the trade-off</h3>
           <p>A bigger <code>FFT size</code> means finer frequency resolution but blurrier timing; a smaller one sharpens timing but smears frequency. This is the time–frequency uncertainty principle &mdash; you can't have both perfectly.</p>
 
+          <h3>Mel scale (hearing-shaped frequency)</h3>
+          <p>Set the lower plot to <strong>Mel</strong> and the frequency axis is warped by <code>m = 2595&nbsp;log<sub>10</sub>(1 + f/700)</code> &mdash; roughly how a pair of ears spaces pitch. Instead of thousands of FFT bins the spectrum is summed into a few dozen overlapping triangular bands (the <em>Mel Bands</em> control), fine below 1&nbsp;kHz where speech carries its vowels and coarse up high where we hear only "bright" or "dull". The picture looks like a blurred spectrogram, and that is the point: it throws away detail your ear never used.</p>
+
+          <h3>MFCC (the shape of the spectrum)</h3>
+          <p>Take the log of those mel band energies and run a <strong>DCT</strong> across them, and you get the <em>mel-frequency cepstral coefficients</em>. Each row of the MFCC plot is one coefficient: <code>c1</code> is the overall tilt of the spectrum (dark vs. bright), <code>c2</code> a broad hump vs. dip, and higher coefficients track ever finer ripples across frequency. Together the first dozen describe the <em>envelope</em> &mdash; the vocal-tract shape making the vowel &mdash; while discarding the pitch harmonics, which is exactly what a speech recogniser or speaker-ID model wants. Say "ah ah ah" then "ee ee ee" and watch the low coefficients switch between two patterns while the spectrogram's harmonic stripes stay busy.</p>
+          <p>Blue is a negative coefficient, red positive, white near zero. Each row is scaled to its own range, because <code>c1</code> is several times larger than the rest and a single shared scale would leave the higher coefficients an almost blank smear. <code>c0</code> is left out because it is just overall loudness &mdash; which is also why <em>Clip Gain</em> shifts the spectrogram's brightness but leaves the MFCC picture untouched. Filters, on the other hand, change the envelope, so the MFCCs redraw as you drag the cutoff.</p>
+
           <h3>Low-pass &amp; high-pass</h3>
           <p>A <strong>low-pass</strong> filter keeps frequencies below the cutoff and removes the rest &mdash; the top of the spectrogram goes dark and speech sounds muffled. A <strong>high-pass</strong> does the opposite, thinning the low rumble and leaving the airy highs.</p>
 
@@ -405,20 +451,30 @@
         [0,0,4],[28,16,68],[79,18,123],[129,37,129],[181,54,122],
         [229,80,100],[251,135,97],[254,194,135],[252,253,191]
       ];
-      function magma(t) {
+      // MFCCs are signed, so they get a diverging (cold-to-hot) ramp instead of magma
+      const DIVERGE = [
+        [30,66,120],[49,110,168],[110,164,208],[186,214,235],[240,240,240],
+        [247,206,168],[233,148,103],[201,80,63],[140,20,38]
+      ];
+      function ramp(map, t) {
         t = Math.max(0, Math.min(1, t));
-        const x = t * (MAGMA.length - 1);
+        const x = t * (map.length - 1);
         const i = Math.floor(x), f = x - i;
-        if (i >= MAGMA.length - 1) return MAGMA[MAGMA.length - 1];
-        const a = MAGMA[i], b = MAGMA[i + 1];
+        if (i >= map.length - 1) return map[map.length - 1];
+        const a = map[i], b = map[i + 1];
         return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
       }
-      // legend gradient
-      (() => {
+      const magma = t => ramp(MAGMA, t);
+      // legend gradient + end labels follow whichever view is on screen
+      function paintLegend(map, title, lo, hi) {
         const stops = [];
-        for (let i = 0; i <= 10; i++) { const c = magma(i/10); stops.push(`rgb(${c[0]|0},${c[1]|0},${c[2]|0}) ${i*10}%`); }
+        for (let i = 0; i <= 10; i++) { const c = ramp(map, i/10); stops.push(`rgb(${c[0]|0},${c[1]|0},${c[2]|0}) ${i*10}%`); }
         document.getElementById('legendBar').style.background = `linear-gradient(90deg, ${stops.join(',')})`;
-      })();
+        document.getElementById('legendTitle').textContent = title;
+        document.getElementById('legendLo').textContent = lo;
+        document.getElementById('legendHi').textContent = hi;
+      }
+      paintLegend(MAGMA, 'Graph Scale', 'Soft', 'Loud');
 
       // ---------- iterative radix-2 FFT (in place) ----------
       function fft(re, im) {
@@ -453,6 +509,8 @@
             dlBtn = $('dlBtn'), clearBtn = $('clearBtn');
       const fftSel = $('fftSel'), gainSlider = $('gainSlider'), gainVal = $('gainVal'),
             limitSlider = $('limitSlider'), limitVal = $('limitVal');
+      const viewTabs = $('viewTabs'), melSel = $('melSel'), coefSel = $('coefSel'),
+            melCtl = $('melCtl'), coefCtl = $('coefCtl');
       const waveCanvas = $('wave'), specCanvas = $('spec'),
             wctx = waveCanvas.getContext('2d'), sctx = specCanvas.getContext('2d');
       const hint = $('hint'), statusEl = $('status');
@@ -475,7 +533,8 @@
       let recordStart = 0, autoStopTimer = null, liveRAF = 0;
       let playSource = null;
       let filterType = 'none';
-      let lastSpec = null;             // cached spectrogram image for cheap repaint
+      let viewMode = 'linear';         // lower plot: 'linear' | 'mel' | 'mfcc'
+      let lastSpec = null;             // cached lower-plot image for cheap repaint
 
       // fixed-timeline state (set when a recording starts)
       let timelineSec = 30;            // x-axis span shown for the whole lab
@@ -493,6 +552,23 @@
       gainSlider.addEventListener('input', () => { gainVal.textContent = '+' + gainSlider.value + ' dB'; if (displaySamples) renderClip(); });
       limitSlider.addEventListener('input', () => { limitVal.textContent = limitSlider.value + ' sec(s)'; });
       fftSel.addEventListener('change', () => { if (displaySamples) renderClip(); });
+      melSel.addEventListener('change', () => { if (displaySamples) renderClip(); });
+      coefSel.addEventListener('change', () => { if (displaySamples) renderClip(); });
+
+      const VIEW_NAME = { linear: 'spectrogram', mel: 'mel spectrogram', mfcc: 'MFCC' };
+      viewTabs.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => {
+          viewTabs.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          viewMode = b.dataset.view;
+          // mel bands feed both derived views; the coefficient count only matters for MFCC
+          melCtl.classList.toggle('hidden', viewMode === 'linear');
+          coefCtl.classList.toggle('hidden', viewMode !== 'mfcc');
+          if (displaySamples) renderClip();
+          else if (viewMode === 'mfcc') paintLegend(DIVERGE, 'Coefficient value', '\u2212', '+');
+          else paintLegend(MAGMA, viewMode === 'mel' ? 'Band energy' : 'Graph Scale', 'Soft', 'Loud');
+        });
+      });
 
       // ---------- HiDPI helper ----------
       function fit(canvas, ctx) {
@@ -546,9 +622,11 @@
           stopBtn.disabled = false;
           playBtn.disabled = dlBtn.disabled = clearBtn.disabled = true;
           playFiltBtn.disabled = playOrigBtn.disabled = true;
-          limitSlider.disabled = fftSel.disabled = true;
+          limitSlider.disabled = fftSel.disabled = melSel.disabled = coefSel.disabled = true;
+          viewTabs.querySelectorAll('button').forEach(b => b.disabled = true);
           hint.style.display = 'none';
-          setStatus('Recording… speak now. Filling ' + timelineSec + ' s @ ' + Math.round(sampleRate) + ' Hz');
+          setStatus('Recording… speak now. Filling ' + timelineSec + ' s @ ' + Math.round(sampleRate) + ' Hz'
+                    + (viewMode === 'linear' ? '' : ' — the ' + VIEW_NAME[viewMode] + ' view is drawn when you stop'));
           liveDraw();
         } catch (err) {
           setStatus('Could not access microphone: ' + err.message, true);
@@ -566,7 +644,8 @@
         try { processor.disconnect(); micSource.disconnect(); } catch (e) {}
         if (micStream) micStream.getTracks().forEach(t => t.stop());
         processor = null; micSource = null; micStream = null;
-        limitSlider.disabled = fftSel.disabled = false;
+        limitSlider.disabled = fftSel.disabled = melSel.disabled = coefSel.disabled = false;
+        viewTabs.querySelectorAll('button').forEach(b => b.disabled = false);
 
         // trim the pre-allocated timeline buffer to what was actually captured
         const total = writePos;
@@ -606,9 +685,9 @@
         liveColCanvas.width = 1; liveColCanvas.height = liveHBINS;
         // clear the plot and lay down axes for the full timeline
         sctx.fillStyle = '#000'; sctx.fillRect(0,0,S.w,S.h);
-        drawFreqAxis(S);
+        drawFreqAxis(S, 'linear');
         drawTimeAxis(S, timelineSec);
-        drawCutoffLine(S);
+        drawCutoffLine(S, 'linear');
       }
 
       // live view while recording: waveform + spectrogram fill left-to-right over the fixed window
@@ -670,7 +749,7 @@
         sctx.imageSmoothingEnabled = true;
         // axis labels live in the gutters (drawn once at setup, never overpainted by columns);
         // only the cutoff line sits over the plot and must be refreshed as columns fill past it.
-        drawCutoffLine(S);
+        drawCutoffLine(S, 'linear');
       }
 
       // ---------- offline filtering ----------
@@ -698,7 +777,9 @@
       function renderClip() {
         if (!displaySamples) return;
         drawWaveform();
-        drawSpectrogram();
+        if (viewMode === 'mfcc') drawMfcc();
+        else if (viewMode === 'mel') drawMel();
+        else drawSpectrogram();
       }
 
       function drawWaveform() {
@@ -726,6 +807,177 @@
           wctx.lineTo(x, W.h/2 - clamp1(mn*gLin)*amp);
         }
         wctx.stroke();
+      }
+
+      // ---------- mel scale, filterbank and DCT (shared by the mel & MFCC views) ----------
+      const hzToMel = f => 2595 * Math.log10(1 + f/700);
+      const melToHz = m => 700 * (Math.pow(10, m/2595) - 1);
+
+      function hann(n) {
+        const w = new Float32Array(n);
+        for (let i = 0; i < n; i++) w[i] = 0.5 - 0.5*Math.cos(2*Math.PI*i/(n-1));
+        return w;
+      }
+      function stftGrid(fftSize) {
+        const hop = Math.max(1, fftSize >> 2);
+        const n = displaySamples.length;
+        return { hop, cols: Math.max(1, Math.floor((n - fftSize)/hop) + 1) };
+      }
+
+      // triangular mel filters, evenly spaced in mel between FMIN and Nyquist (cached)
+      let melCache = null;
+      function melBank(fftSize, sr, nMels) {
+        const key = fftSize + '|' + sr + '|' + nMels;
+        if (melCache && melCache.key === key) return melCache;
+        const half = fftSize >> 1, nyq = sr/2, fHigh = Math.min(FMAX, nyq);
+        const mLow = hzToMel(FMIN), mHigh = hzToMel(fHigh);
+        const edge = new Float64Array(nMels + 2);
+        for (let i = 0; i < nMels + 2; i++) {
+          edge[i] = melToHz(mLow + (mHigh - mLow) * i/(nMels + 1)) / nyq * half;
+        }
+        const bank = [];
+        for (let m = 0; m < nMels; m++) {
+          const l = edge[m], c = edge[m+1], r = edge[m+2];
+          const b0 = Math.max(0, Math.floor(l)), b1 = Math.min(half - 1, Math.ceil(r));
+          const w = new Float32Array(Math.max(1, b1 - b0 + 1));
+          let sum = 0;
+          for (let b = b0; b <= b1; b++) {
+            let v = 0;
+            if (b >= l && b <= c) v = c > l ? (b - l)/(c - l) : 1;
+            else if (b > c && b <= r) v = r > c ? (r - b)/(r - c) : 1;
+            w[b - b0] = v; sum += v;
+          }
+          // a coarse FFT can leave a low band narrower than one bin — fall back to its centre bin
+          if (sum === 0) {
+            const b = Math.min(half - 1, Math.max(0, Math.round(c)));
+            bank.push({ b0: b, w: new Float32Array([1]) });
+          } else {
+            bank.push({ b0, w });
+          }
+        }
+        melCache = { key, bank, nMels, mLow, mHigh, fHigh };
+        return melCache;
+      }
+
+      // orthonormal DCT-II basis rows k = 0..nRows-1 over nMels log-energies (cached)
+      let dctCache = null;
+      function dctRows(nRows, nMels) {
+        const key = nRows + '|' + nMels;
+        if (dctCache && dctCache.key === key) return dctCache.rows;
+        const rows = [];
+        for (let k = 0; k < nRows; k++) {
+          const r = new Float32Array(nMels);
+          const sc = k === 0 ? Math.sqrt(1/nMels) : Math.sqrt(2/nMels);
+          for (let m = 0; m < nMels; m++) r[m] = sc * Math.cos(Math.PI*k*(m + 0.5)/nMels);
+          rows.push(r);
+        }
+        dctCache = { key, rows };
+        return rows;
+      }
+
+      // log-mel energies (dB) for every frame of the clip -> Float32Array laid out [col][band]
+      function computeLogMel(fftSize, nMels) {
+        const { hop, cols } = stftGrid(fftSize);
+        const bank = melBank(fftSize, sampleRate, nMels).bank;
+        const s = displaySamples, win = hann(fftSize);
+        const re = new Float64Array(fftSize), im = new Float64Array(fftSize);
+        const out = new Float32Array(cols * nMels);
+        for (let c = 0; c < cols; c++) {
+          const base = c * hop;
+          for (let i = 0; i < fftSize; i++) { re[i] = (s[base+i]||0)*win[i]; im[i] = 0; }
+          fft(re, im);
+          for (let m = 0; m < nMels; m++) {
+            const f = bank[m];
+            let e = 0;
+            for (let i = 0; i < f.w.length; i++) {
+              const b = f.b0 + i;
+              const mag = Math.hypot(re[b], im[b]) / fftSize * 2;
+              e += f.w[i] * mag * mag;
+            }
+            out[c*nMels + m] = 10*Math.log10(e + 1e-12);
+          }
+        }
+        return { data: out, cols, nMels };
+      }
+
+      // ---------- mel spectrogram: same picture, frequency axis warped to hearing ----------
+      function drawMel() {
+        const fftSize = parseInt(fftSel.value, 10), nMels = parseInt(melSel.value, 10);
+        const g = parseFloat(gainSlider.value);
+        const M = computeLogMel(fftSize, nMels);
+        const S = fit(specCanvas, sctx);
+        const ph = S.h - TPAD;
+        const HBINS = Math.min(420, Math.max(160, Math.floor(ph)));
+        const off = document.createElement('canvas');
+        off.width = M.cols; off.height = HBINS;
+        const octx = off.getContext('2d');
+        const idata = octx.createImageData(M.cols, HBINS);
+        const FLOOR = -100, CEIL = -10;
+        // pixel rows run linearly in mel, i.e. one row per band stretched to the plot height
+        const rowBand = new Int32Array(HBINS);
+        for (let py = 0; py < HBINS; py++) {
+          rowBand[py] = Math.min(nMels-1, Math.max(0, Math.round((1 - py/(HBINS-1))*(nMels-1))));
+        }
+        for (let c = 0; c < M.cols; c++) {
+          for (let py = 0; py < HBINS; py++) {
+            const db = M.data[c*nMels + rowBand[py]] + g;
+            const col = magma((db - FLOOR)/(CEIL - FLOOR));
+            const idx = (py*M.cols + c)*4;
+            idata.data[idx] = col[0]; idata.data[idx+1] = col[1]; idata.data[idx+2] = col[2]; idata.data[idx+3] = 255;
+          }
+        }
+        octx.putImageData(idata, 0, 0);
+        const n = displaySamples.length;
+        lastSpec = { off, cols: M.cols, HBINS, durFrac: Math.min(1, (n/sampleRate)/timelineSec), view: 'mel' };
+        paintLegend(MAGMA, 'Band energy', 'Soft', 'Loud');
+        repaintLowerPlot();
+      }
+
+      // ---------- MFCC: DCT of the log-mel spectrum, one row per coefficient ----------
+      function drawMfcc() {
+        const fftSize = parseInt(fftSel.value, 10), nMels = parseInt(melSel.value, 10);
+        const nCoef = Math.min(parseInt(coefSel.value, 10), nMels - 1);
+        const M = computeLogMel(fftSize, nMels);
+        const rows = dctRows(nCoef + 1, nMels);   // row 0 is c0 (loudness) — computed but not shown
+        const cols = M.cols;
+        const co = new Float32Array(cols * nCoef);
+        for (let c = 0; c < cols; c++) {
+          const base = c * nMels;
+          for (let k = 1; k <= nCoef; k++) {
+            const r = rows[k];
+            let v = 0;
+            for (let m = 0; m < nMels; m++) v += r[m] * M.data[base + m];
+            co[c*nCoef + (k-1)] = v;
+          }
+        }
+        // Each row gets its own symmetric colour scale (98th percentile of |c|, so one loud frame
+        // can't wash it out). c1 is several times larger than the rest in absolute terms — a single
+        // shared scale would leave every higher coefficient a near-white smear.
+        const scale = new Float32Array(nCoef);
+        const one = new Float32Array(cols);
+        for (let k = 0; k < nCoef; k++) {
+          for (let c = 0; c < cols; c++) one[c] = Math.abs(co[c*nCoef + k]);
+          const sorted = one.slice().sort();
+          const v = sorted[Math.min(cols - 1, Math.floor(cols * 0.98))];
+          scale[k] = v > 0 ? v : 1;
+        }
+
+        const off = document.createElement('canvas');
+        off.width = cols; off.height = nCoef;      // one image row per coefficient, c1 at the bottom
+        const octx = off.getContext('2d');
+        const idata = octx.createImageData(cols, nCoef);
+        for (let c = 0; c < cols; c++) {
+          for (let k = 1; k <= nCoef; k++) {
+            const col = ramp(DIVERGE, 0.5 + co[c*nCoef + (k-1)]/(2*scale[k-1]));
+            const idx = ((nCoef - k)*cols + c)*4;
+            idata.data[idx] = col[0]; idata.data[idx+1] = col[1]; idata.data[idx+2] = col[2]; idata.data[idx+3] = 255;
+          }
+        }
+        octx.putImageData(idata, 0, 0);
+        const n = displaySamples.length;
+        lastSpec = { off, cols, HBINS: nCoef, durFrac: Math.min(1, (n/sampleRate)/timelineSec), view: 'mfcc', nCoef };
+        paintLegend(DIVERGE, 'Coefficient value', '\u2212', '+');
+        repaintLowerPlot();
       }
 
       function drawSpectrogram() {
@@ -780,12 +1032,13 @@
         }
         octx.putImageData(idata, 0, 0);
         // cache the rendered image so the cutoff line / playhead can repaint cheaply (no re-FFT)
-        lastSpec = { off, cols, HBINS, durFrac: Math.min(1, (n/sampleRate)/timelineSec) };
-        repaintSpectrogram();
+        lastSpec = { off, cols, HBINS, durFrac: Math.min(1, (n/sampleRate)/timelineSec), view: 'linear' };
+        paintLegend(MAGMA, 'Graph Scale', 'Soft', 'Loud');
+        repaintLowerPlot();
       }
 
-      // blit the cached spectrogram image + axes + cutoff line (cheap; used while scrubbing the cutoff)
-      function repaintSpectrogram() {
+      // blit the cached image + axes + cutoff line (cheap; used while scrubbing the cutoff)
+      function repaintLowerPlot() {
         if (!lastSpec) return;
         const S = fit(specCanvas, sctx);
         sctx.fillStyle = '#000'; sctx.fillRect(0,0,S.w,S.h);
@@ -794,27 +1047,56 @@
         sctx.imageSmoothingEnabled = false;
         sctx.drawImage(lastSpec.off, 0, 0, lastSpec.cols, lastSpec.HBINS, plotL, plotT, dataPx, ph);
         sctx.imageSmoothingEnabled = true;
-        drawFreqAxis(S);
+        if (lastSpec.view === 'mfcc') drawCoefAxis(S, lastSpec.nCoef);
+        else drawFreqAxis(S, lastSpec.view);
         drawTimeAxis(S, timelineSec);
-        drawCutoffLine(S);
+        if (lastSpec.view !== 'mfcc') drawCutoffLine(S, lastSpec.view);
       }
 
-      function drawFreqAxis(S) {
+      // where a frequency sits on the plot: log-Hz for the spectrogram, mel for the mel view
+      function freqToY(f, ph, view) {
+        const top = Math.min(FMAX, sampleRate/2);
+        if (view === 'mel') {
+          const mLow = hzToMel(FMIN), mHigh = hzToMel(top);
+          return (1 - (hzToMel(f) - mLow)/(mHigh - mLow)) * ph;
+        }
+        return (1 - Math.log(f/FMIN)/Math.log(top/FMIN)) * ph;
+      }
+
+      function drawFreqAxis(S, view) {
         const plotB = S.h - TPAD, ph = plotB;
         sctx.fillStyle = 'rgba(255,255,255,0.85)';
         sctx.font = '10px Roboto'; sctx.textAlign = 'right'; sctx.textBaseline = 'middle';
         const nyq = sampleRate/2, top = Math.min(FMAX, nyq);
-        const ticks = [20, 63, 200, 632, 2000, 6325, 20000].filter(f => f <= top + 1);
+        const ticks = (view === 'mel' ? [20, 250, 750, 1500, 3000, 5000, 8000, 12000, 16000, 20000]
+                                      : [20, 63, 200, 632, 2000, 6325, 20000]).filter(f => f <= top + 1);
         sctx.strokeStyle = 'rgba(255,255,255,0.10)';
         ticks.forEach(f => {
-          const y = (1 - Math.log(f/FMIN)/Math.log(top/FMIN)) * ph;
+          const y = freqToY(f, ph, view);
           sctx.beginPath(); sctx.moveTo(PAD, y); sctx.lineTo(S.w, y); sctx.stroke();
           sctx.fillStyle = 'rgba(255,255,255,0.85)';
           sctx.fillText((f>=1000? (f/1000).toFixed(f%1000?1:0)+'k':f) + ' Hz', PAD-6, y);
         });
         // y title
         sctx.save(); sctx.translate(14, ph/2); sctx.rotate(-Math.PI/2);
-        sctx.textAlign='center'; sctx.fillStyle='#9aa0a6'; sctx.fillText('Frequency (Hz)', 0, 0); sctx.restore();
+        sctx.textAlign='center'; sctx.fillStyle='#9aa0a6';
+        sctx.fillText(view === 'mel' ? 'Frequency (mel scale)' : 'Frequency (Hz)', 0, 0); sctx.restore();
+        sctx.textAlign='left'; sctx.textBaseline='alphabetic';
+      }
+
+      // MFCC y-axis: one band per coefficient, c1 at the bottom
+      function drawCoefAxis(S, nCoef) {
+        const ph = S.h - TPAD;
+        sctx.font = '10px Roboto'; sctx.textAlign = 'right'; sctx.textBaseline = 'middle';
+        const step = nCoef > 16 ? 4 : 2;
+        for (let k = 1; k <= nCoef; k++) {
+          if (k !== 1 && k !== nCoef && k % step) continue;
+          const y = (nCoef - k + 0.5)/nCoef * ph;
+          sctx.fillStyle = 'rgba(255,255,255,0.85)';
+          sctx.fillText('c' + k, PAD-6, y);
+        }
+        sctx.save(); sctx.translate(14, ph/2); sctx.rotate(-Math.PI/2);
+        sctx.textAlign='center'; sctx.fillStyle='#9aa0a6'; sctx.fillText('MFCC coefficient', 0, 0); sctx.restore();
         sctx.textAlign='left'; sctx.textBaseline='alphabetic';
       }
 
@@ -831,13 +1113,13 @@
         sctx.textAlign='left';
       }
 
-      function drawCutoffLine(S) {
+      function drawCutoffLine(S, view) {
         if (filterType === 'none') return;
         const plotB = S.h - TPAD, ph = plotB;
         const nyq = sampleRate/2, top = Math.min(FMAX, nyq);
         const fc = clampFreq(sliderToFreq(parseFloat(cutoff.value)));
         if (fc < FMIN || fc > top) return;
-        const y = (1 - Math.log(fc/FMIN)/Math.log(top/FMIN)) * ph;
+        const y = freqToY(fc, ph, view);
         sctx.strokeStyle = 'rgba(255,80,110,0.9)'; sctx.lineWidth = 1.5; sctx.setLineDash([6,4]);
         sctx.beginPath(); sctx.moveTo(PAD, y); sctx.lineTo(S.w, y); sctx.stroke(); sctx.setLineDash([]);
         sctx.fillStyle = 'rgba(255,120,140,1)'; sctx.font = '10px Roboto';
@@ -914,7 +1196,7 @@
       let filtTimer=0;
       function scheduleFilter(){ clearTimeout(filtTimer); filtTimer=setTimeout(()=>{ if(recordedSamples) applyFilterAndRender(); }, 120); }
       // slider drives the number box; repaint the spectrogram (cached blit) so the cutoff line glides smoothly
-      cutoff.addEventListener('input', ()=>{ syncCutoffNum(); drawResponse(); if(lastSpec) repaintSpectrogram(); scheduleFilter(); });
+      cutoff.addEventListener('input', ()=>{ syncCutoffNum(); drawResponse(); if(lastSpec) repaintLowerPlot(); scheduleFilter(); });
       // typed value drives the slider
       function applyTypedCutoff(){
         let f = parseFloat(cutoffNum.value);
@@ -922,7 +1204,7 @@
         f = Math.max(FMIN, Math.min(FMAX, f));
         cutoffNum.value = Math.round(f);
         cutoff.value = freqToSlider(f);
-        drawResponse(); if(lastSpec) repaintSpectrogram(); scheduleFilter();
+        drawResponse(); if(lastSpec) repaintLowerPlot(); scheduleFilter();
       }
       cutoffNum.addEventListener('change', applyTypedCutoff);
       cutoffNum.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); applyTypedCutoff(); cutoffNum.blur(); } });
