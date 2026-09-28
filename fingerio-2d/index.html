@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FingerIO 2D &middot; Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --green: #2a8b2a;
+        --gold: #E8B923;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main { max-width: 960px; margin: 0 auto; padding: 32px; }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 28px;
+        max-width: 62ch;
+        line-height: 1.5;
+      }
+      a { color: var(--red); }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 18px;
+      }
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .panel.teach {
+        background: #fffdf6;
+        border-color: #ecdda3;
+      }
+      .panel.teach h2 { color: #8a6d12; }
+      .panel.teach p, .panel.teach li {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #3a3a3a;
+      }
+      .panel.teach p { margin: 0 0 10px; }
+      .panel.teach p:last-child { margin-bottom: 0; }
+      .panel.teach ul { margin: 6px 0 10px; padding-left: 22px; }
+      .panel.teach code, .mono {
+        font-family: 'Roboto Mono', monospace;
+      }
+      .panel.teach code {
+        background: rgba(0,0,0,0.04);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12.5px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+        min-width: 110px;
+      }
+      input[type="range"] {
+        flex: 1 1 200px;
+        min-width: 200px;
+      }
+      .val {
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 500;
+        font-size: 14px;
+        min-width: 84px;
+        text-align: right;
+        color: var(--black);
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 22px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.danger { background: var(--red); border-color: var(--red); }
+      button.big { font-size: 14px; padding: 14px 28px; }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 14px 18px;
+      }
+      .stat .label {
+        font-size: 11px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+      }
+      .stat .num {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 4px;
+        letter-spacing: -0.5px;
+      }
+      .stat .num .unit {
+        font-size: 12px;
+        color: var(--grey-text);
+        font-weight: 500;
+        margin-left: 4px;
+      }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      .canvas-wrap.tall   { aspect-ratio: 16 / 9; }
+      .canvas-wrap.short  { aspect-ratio: 16 / 5; }
+      canvas { width: 100%; height: 100%; display: block; }
+      .canvas-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--black);
+        margin: 18px 0 8px;
+      }
+      .canvas-title:first-child { margin-top: 0; }
+      .canvas-title .sub {
+        font-weight: 400;
+        color: var(--grey-text);
+        font-size: 12px;
+        margin-left: 8px;
+      }
+      .legend {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin-top: 6px;
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      .legend .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 3px;
+        vertical-align: 2px;
+        margin-right: 6px;
+        border-radius: 1px;
+      }
+      .status {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin-top: 0;
+      }
+      .status.error { color: var(--red); }
+      .status.busy  { color: var(--gold); }
+      .status.ok    { color: var(--green); }
+      .hidden { display: none !important; }
+      .note {
+        font-size: 12.5px;
+        color: var(--grey-text);
+        margin-top: 14px;
+        line-height: 1.5;
+      }
+      .param-hint {
+        font-size: 12px;
+        color: var(--grey-text);
+        margin: 0 0 14px 110px;
+        line-height: 1.45;
+        max-width: 60ch;
+      }
+      @media (max-width: 600px) {
+        .param-hint { margin-left: 0; }
+        label { min-width: 0; flex-basis: 100%; }
+      }
+    </style>
+    <style>
+      .conn-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+      .conn-row label { flex: 1 1 260px; }
+      .pill { display: inline-block; padding: 2px 10px; border-radius: 999px;
+              font: 500 12px/1.8 'Roboto Mono', monospace; }
+      .pill.ok   { background: #e6f4e6; color: var(--green); }
+      .pill.warn { background: #fdf3d8; color: #8a6d1f; }
+      .pill.err  { background: #fbe7ea; color: var(--red); }
+      .pill.idle { background: #eef0f2; color: var(--grey-text); }
+      .readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                 gap: 10px 24px; margin: 12px 0; }
+      .readout div { display: flex; justify-content: space-between; gap: 12px;
+                     border-bottom: 1px solid var(--grey-line); padding-bottom: 4px; }
+      .readout span:last-child { font: 500 13px/1.6 'Roboto Mono', monospace; }
+      canvas { width: 100%; display: block; background: #fff;
+               border: 1px solid var(--grey-line); border-radius: 4px; }
+      .canvas-wrap { margin: 16px 0; }
+      .canvas-wrap h3 { margin: 0 0 6px; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="FingerIO 2D"></header>
+    <script src="../nav.js" defer></script>
+
+    <main>
+      <h1>FingerIO 2D</h1>
+      <p class="lead">Two microphones instead of one. Each mic measures the total distance the sound travelled &mdash; speaker to finger to mic &mdash; which places the finger on an <em>ellipse</em> with the speaker and that mic at its foci. Two ellipses, one shared focus, and the intersection is the finger. After Nandakumar et&nbsp;al., <a href="https://fingerio.cs.washington.edu/fingerio.pdf" target="_blank" rel="noopener">FingerIO (CHI&nbsp;2016)</a>.</p>
+
+      <section>
+        <h2>Why this page needs a phone</h2>
+        <p>A browser cannot open two microphones. <code>getUserMedia</code> hands out whatever the OS calls &ldquo;the microphone&rdquo;, and on iOS that is a single processed stream &mdash; so the second ellipse never exists. The companion iOS app opens the built-in array natively, plays the OFDM symbol from the speaker, and streams both raw channels here over a WebSocket. The phone does no signal processing: it emits, captures, and ships samples. Everything below runs in this page, against the same <code>fingerio-dsp.js</code> the <a href="../fingerio/">single-microphone page</a> uses.</p>
+        <p>Each packet carries the absolute sample index of its first frame. That is what makes streaming safe here where a WebRTC audio track would not be: a jitter buffer that quietly inserts one sample moves a reflector 3.6&nbsp;cm, but an explicit index turns any discontinuity into a visible gap that forces a resynchronisation instead of a silently wrong position.</p>
+      </section>
+
+      <section>
+        <h2>Connect</h2>
+        <div class="conn-row">
+          <label>Phone address
+            <input id="wsurl" type="text" value="ws://192.168.1.50:8787" spellcheck="false" />
+          </label>
+          <button id="connect" class="primary">Connect</button>
+        </div>
+        <p class="param-hint">The address the app shows on its Bridge tab. This page must be served over <code>http://</code> &mdash; a page loaded over https cannot open a plain <code>ws://</code> socket, and the phone has no certificate.</p>
+        <p><span id="status" class="pill idle">Not connected</span></p>
+      </section>
+
+      <section>
+        <h2>Geometry</h2>
+        <p>The solver needs to know where the microphones sit relative to the speaker, measured along the phone&rsquo;s long axis. Positive is towards the top of the phone. The <a href="../fingerio/">Probe</a> tab&rsquo;s best-lag readout, converted to centimetres of air, gives you the spacing between the two mics; the speaker offset you can measure with a ruler.</p>
+        <div class="conn-row">
+          <label>Mic A offset (cm)<input id="m1" type="number" value="1" step="0.5" /></label>
+          <label>Mic B offset (cm)<input id="m2" type="number" value="14.5" step="0.5" /></label>
+          <label>Working side<select id="side"><option value="1">Right / towards you</option><option value="-1">Left / away</option></select></label>
+          <label><input id="swap" type="checkbox" /> Swap channels</label>
+        </div>
+        <p class="param-hint">Which streamed channel is which physical microphone is not something iOS tells us, so if the trace comes out mirrored along the phone&rsquo;s axis, tick Swap.</p>
+      </section>
+
+      <div class="canvas-wrap">
+        <h3>Finger position</h3>
+        <canvas id="plot" height="420"></canvas>
+      </div>
+
+      <div class="canvas-wrap">
+        <h3>Motion profile per microphone</h3>
+        <canvas id="cir" height="200"></canvas>
+      </div>
+
+      <div class="readout">
+        <div><span>packets</span><span id="r-packets">0</span></div>
+        <div><span>gaps</span><span id="r-gaps">0</span></div>
+        <div><span>sample rate</span><span id="r-fs">&mdash;</span></div>
+        <div><span>channels</span><span id="r-ch">&mdash;</span></div>
+        <div><span>delay A</span><span id="r-d1">&mdash;</span></div>
+        <div><span>delay B</span><span id="r-d2">&mdash;</span></div>
+        <div><span>path A</span><span id="r-p1">&mdash;</span></div>
+        <div><span>path B</span><span id="r-p2">&mdash;</span></div>
+        <div><span>position</span><span id="r-pos">&mdash;</span></div>
+        <div><span>fix rate</span><span id="r-rate">&mdash;</span></div>
+      </div>
+
+      <section>
+        <h2>The maths</h2>
+        <p>Put the speaker at the origin and both microphones on the phone&rsquo;s long axis at signed offsets <code>m<sub>1</sub></code> and <code>m<sub>2</sub></code>. A finger at <code>F = (x, y)</code> at distance <code>r = |F|</code> from the speaker produces a total path length <code>d = r + |F &minus; M|</code>. Expanding <code>|F &minus; M|&sup2; = (d &minus; r)&sup2;</code> gives</p>
+        <p style="text-align:center"><code>y&thinsp;m &minus; r&thinsp;d = (m&sup2; &minus; d&sup2;) / 2</code></p>
+        <p>which is <em>linear</em> in the two unknowns <code>y</code> and <code>r</code>. Two microphones make a 2&times;2 system, and <code>x</code> follows from <code>r&sup2; = x&sup2; + y&sup2;</code>. No iteration and no initial guess &mdash; but note the sign of <code>x</code> is genuinely unrecoverable, because the whole arrangement is mirror-symmetric about the phone&rsquo;s axis. That is the ambiguity the paper resolves by assuming you work on one side of the device, and it is why a third microphone is the real fix.</p>
+        <p>Delays are measured from each channel&rsquo;s own direct path &mdash; the speaker heard directly by that microphone &mdash; so the total path is <code>d<sub>i</sub> = |m<sub>i</sub>| + &Delta;<sub>i</sub>c/f<sub>s</sub></code> and no clock offset between the speaker and the microphones ever enters the answer. Both arrivals are located the same way &mdash; a parabola fitted through the peak bin and its neighbours &mdash; so the shape of the band-limited pulse cancels in the difference instead of biasing every distance.</p>
+        <p>One detail cost most of the accuracy in simulation. The paper subtracts <em>consecutive</em> echo profiles to isolate the finger, and that works well for deciding <em>whether</em> something moved. But measuring the delay on that difference drags it late: two copies of a 12-sample-wide pulse only a few samples apart overlap, and subtracting one eats the leading half of the other, in proportion to how fast the finger is moving. Measuring instead against a slow clutter estimate &mdash; slow enough that a moving finger never enters it &mdash; took the simulated median error from 26&nbsp;mm to 9.5&nbsp;mm.</p>
+      </section>
+    </main>
+
+    <script src="../fingerio/fingerio-dsp.js"></script>
+    <script>
+      // ============================================================
+      //  FingerIO 2D — page script
+      //
+      //  Owns the socket, the geometry and the drawing. All the sonar
+      //  lives in fingerio-dsp.js, one channel per microphone.
+      // ============================================================
+      const $ = id => document.getElementById(id);
+      const C = FingerDSP.SOUND_C;
+
+      const S = {
+        ws: null,
+        fs: 0, N: 256, channels: 0,
+        symbol: null,
+        chans: [],
+        expectSeq: null,
+        packets: 0, gaps: 0,
+        fix: null,            // latest { x, y } in metres
+        track: [],            // { t, x, y }
+        fixTimes: []
+      };
+
+      const TRACK_MS = 6000;
+
+      // ---- connection -------------------------------------------
+      function setStatus(text, kind) {
+        const el = $('status');
+        el.textContent = text;
+        el.className = 'pill ' + kind;
+      }
+
+      function connect() {
+        if (S.ws) { S.ws.close(); S.ws = null; return; }
+        const url = $('wsurl').value.trim();
+        setStatus('Connecting to ' + url + '…', 'idle');
+        let ws;
+        try { ws = new WebSocket(url); } catch (e) {
+          setStatus('Bad address: ' + e.message, 'err');
+          return;
+        }
+        ws.binaryType = 'arraybuffer';
+        ws.onopen = () => {
+          setStatus('Connected, waiting for the stream description…', 'ok');
+          $('connect').textContent = 'Disconnect';
+        };
+        ws.onclose = () => {
+          setStatus('Disconnected', 'idle');
+          $('connect').textContent = 'Connect';
+          S.ws = null;
+        };
+        ws.onerror = () => setStatus('Connection failed — check the address, and that the page is on http', 'err');
+        ws.onmessage = ev => {
+          if (typeof ev.data === 'string') onHello(ev.data);
+          else onAudio(ev.data);
+        };
+        S.ws = ws;
+      }
+
+      function onHello(text) {
+        let h;
+        try { h = JSON.parse(text); } catch (e) { return; }
+        if (h.type !== 'hello') return;
+
+        S.fs = h.sampleRate;
+        S.N = h.symbolN;
+        S.channels = h.channels;
+        S.symbol = FingerDSP.buildSymbol(h.symbolN, h.sampleRate, h.bandLo, h.bandHi);
+
+        // The phone built the same waveform from the same parameters.
+        // If the two ports have drifted, nothing will ever correlate,
+        // and that is far easier to diagnose here than in the CIR.
+        let sum = 0;
+        for (let i = 0; i < S.symbol.x.length; i++) sum += S.symbol.x[i] * (i + 1);
+        const drift = Math.abs(sum - h.symbolChecksum);
+        if (drift > 1e-3) {
+          setStatus('Waveform mismatch — phone and browser built different symbols', 'err');
+          return;
+        }
+
+        S.chans = [0, 1].slice(0, Math.max(1, h.channels)).map(i =>
+          FingerDSP.makeChannel({ N: S.N, fs: S.fs, symbol: S.symbol, label: 'ch' + i })
+        );
+        S.expectSeq = null;
+        S.packets = 0; S.gaps = 0;
+        S.track.length = 0;
+
+        $('r-fs').textContent = Math.round(S.fs) + ' Hz';
+        $('r-ch').textContent = h.channels + (h.source ? ' (' + h.source + ')' : '');
+        setStatus(h.channels >= 2
+          ? 'Streaming ' + h.channels + ' channels'
+          : 'Only one channel — 2D needs two', h.channels >= 2 ? 'ok' : 'warn');
+      }
+
+      function onAudio(buf) {
+        if (!S.chans.length) return;
+        const view = new DataView(buf);
+        if (view.getUint32(0, false) !== 0x46494F32) return;   // "FIO2"
+        const seq = view.getUint32(4, true);
+        const nFrames = view.getUint32(8, true);
+        const ch = view.getUint16(12, true);
+
+        // A break in the sample index means samples went missing, and
+        // every later frame would sit on the wrong symbol boundary.
+        if (S.expectSeq !== null && seq !== S.expectSeq) {
+          S.gaps++;
+          for (const c of S.chans) c.markGap();
+        }
+        S.expectSeq = (seq + nFrames) >>> 0;
+        S.packets++;
+
+        for (let c = 0; c < Math.min(ch, S.chans.length); c++) {
+          const samples = new Float32Array(buf, 16 + c * nFrames * 4, nFrames);
+          S.chans[c].push(samples, nFrames);
+        }
+        solve();
+      }
+
+      // ---- geometry ---------------------------------------------
+      function solve() {
+        if (S.chans.length < 2) return;
+        const swap = $('swap').checked;
+        const a = S.chans[swap ? 1 : 0];
+        const b = S.chans[swap ? 0 : 1];
+        if (a.delay < 0 || b.delay < 0) return;
+
+        const m1 = parseFloat($('m1').value) / 100;
+        const m2 = parseFloat($('m2').value) / 100;
+        const d1 = Math.abs(m1) + a.delay * C / S.fs;
+        const d2 = Math.abs(m2) + b.delay * C / S.fs;
+
+        const f = FingerDSP.solve2D(m1, d1, m2, d2);
+        $('r-d1').textContent = a.delay.toFixed(2) + ' smp';
+        $('r-d2').textContent = b.delay.toFixed(2) + ' smp';
+        $('r-p1').textContent = (d1 * 100).toFixed(1) + ' cm';
+        $('r-p2').textContent = (d2 * 100).toFixed(1) + ' cm';
+        if (!f) { $('r-pos').textContent = 'no fix'; return; }
+
+        const side = parseFloat($('side').value);
+        const now = performance.now();
+        S.fix = { x: side * f.x, y: f.y };
+        S.track.push({ t: now, x: S.fix.x, y: S.fix.y });
+        while (S.track.length && S.track[0].t < now - TRACK_MS) S.track.shift();
+
+        S.fixTimes.push(now);
+        while (S.fixTimes.length && S.fixTimes[0] < now - 1000) S.fixTimes.shift();
+
+        $('r-pos').textContent = (S.fix.x * 100).toFixed(1) + ', ' + (S.fix.y * 100).toFixed(1) + ' cm';
+        $('r-rate').textContent = S.fixTimes.length + ' Hz';
+      }
+
+      // ---- drawing ----------------------------------------------
+      // The view is a slab around the phone: the device axis runs
+      // vertically, and x is distance out from it.
+      const VIEW = { x0: -0.30, x1: 0.30, y0: -0.12, y1: 0.38 };
+
+      function fitCanvas(cv) {
+        const dpr = window.devicePixelRatio || 1;
+        const w = cv.clientWidth;
+        if (cv.width !== Math.round(w * dpr)) {
+          cv.width = Math.round(w * dpr);
+          cv.height = Math.round(cv.clientHeight * dpr);
+        }
+        const ctx = cv.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { ctx, w: w, h: cv.clientHeight };
+      }
+
+      function drawPlot() {
+        const cv = $('plot');
+        const { ctx, w, h } = fitCanvas(cv);
+        ctx.clearRect(0, 0, w, h);
+
+        const sx = w / (VIEW.x1 - VIEW.x0);
+        const sy = h / (VIEW.y1 - VIEW.y0);
+        const s = Math.min(sx, sy);
+        const cx = w / 2 - ((VIEW.x0 + VIEW.x1) / 2) * s;
+        const cy = h / 2 + ((VIEW.y0 + VIEW.y1) / 2) * s;
+        const X = mx => cx + mx * s;
+        const Y = my => cy - my * s;
+
+        // 5 cm grid
+        ctx.strokeStyle = '#eef0f2';
+        ctx.lineWidth = 1;
+        for (let g = -30; g <= 40; g += 5) {
+          ctx.beginPath(); ctx.moveTo(X(g / 100), 0); ctx.lineTo(X(g / 100), h); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, Y(g / 100)); ctx.lineTo(w, Y(g / 100)); ctx.stroke();
+        }
+
+        // The device: speaker at the origin, mics on the axis.
+        const m1 = parseFloat($('m1').value) / 100;
+        const m2 = parseFloat($('m2').value) / 100;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(X(0), Y(Math.min(0, m1, m2) - 0.01));
+        ctx.lineTo(X(0), Y(Math.max(0, m1, m2) + 0.01));
+        ctx.stroke();
+
+        const mark = (my, label, color) => {
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(X(0), Y(my), 5, 0, Math.PI * 2); ctx.fill();
+          ctx.font = '11px Roboto, sans-serif';
+          ctx.fillText(label, X(0) + 9, Y(my) + 4);
+        };
+        mark(0, 'speaker', '#bc122a');
+        mark(m1, 'mic A', '#111');
+        mark(m2, 'mic B', '#111');
+
+        // The trail, oldest faintest.
+        const now = performance.now();
+        ctx.lineWidth = 2;
+        for (let i = 1; i < S.track.length; i++) {
+          const p = S.track[i - 1], q = S.track[i];
+          const age = (now - q.t) / TRACK_MS;
+          ctx.strokeStyle = 'rgba(188, 18, 42, ' + Math.max(0, 1 - age).toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.moveTo(X(p.x), Y(p.y));
+          ctx.lineTo(X(q.x), Y(q.y));
+          ctx.stroke();
+        }
+
+        if (S.fix) {
+          ctx.fillStyle = '#bc122a';
+          ctx.beginPath(); ctx.arc(X(S.fix.x), Y(S.fix.y), 7, 0, Math.PI * 2); ctx.fill();
+        }
+
+        ctx.fillStyle = '#5b6068';
+        ctx.font = '11px "Roboto Mono", monospace';
+        ctx.fillText('5 cm grid', 8, h - 8);
+      }
+
+      function drawCIR() {
+        const cv = $('cir');
+        const { ctx, w, h } = fitCanvas(cv);
+        ctx.clearRect(0, 0, w, h);
+        if (!S.chans.length) return;
+
+        const bins = Math.min(S.N >> 1, 140);
+        const colors = ['#bc122a', '#2a8b2a'];
+        S.chans.forEach((c, i) => {
+          let peak = 1e-9;
+          for (let n = 0; n < bins; n++) if (c.motion[n] > peak) peak = c.motion[n];
+          ctx.strokeStyle = colors[i] || '#111';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          for (let n = 0; n < bins; n++) {
+            const x = (n / (bins - 1)) * w;
+            const y = h - 10 - (c.motion[n] / peak) * (h - 24);
+            n === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+
+          // Where the leading-edge rule put the finger.
+          if (c.echoFrac >= 0) {
+            const x = (c.echoFrac / (bins - 1)) * w;
+            ctx.strokeStyle = colors[i];
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        });
+
+        ctx.fillStyle = '#5b6068';
+        ctx.font = '11px "Roboto Mono", monospace';
+        ctx.fillText('mic A', 8, 14);
+        ctx.fillStyle = '#2a8b2a';
+        ctx.fillText('mic B', 56, 14);
+      }
+
+      function frame() {
+        $('r-packets').textContent = S.packets;
+        $('r-gaps').textContent = S.gaps;
+        drawPlot();
+        drawCIR();
+        requestAnimationFrame(frame);
+      }
+
+      $('connect').addEventListener('click', connect);
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

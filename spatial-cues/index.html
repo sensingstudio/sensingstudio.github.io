@@ -1,0 +1,1359 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spatial Cues · Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --blue: #1f6feb;
+        --gold: #E8B923;
+        --green: #2a8b2a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 70ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .row:last-child { margin-bottom: 0; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+      }
+      input[type="range"] {
+        flex: 1 1 160px;
+        min-width: 140px;
+        accent-color: var(--red);
+      }
+      input[type="range"]:disabled { opacity: 0.35; }
+      .tools {
+        display: inline-flex;
+        gap: 0;
+        border: 1px solid var(--grey-line);
+        border-radius: 7px;
+        overflow: hidden;
+        flex-wrap: wrap;
+      }
+      .tool-btn {
+        background: #fff;
+        color: var(--black);
+        border: none;
+        border-right: 1px solid var(--grey-line);
+        border-radius: 0;
+        padding: 9px 14px;
+        font-size: 12px;
+        font-family: inherit;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .tool-btn:last-child { border-right: none; }
+      .tool-btn.active { background: var(--black); color: #fff; }
+      .tool-btn:disabled { opacity: 0.4; cursor: default; }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        touch-action: none;
+        user-select: none;
+      }
+      .canvas-wrap canvas {
+        width: 100%;
+        display: block;
+      }
+      .tag {
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        font-size: 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.6);
+        font-weight: 700;
+        pointer-events: none;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--grey-text);
+        letter-spacing: 0.4px;
+      }
+      .legend span { display: inline-flex; align-items: center; gap: 7px; }
+      .swatch { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+      .swatch.dot { width: 11px; height: 11px; border-radius: 50%; }
+      .swatch.dash { height: 0; border-top: 2px dashed; background: none; }
+      .note {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin-top: 4px;
+        line-height: 1.6;
+      }
+      .note code {
+        background: rgba(0,0,0,0.05);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+      .note strong { color: var(--black); }
+      .note a { color: var(--red); }
+      .val {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        font-size: 14px;
+        min-width: 56px;
+      }
+      .readouts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      @media (max-width: 760px) {
+        .readouts { grid-template-columns: repeat(2, 1fr); }
+      }
+      .readout {
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        padding: 14px 16px;
+        background: #fff;
+      }
+      .readout .k {
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .readout .v {
+        font-variant-numeric: tabular-nums;
+        font-weight: 900;
+        font-size: 24px;
+        letter-spacing: -0.5px;
+        line-height: 1.05;
+      }
+      .readout .v.good { color: var(--green); }
+      .readout .v.bad { color: var(--red); }
+      .readout .u { font-size: 12px; color: var(--grey-text); margin-top: 4px; }
+      ul.facts { margin: 8px 0 0; padding-left: 20px; }
+      ul.facts li { margin-bottom: 8px; line-height: 1.55; color: var(--grey-text); font-size: 13px; }
+      ul.facts li strong { color: var(--black); }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+      .callout {
+        border-left: 3px solid var(--gold);
+        background: rgba(232, 185, 35, 0.08);
+        padding: 12px 16px;
+        border-radius: 0 6px 6px 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--grey-text);
+        margin-top: 14px;
+      }
+      .callout strong { color: var(--black); }
+      .nextlink {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: var(--black);
+        font-weight: 700;
+        font-size: 14px;
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        padding: 12px 18px;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .nextlink:hover { border-color: var(--red); background: rgba(188,18,42,0.04); }
+      .nextlink .arrow { color: var(--red); }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="Spatial Cues"></header>
+    <script src="../nav.js" defer></script>
+    <main>
+      <h1>Spatial Cues</h1>
+      <p class="lead">A microphone measures pressure over time. Nothing in that number says <em>where the sound came from</em> &mdash; direction only becomes measurable once the geometry around the sensor <strong>encodes</strong> it. There are exactly three channels for that encoding: <strong>time</strong>, <strong>level</strong>, and <strong>spectrum</strong>. Your head is superb at all three because it is 18&nbsp;cm wide with a folded pinna on each side. A phone is neither. Drag the talker below and watch which cues survive as the receiver shrinks &mdash; then see how <a href="../sonicsieve/">SonicSieve</a> gets them back without making the device any bigger.</p>
+
+      <section class="panel">
+        <h2>Receiver geometry</h2>
+        <div class="row">
+          <label style="min-width:96px;">Receiver</label>
+          <div class="tools" role="group" aria-label="Choose the receiver geometry">
+            <button class="tool-btn active" data-mode="ears">Human head</button>
+            <button class="tool-btn" data-mode="bare">Bare mic pair</button>
+            <button class="tool-btn" data-mode="struct">Pair + microstructure</button>
+          </div>
+          <span class="note" style="margin:0;" id="modeNote">Two ears 17.5&nbsp;cm apart, with a shadowing sphere and a pinna between them.</span>
+        </div>
+        <div class="row">
+          <label for="spSlider" style="min-width:96px;">Mic spacing</label>
+          <input type="range" id="spSlider" min="0.5" max="20" step="0.5" value="1" />
+          <span class="val" id="spVal" style="min-width:70px;">1.0 cm</span>
+          <label for="frSlider" style="margin-left:8px;">Probe freq</label>
+          <input type="range" id="frSlider" min="200" max="8000" step="50" value="2000" />
+          <span class="val" id="frVal" style="min-width:70px;">2000 Hz</span>
+        </div>
+        <div class="row">
+          <label for="azSlider" style="min-width:96px;">Source azimuth</label>
+          <input type="range" id="azSlider" min="-180" max="180" step="1" value="40" />
+          <span class="val" id="azVal" style="min-width:70px;">+40°</span>
+          <span class="note" style="margin:0;">0° is straight ahead, +90° is to the right. You can also drag the talker in the scene.</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Top-down scene — drag the talker</h2>
+        <div class="canvas-wrap" id="sceneWrap">
+          <span class="tag" id="sceneTag">Receiver at origin · wavefront arriving from θ</span>
+          <canvas id="scene"></canvas>
+        </div>
+        <div class="legend">
+          <span><i class="swatch dot" style="background:var(--green);"></i> Talker (drag)</span>
+          <span><i class="swatch dot" style="background:var(--red);"></i> Mirror position (same ITD &amp; ILD)</span>
+          <span><i class="swatch dash" style="border-color:rgba(255,255,255,0.4);"></i> Direction of arrival</span>
+          <span><i class="swatch" style="background:var(--gold);"></i> Extra path to the far channel</span>
+        </div>
+        <p class="note" style="margin-top:10px;">The wavefront reaches the near channel first. The <strong>gold segment</strong> is the extra distance it still has to travel to the far one &mdash; divide by 343&nbsp;m/s and you have the <strong>ITD</strong>. Shrink the spacing and the gold segment shrinks with it. The <strong>red ghost</strong> is the talker&rsquo;s mirror image across the interaural axis: it produces <em>exactly</em> the same arrival-time and level difference, which is why timing and level alone can never tell front from back.</p>
+      </section>
+
+      <section class="panel">
+        <h2>The three cues</h2>
+        <div class="grid2">
+          <div>
+            <div class="canvas-wrap">
+              <span class="tag">Cue 1 · ITD — arrival-time difference vs azimuth</span>
+              <canvas id="itdChart"></canvas>
+            </div>
+          </div>
+          <div>
+            <div class="canvas-wrap">
+              <span class="tag">Cue 2 · ILD — level difference vs azimuth</span>
+              <canvas id="ildChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="canvas-wrap" style="margin-top:16px;">
+          <span class="tag">Cue 3 · spectral coloring |H(f, θ)| at the shaped channel</span>
+          <canvas id="specChart"></canvas>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--green);"></i> Talker at θ</span>
+          <span><i class="swatch" style="background:var(--red);"></i> Mirror at 180°&nbsp;−&nbsp;θ</span>
+          <span><i class="swatch" style="background:rgba(255,255,255,0.25);"></i> Cue across all azimuths</span>
+        </div>
+        <p class="note" style="margin-top:10px;"><strong>ITD</strong> is geometric &mdash; it scales directly with how far apart the two channels are, and nothing else. <strong>ILD</strong> needs an obstacle: a body wide compared to the wavelength casts an acoustic shadow, so the head reaches ~20&nbsp;dB above 4&nbsp;kHz while a bare 1&nbsp;cm pair sits at essentially zero for the whole speech band. <strong>Spectral coloring</strong> is the only one that does not need size at all &mdash; it needs <em>shape</em>. Notice that the green and red curves land on top of each other in the first two charts at every angle, and separate only in the third.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Cone of confusion</h2>
+        <div class="readouts">
+          <div class="readout">
+            <div class="k">ITD at θ</div>
+            <div class="v" id="roItd">0</div>
+            <div class="u" id="roItdU">µs · mirror: 0 µs</div>
+          </div>
+          <div class="readout">
+            <div class="k">ILD at θ</div>
+            <div class="v" id="roIld">0.0</div>
+            <div class="u" id="roIldU">dB · mirror: 0.0 dB</div>
+          </div>
+          <div class="readout">
+            <div class="k">Spectral distance</div>
+            <div class="v" id="roSpec">0.0</div>
+            <div class="u">dB RMS · θ vs mirror</div>
+          </div>
+          <div class="readout">
+            <div class="k">Front / back</div>
+            <div class="v" id="roFB">AMBIGUOUS</div>
+            <div class="u" id="roFBU">no cue separates them</div>
+          </div>
+        </div>
+        <p class="note" style="margin-top:14px;">Every source on a cone around the interaural axis shares one ITD and one ILD &mdash; the classic <strong>cone of confusion</strong>. In the flat 2D slice shown here that cone collapses to a single mirror pair, <code>θ</code> and <code>180°&nbsp;−&nbsp;θ</code>. Two channels and two cues give you two numbers to solve for one unknown, and the map is still two-to-one, so the ambiguity is structural rather than a matter of precision: no amount of extra SNR fixes it. Only a receiver whose <em>frequency response</em> differs between the two directions breaks the tie. That is what a pinna is for, and it is exactly the job SonicSieve hands to a piece of printed resin.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Listen — two channels, two ears</h2>
+        <div class="row">
+          <label style="min-width:96px;">Source</label>
+          <div class="tools" role="group" aria-label="Choose the source signal">
+            <button class="tool-btn active" id="srcSpeech">Speech</button>
+            <button class="tool-btn" id="srcNoise">Noise bursts</button>
+          </div>
+          <div class="tools" role="group" aria-label="Playback" style="margin-left:8px;">
+            <button class="tool-btn" id="btnPlay">Play</button>
+            <button class="tool-btn" id="btnOrbit">Orbit</button>
+            <button class="tool-btn" id="btnStop">Stop</button>
+          </div>
+          <span class="note" style="margin:0;" id="audioNote">Headphones required &mdash; over speakers the two channels mix in the air and every cue is destroyed.</span>
+        </div>
+        <div class="canvas-wrap">
+          <span class="tag">Rendered impulse response · left = shaped channel, right = reference</span>
+          <canvas id="irChart"></canvas>
+        </div>
+        <p class="note" style="margin-top:10px;">The source is filtered through the model above &mdash; the exact ITD, ILD and spectral coloring for the current geometry &mdash; and the two channels are sent to your two ears. With the <strong>head</strong> selected, <em>Orbit</em> swings the voice clearly from ear to ear, and you can hear the timbre shift as it passes behind you &mdash; though with a generic model rather than your own measured ears, it will tend to stay inside your head rather than fully externalize. Switch to the <strong>bare 1&nbsp;cm pair</strong> and it collapses into a point in the middle of your skull: 29&nbsp;µs of ITD and no level difference is simply not enough information for your auditory system to externalize. Add the <strong>microstructure</strong> and the sound picks up a direction-dependent timbre &mdash; not a convincing outside-the-head image, but a difference a neural network can be trained to read.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Why not just spread the microphones out?</h2>
+        <div class="canvas-wrap">
+          <span class="tag">Cue strength vs environmental variation, as spacing grows</span>
+          <canvas id="tradeChart"></canvas>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--green);"></i> Peak ITD (cue you gain)</span>
+          <span><i class="swatch" style="background:var(--red);"></i> Inter-channel variation across rooms (noise you gain)</span>
+          <span><i class="swatch dash" style="border-color:rgba(255,255,255,0.35);"></i> 1 / 8 / 16 cm — the paper's measured points</span>
+        </div>
+        <div class="callout">
+          <strong>The trade-off that motivates the whole design.</strong> Spreading two microphones apart buys you ITD linearly &mdash; but it also means the two channels sit in measurably different acoustic environments, picking up different reflections. SonicSieve&rsquo;s authors measured this directly across <strong>160 locations in 4 rooms</strong>: at <strong>1&nbsp;cm</strong> separation the inter-channel amplitude ratio varied by under <strong>2.2&nbsp;dB</strong> at every frequency, while at <strong>16&nbsp;cm</strong> it exceeded <strong>6&nbsp;dB</strong> at high frequencies. A cue that changes when you walk into a different room is not a cue a model can rely on. So the design deliberately goes the <em>other</em> way: keep the mics as close as physically possible, give up on geometric spacing entirely, and manufacture the directional cue locally with a passive shape instead.
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Estimated angular resolution</h2>
+        <div class="readouts">
+          <div class="readout">
+            <div class="k">Resolution at θ</div>
+            <div class="v" id="roRes">0°</div>
+            <div class="u">smallest resolvable change</div>
+          </div>
+          <div class="readout">
+            <div class="k">Timing cue</div>
+            <div class="v" id="roCueT">0</div>
+            <div class="u">µs peak-to-peak</div>
+          </div>
+          <div class="readout">
+            <div class="k">Level cue</div>
+            <div class="v" id="roCueL">0.0</div>
+            <div class="u" id="roCueLU">dB swing at probe freq</div>
+          </div>
+          <div class="readout">
+            <div class="k">Spectral cue</div>
+            <div class="v" id="roCueS">0.0</div>
+            <div class="u">dB RMS · mean front/back contrast</div>
+          </div>
+        </div>
+        <p class="note" style="margin-top:14px;">Resolution here is a Fisher-style bound: how fast each cue changes with angle, divided by how much that cue wobbles from room to room. The head lands near <strong>3°</strong> straight ahead &mdash; the right order for the 1&ndash;2° listeners actually achieve. A <strong>bare 1&nbsp;cm pair</strong> sits in the <strong>teens</strong>, and gets even that entirely on phase, since it has no level cue at all; swing the talker toward the baseline axis and it degrades past 40°, because the cue slope goes to zero there.</p>
+        <p class="note">Now compare two ways of fixing it. Widening the bare pair all the way to <strong>16&nbsp;cm</strong> buys about <strong>4°</strong> &mdash; but that is a receiver as wide as a head, and it is still <em>front/back ambiguous</em>, because spacing adds no coloring. Adding the <strong>microstructure</strong> to the 1&nbsp;cm pair gets to roughly <strong>2&ndash;4°</strong> at a sixteenth the aperture, <em>and</em> breaks the ambiguity. Then try widening <em>that</em> pair: the number gets <strong>worse</strong>, not better. Once the cue comes from shape, extra spacing contributes nothing but environmental noise &mdash; which is precisely why the design puts the two microphones as close together as it can.</p>
+      </section>
+
+      <section class="panel">
+        <h2>How it works</h2>
+        <ul class="facts">
+          <li><strong>Direction is not in the signal &mdash; it is in the geometry.</strong> A pressure waveform carries no heading. What a receiver actually measures is the source convolved with a transfer function that happens to depend on arrival angle. Localization is the inverse problem: recover <code>θ</code> from the coloring, knowing neither the source spectrum nor the room.</li>
+          <li><strong>Rayleigh&rsquo;s duplex theory splits the band.</strong> Below roughly 1.5&nbsp;kHz the wavelength is longer than the head, so sound diffracts around it &mdash; no shadow, no ILD &mdash; but the phase difference is unambiguous, so ITD carries the low end. Above that, phase wraps and becomes ambiguous while the head starts casting a real shadow, so ILD takes over. Neither cue covers the whole band on its own.</li>
+          <li><strong>A classical array encodes direction in the steering vector.</strong> Write the received signal as <code>x(f,t) = a(f,θ)·s(f,t) + u(f,t)</code>, where <code>a(f,θ)</code> is the set of geometric delays across the elements. Beamforming inverts that. It works &mdash; but resolving spatial ambiguity this way typically wants 4 to 8 microphones spread across an aperture, which a phone does not have.</li>
+          <li><strong>SonicSieve rewrites the model.</strong> A passive microstructure over one microphone makes the received signal <code>x(f,t) = M<sub>θ</sub>(f)·s(f,t) + u(f,t)</code> &mdash; direction now lives in a <em>filter</em>, not in a delay across elements. The catch is that a single channel cannot separate <code>M<sub>θ</sub>(f)</code> from the source&rsquo;s own spectrum or the room&rsquo;s. So a second, bare microphone goes right next to it as a reference, giving the model a before/after view; the IPD and ILD between the two channels then expose the coloring.</li>
+          <li><strong>Close spacing is a feature, not a compromise.</strong> Because the cue now comes from the structure rather than the aperture, spreading the mics apart buys nothing and costs robustness. Putting the in-line earphone mic within <strong>1&nbsp;cm</strong> of the phone&rsquo;s top mic keeps both channels in the same acoustic environment, so the difference between them is attributable to the structure instead of to the room. The result is <strong>5.0&nbsp;dB</strong> of separation gain over a 30° region with two microphones, beating a flat five-mic array.</li>
+        </ul>
+        <div class="row" style="margin-top:20px;">
+          <a class="nextlink" href="../sonicsieve/">
+            <span>Next: how the microstructure prints the cue</span>
+            <span class="arrow">&rarr;</span>
+          </a>
+          <a class="nextlink" href="../beamforming/">
+            <span>Compare: encoding direction with an array instead</span>
+            <span class="arrow">&rarr;</span>
+          </a>
+        </div>
+        <p class="note" style="margin-top:16px;">Cue models here are textbook approximations, not measurements: Woodworth&rsquo;s spherical-head ITD, a <code>ka</code>-dependent shadow for ILD, and a two-notch pinna response. The microstructure filter uses the same multipath model as the <a href="../sonicsieve/">SonicSieve</a> module. Environmental-variation figures follow the separation experiment in <a href="https://arxiv.org/abs/2504.10793" target="_blank" rel="noopener">Yuan et&nbsp;al., CHI&nbsp;&rsquo;26</a>.</p>
+      </section>
+
+      <footer style="margin-top:48px; padding-top:24px; border-top:1px solid var(--grey-line); font-size:13px; letter-spacing:0.5px; color:var(--grey-text); display:flex; align-items:center; justify-content:center; gap:8px;">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:8px; color:var(--black); text-decoration:none; font-weight:700;">
+          <img src="../semanticsignals-logo.png" alt="" style="height:20px; width:auto;" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      "use strict";
+      const C = 343;                  // speed of sound, m/s
+      const A_HEAD = 0.0875;          // head radius, m
+      const D_EARS = 2 * A_HEAD;      // effective ear separation, m
+      const $ = id => document.getElementById(id);
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      const deg2rad = d => d * Math.PI / 180;
+      const frac = x => x - Math.floor(x);
+
+      const state = {
+        mode: 'ears',                 // 'ears' | 'bare' | 'struct'
+        spacingCm: 1.0,
+        freq: 2000,
+        azDeg: 40,
+        holes: 6,
+        diaM: 0.020,
+      };
+
+      const spacingM = () => state.mode === 'ears' ? D_EARS : state.spacingCm / 100;
+      // the mirror azimuth sharing this source's ITD and ILD
+      const mirrorDeg = d => { let m = 180 - d; while (m > 180) m -= 360; while (m < -180) m += 360; return m; };
+
+      // ================= cue models =================
+
+      // --- microstructure filter M_θ(f), same multipath model as the SonicSieve module ---
+      const HOLE_D = 0.0022;          // effective hole width, m
+      const FILL0  = 0.54;            // circumference fill fraction at half washout
+      const PDIR   = 1.6;             // hole directivity exponent
+      // The 6 optimized holes are not placed symmetrically about the mic baseline,
+      // and the clip-on structure lands at its own angle on the phone. Both matter:
+      // a ring symmetric about +-90 deg would color a direction and its mirror
+      // identically and could not break the front/back tie at all.
+      const STRUCT_ROT = deg2rad(35);
+
+      function holePhis(N) {
+        const o = [];
+        for (let k = 0; k < N; k++) o.push((-14 + (k + 0.5) / N * 208) * Math.PI / 180);
+        return o;
+      }
+      function tubeDelays(N, D) {
+        const o = [];
+        for (let k = 0; k < N; k++) {
+          const L = D * (2.1 + 0.9 * frac(0.618 * (k + 1) + 0.13));
+          o.push((D * 0.5 + L) / C);
+        }
+        return o;
+      }
+      const PHI = holePhis(6), TAU = tubeDelays(6, 0.020);
+      function structMag(f, thetaRad) {
+        let re = 0, im = 0;
+        for (let k = 0; k < PHI.length; k++) {
+          let w = Math.cos(thetaRad - STRUCT_ROT - PHI[k]);
+          w = w > 0 ? Math.pow(w, PDIR) : 0;
+          const a = 2 * Math.PI * f * TAU[k];
+          re += w * Math.cos(a);
+          im -= w * Math.sin(a);
+        }
+        const s = 1 / Math.sqrt(PHI.length);
+        re *= s; im *= s;
+        const fill = PHI.length * HOLE_D / (Math.PI * state.diaM);
+        const kk = Math.exp(-Math.pow(fill / FILL0, 2));
+        re = kk * re + (1 - kk);
+        im = kk * im;
+        return Math.hypot(re, im);
+      }
+
+      // --- pinna coloring: concha resonance plus two direction-dependent notches ---
+      function pinnaMag(f, thetaRad) {
+        const res = 8 * Math.exp(-Math.pow(Math.log(f / 4500) / 0.35, 2))
+                      * (0.55 + 0.45 * Math.cos(thetaRad));
+        // primary notch slides 7.2 kHz (frontal) -> 9.8 kHz (rearward)
+        const fn = 7200 + 2600 * (0.5 - 0.5 * Math.cos(thetaRad));
+        const n1 = -16 * Math.exp(-Math.pow(Math.log(f / fn) / 0.13, 2));
+        const n2 = -9  * Math.exp(-Math.pow(Math.log(f / (fn * 1.6)) / 0.15, 2));
+        return Math.pow(10, (res + n1 + n2) / 20);
+      }
+
+      // --- ITD: Woodworth for the spherical head, plane-wave geometry otherwise ---
+      function itdSec(deg) {
+        const s = clamp(Math.sin(deg2rad(deg)), -1, 1);
+        if (state.mode === 'ears') return (A_HEAD / C) * (Math.asin(s) + s);
+        return (spacingM() / C) * s;
+      }
+
+      // --- ILD: head shadow grows with ka; a bare pair in the far field has none ---
+      function shadowDb(f) {
+        const ka = (2 * Math.PI * f / C) * A_HEAD;
+        return 22 * ka * ka / (3 + ka * ka);
+      }
+      function ildDb(f, deg) {
+        const th = deg2rad(deg);
+        if (state.mode === 'ears') return shadowDb(f) * Math.sin(th);
+        if (state.mode === 'struct') return 20 * Math.log10(structMag(f, th) + 1e-3);
+        return 0;
+      }
+
+      // --- spectral coloring of the shaped channel ---
+      function colorMag(f, deg) {
+        const th = deg2rad(deg);
+        if (state.mode === 'ears') return pinnaMag(f, th);
+        if (state.mode === 'struct') return structMag(f, th) + 1e-3;
+        return 1;
+      }
+
+      // --- environmental variation of the inter-channel ratio, after the paper's Fig. 8 ---
+      function envVarDb(f, dMeters) {
+        const kd = (2 * Math.PI * f / C) * dMeters;
+        return 7.0 * (1 - Math.exp(-Math.pow(kd / 6, 1.3))) + 0.35;
+      }
+      function envVarRad(f, dMeters) {
+        const kd = (2 * Math.PI * f / C) * dMeters;
+        return 0.10 + 0.5 * (1 - Math.exp(-Math.pow(kd / 6, 1.3)));
+      }
+
+      // --- analysis grids ---
+      // Spectral coloring is judged over the full audible range the cues live in:
+      // the pinna's direction-dependent notches sit at 7-12 kHz, above speech.
+      const FMIN = 200, FMAX = 14000, NSPEC = 96;
+      const specGrid = Array.from({ length: NSPEC }, (_, i) => FMIN * Math.pow(FMAX / FMIN, i / (NSPEC - 1)));
+      // Angular resolution is judged over the speech band, which is what the task needs.
+      const SMIN = 300, SMAX = 7500, NF = 72;
+      const grid = Array.from({ length: NF }, (_, i) => SMIN * Math.pow(SMAX / SMIN, i / (NF - 1)));
+
+      // RMS log-magnitude distance between two directions' colorings
+      function spectralDistanceDb(d1, d2) {
+        let acc = 0;
+        for (let i = 0; i < NSPEC; i++) {
+          const a = 20 * Math.log10(colorMag(specGrid[i], d1) + 0.02);
+          const b = 20 * Math.log10(colorMag(specGrid[i], d2) + 0.02);
+          acc += (a - b) * (a - b);
+        }
+        return Math.sqrt(acc / NSPEC);
+      }
+
+      // how well the coloring breaks the cone of confusion, averaged over all azimuths
+      function frontBackContrastDb() {
+        let acc = 0, n = 0;
+        for (let d = -180; d < 180; d += 10) { acc += spectralDistanceDb(d, mirrorDeg(d)); n++; }
+        return acc / n;
+      }
+
+      // Fisher-style angular resolution: cue slope divided by cue noise, pooled over the band
+      function resolutionDeg(deg) {
+        const d = spacingM(), h = 0.5;      // half-degree finite difference
+        let info = 0;
+        for (let i = 0; i < NF; i++) {
+          const f = grid[i];
+          const dIld = (ildDb(f, deg + h) - ildDb(f, deg - h)) / (2 * h);   // dB per deg
+          const sIld = envVarDb(f, d);
+          const w = 2 * Math.PI * f;
+          const dIpd = w * (itdSec(deg + h) - itdSec(deg - h)) / (2 * h);   // rad per deg
+          const sIpd = envVarRad(f, d);
+          info += (dIld * dIld) / (sIld * sIld) + (dIpd * dIpd) / (sIpd * sIpd);
+        }
+        info /= NF;
+        return info > 1e-9 ? 1 / Math.sqrt(info) : Infinity;
+      }
+
+      // ================= shared canvas helpers =================
+      function fit(cv, hCss) {
+        const dpr = window.devicePixelRatio || 1;
+        const w = cv.clientWidth || cv.parentElement.clientWidth;
+        cv.style.height = hCss + 'px';
+        cv.width = Math.round(w * dpr);
+        cv.height = Math.round(hCss * dpr);
+        const g = cv.getContext('2d');
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.clearRect(0, 0, w, hCss);
+        return { g, w, h: hCss };
+      }
+      function axes(g, w, h, pad) {
+        g.strokeStyle = 'rgba(255,255,255,0.14)';
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(pad.l, pad.t); g.lineTo(pad.l, h - pad.b); g.lineTo(w - pad.r, h - pad.b);
+        g.stroke();
+      }
+      function labelX(g, x, y, t, col) {
+        g.fillStyle = col || 'rgba(255,255,255,0.45)';
+        g.font = '10px Roboto, Helvetica, sans-serif';
+        g.textAlign = 'center';
+        g.fillText(t, x, y);
+      }
+      function labelY(g, x, y, t, col) {
+        g.fillStyle = col || 'rgba(255,255,255,0.45)';
+        g.font = '10px Roboto, Helvetica, sans-serif';
+        g.textAlign = 'right';
+        g.fillText(t, x, y);
+      }
+
+      // ================= scene =================
+      const scene = $('scene');
+      let sc = { w: 0, h: 0, cx: 0, cy: 0, R: 0 };
+      function sizeScene() {
+        const wrap = $('sceneWrap');
+        const hCss = Math.max(320, Math.min(460, wrap.clientWidth * 0.55));
+        const o = fit(scene, hCss);
+        sc = { w: o.w, h: o.h, cx: o.w / 2, cy: o.h / 2, R: Math.min(o.w, o.h) * 0.36 };
+        return o.g;
+      }
+      function azToXY(deg, r) {
+        const th = deg2rad(deg);
+        return { x: sc.cx + r * Math.sin(th), y: sc.cy - r * Math.cos(th) };
+      }
+      function xyToAz(x, y) {
+        return Math.atan2(x - sc.cx, sc.cy - y) * 180 / Math.PI;
+      }
+
+      function drawHead(g) {
+        const r = 34;
+        g.strokeStyle = 'rgba(255,255,255,0.55)';
+        g.fillStyle = 'rgba(255,255,255,0.06)';
+        g.lineWidth = 2;
+        g.beginPath(); g.arc(sc.cx, sc.cy, r, 0, 2 * Math.PI); g.fill(); g.stroke();
+        // nose points to 0 deg (up)
+        g.beginPath();
+        g.moveTo(sc.cx - 7, sc.cy - r + 2);
+        g.lineTo(sc.cx, sc.cy - r - 9);
+        g.lineTo(sc.cx + 7, sc.cy - r + 2);
+        g.stroke();
+        // pinnae
+        [-1, 1].forEach(s => {
+          g.beginPath();
+          g.ellipse(sc.cx + s * r, sc.cy, 5, 11, 0, 0, 2 * Math.PI);
+          g.strokeStyle = 'rgba(232,185,35,0.9)';
+          g.stroke();
+        });
+        return [{ x: sc.cx - r, y: sc.cy }, { x: sc.cx + r, y: sc.cy }];
+      }
+      function drawPair(g, withStruct) {
+        // spacing drawn to scale against the head for reference
+        const pxPerM = 34 / A_HEAD;
+        const half = clamp(spacingM() * pxPerM / 2, 4, 90);
+        const bw = Math.max(46, half * 2 + 26), bh = 26;
+        g.strokeStyle = 'rgba(255,255,255,0.45)';
+        g.fillStyle = 'rgba(255,255,255,0.05)';
+        g.lineWidth = 2;
+        g.beginPath();
+        if (g.roundRect) g.roundRect(sc.cx - bw / 2, sc.cy - bh / 2, bw, bh, 6);
+        else g.rect(sc.cx - bw / 2, sc.cy - bh / 2, bw, bh);
+        g.fill(); g.stroke();
+        const m1 = { x: sc.cx - half, y: sc.cy }, m2 = { x: sc.cx + half, y: sc.cy };
+        [m1, m2].forEach(m => {
+          g.beginPath(); g.arc(m.x, m.y, 3.5, 0, 2 * Math.PI);
+          g.fillStyle = 'rgba(255,255,255,0.9)'; g.fill();
+        });
+        if (withStruct) {
+          g.strokeStyle = 'rgba(232,185,35,0.95)';
+          g.lineWidth = 1.6;
+          g.beginPath(); g.arc(m1.x, m1.y, 9, 0, 2 * Math.PI); g.stroke();
+          for (let k = 0; k < 6; k++) {
+            const a = -Math.PI / 2 + (k - 2.5) * 0.42;
+            g.beginPath();
+            g.moveTo(m1.x + 9 * Math.cos(a), m1.y + 9 * Math.sin(a));
+            g.lineTo(m1.x + 13 * Math.cos(a), m1.y + 13 * Math.sin(a));
+            g.stroke();
+          }
+        }
+        // spacing annotation
+        g.strokeStyle = 'rgba(255,255,255,0.3)';
+        g.lineWidth = 1;
+        g.setLineDash([3, 3]);
+        g.beginPath(); g.moveTo(m1.x, sc.cy + 22); g.lineTo(m2.x, sc.cy + 22); g.stroke();
+        g.setLineDash([]);
+        labelX(g, sc.cx, sc.cy + 36, state.spacingCm.toFixed(1) + ' cm');
+        return [m1, m2];
+      }
+
+      function drawSourcePuck(g, deg, color, label, ghost) {
+        const p = azToXY(deg, sc.R);
+        g.strokeStyle = ghost ? 'rgba(188,18,42,0.35)' : 'rgba(255,255,255,0.4)';
+        g.lineWidth = 1;
+        g.setLineDash([4, 4]);
+        g.beginPath(); g.moveTo(sc.cx, sc.cy); g.lineTo(p.x, p.y); g.stroke();
+        g.setLineDash([]);
+        g.beginPath(); g.arc(p.x, p.y, 9, 0, 2 * Math.PI);
+        g.fillStyle = ghost ? 'rgba(188,18,42,0.35)' : color;
+        g.fill();
+        g.strokeStyle = ghost ? 'rgba(255,255,255,0.35)' : '#fff';
+        g.lineWidth = 2; g.stroke();
+        labelX(g, p.x, p.y - 16, label, ghost ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.8)');
+        return p;
+      }
+
+      function drawScene() {
+        const g = sizeScene();
+        // polar grid
+        g.strokeStyle = 'rgba(255,255,255,0.07)';
+        g.lineWidth = 1;
+        [0.4, 0.7, 1.0].forEach(f => {
+          g.beginPath(); g.arc(sc.cx, sc.cy, sc.R * f, 0, 2 * Math.PI); g.stroke();
+        });
+        for (let a = 0; a < 360; a += 30) {
+          const p = azToXY(a, sc.R);
+          g.beginPath(); g.moveTo(sc.cx, sc.cy); g.lineTo(p.x, p.y); g.stroke();
+        }
+        ['0°', '90°', '180°', '−90°'].forEach((t, i) => {
+          const p = azToXY(i * 90 === 270 ? -90 : i * 90, sc.R + 16);
+          labelX(g, p.x, p.y + 4, t);
+        });
+
+        const mics = state.mode === 'ears' ? drawHead(g) : drawPair(g, state.mode === 'struct');
+
+        // mirror ghost, then the real talker
+        drawSourcePuck(g, mirrorDeg(state.azDeg), '#bc122a', 'mirror', true);
+        const p = drawSourcePuck(g, state.azDeg, '#2a8b2a', 'talker', false);
+
+        // incoming wavefront, perpendicular to the arrival direction
+        const th = deg2rad(state.azDeg);
+        const ux = Math.sin(th), uy = -Math.cos(th);     // unit vector toward the source
+        const vx = -uy, vy = ux;                          // along the wavefront
+        const near = (ux * (mics[0].x - sc.cx) + uy * (mics[0].y - sc.cy)) >
+                     (ux * (mics[1].x - sc.cx) + uy * (mics[1].y - sc.cy)) ? mics[0] : mics[1];
+        const far = near === mics[0] ? mics[1] : mics[0];
+        g.strokeStyle = 'rgba(31,111,235,0.55)';
+        g.lineWidth = 1.5;
+        for (let i = 0; i < 3; i++) {
+          const off = 46 + i * 15;
+          const ox = sc.cx + ux * off, oy = sc.cy + uy * off;
+          g.globalAlpha = 0.7 - i * 0.2;
+          g.beginPath();
+          g.moveTo(ox - vx * sc.R * 0.55, oy - vy * sc.R * 0.55);
+          g.lineTo(ox + vx * sc.R * 0.55, oy + vy * sc.R * 0.55);
+          g.stroke();
+        }
+        g.globalAlpha = 1;
+
+        // gold extra-path segment: projection of the mic baseline onto the arrival direction
+        const proj = ux * (far.x - near.x) + uy * (far.y - near.y);
+        const fx = far.x - ux * proj, fy = far.y - uy * proj;
+        g.strokeStyle = '#E8B923';
+        g.lineWidth = 3;
+        g.beginPath(); g.moveTo(far.x, far.y); g.lineTo(fx, fy); g.stroke();
+        g.beginPath(); g.arc(fx, fy, 2.5, 0, 2 * Math.PI); g.fillStyle = '#E8B923'; g.fill();
+
+        const us = Math.abs(itdSec(state.azDeg)) * 1e6;
+        labelX(g, sc.cx, sc.h - 10, 'ITD ' + us.toFixed(us < 100 ? 1 : 0) + ' µs', 'rgba(232,185,35,0.9)');
+        return p;
+      }
+
+      // ================= cue charts =================
+      function drawCueChart(cv, valueFn, yLabel, fmt, symmetricPad) {
+        const o = fit(cv, 190), g = o.g, w = o.w, h = o.h;
+        const pad = { l: 44, r: 12, t: 16, b: 26 };
+        const xs = d => pad.l + (d + 180) / 360 * (w - pad.l - pad.r);
+
+        let vmax = 0;
+        const vals = [];
+        for (let d = -180; d <= 180; d += 2) {
+          const v = valueFn(d);
+          vals.push({ d, v });
+          vmax = Math.max(vmax, Math.abs(v));
+        }
+        vmax = Math.max(vmax, symmetricPad) * 1.15;
+        const ys = v => pad.t + (1 - (v + vmax) / (2 * vmax)) * (h - pad.t - pad.b);
+
+        axes(g, w, h, pad);
+        // zero line
+        g.strokeStyle = 'rgba(255,255,255,0.12)';
+        g.beginPath(); g.moveTo(pad.l, ys(0)); g.lineTo(w - pad.r, ys(0)); g.stroke();
+        [-180, -90, 0, 90, 180].forEach(d => labelX(g, xs(d), h - 9, d + '°'));
+        labelY(g, pad.l - 6, ys(vmax * 0.86) + 3, fmt(vmax * 0.86));
+        labelY(g, pad.l - 6, ys(-vmax * 0.86) + 3, fmt(-vmax * 0.86));
+        labelY(g, pad.l - 6, ys(0) + 3, '0');
+        g.save();
+        g.translate(12, h / 2); g.rotate(-Math.PI / 2);
+        g.fillStyle = 'rgba(255,255,255,0.4)';
+        g.font = '10px Roboto, Helvetica, sans-serif';
+        g.textAlign = 'center';
+        g.fillText(yLabel, 0, 0);
+        g.restore();
+
+        // curve
+        g.strokeStyle = 'rgba(255,255,255,0.35)';
+        g.lineWidth = 1.8;
+        g.beginPath();
+        vals.forEach((p, i) => { const X = xs(p.d), Y = ys(p.v); i ? g.lineTo(X, Y) : g.moveTo(X, Y); });
+        g.stroke();
+
+        // markers for the talker and its mirror
+        const mk = (d, col, r) => {
+          const v = valueFn(d), X = xs(d), Y = ys(v);
+          g.strokeStyle = 'rgba(255,255,255,0.2)';
+          g.lineWidth = 1;
+          g.setLineDash([2, 3]);
+          g.beginPath(); g.moveTo(X, pad.t); g.lineTo(X, h - pad.b); g.stroke();
+          g.setLineDash([]);
+          g.beginPath(); g.arc(X, Y, r, 0, 2 * Math.PI);
+          g.fillStyle = col; g.fill();
+          g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke();
+        };
+        mk(mirrorDeg(state.azDeg), '#bc122a', 7);
+        mk(state.azDeg, '#2a8b2a', 4.5);
+      }
+
+      function drawSpecChart() {
+        const cv = $('specChart');
+        const o = fit(cv, 220), g = o.g, w = o.w, h = o.h;
+        const pad = { l: 46, r: 12, t: 18, b: 28 };
+        const fx = f => pad.l + Math.log(f / FMIN) / Math.log(FMAX / FMIN) * (w - pad.l - pad.r);
+        const DBMIN = -26, DBMAX = 14;
+        const dy = v => pad.t + (1 - (clamp(v, DBMIN, DBMAX) - DBMIN) / (DBMAX - DBMIN)) * (h - pad.t - pad.b);
+
+        axes(g, w, h, pad);
+        g.strokeStyle = 'rgba(255,255,255,0.07)';
+        [500, 1000, 2000, 4000, 8000, 12000].forEach(f => {
+          if (f < FMIN || f > FMAX) return;
+          g.beginPath(); g.moveTo(fx(f), pad.t); g.lineTo(fx(f), h - pad.b); g.stroke();
+          labelX(g, fx(f), h - 10, f >= 1000 ? (f / 1000) + 'k' : String(f));
+        });
+        [-20, -10, 0, 10].forEach(v => {
+          g.strokeStyle = v === 0 ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.06)';
+          g.beginPath(); g.moveTo(pad.l, dy(v)); g.lineTo(w - pad.r, dy(v)); g.stroke();
+          labelY(g, pad.l - 6, dy(v) + 3, v + ' dB');
+        });
+
+        const trace = (deg, col, lw) => {
+          g.strokeStyle = col; g.lineWidth = lw;
+          g.beginPath();
+          for (let i = 0; i < 240; i++) {
+            const f = FMIN * Math.pow(FMAX / FMIN, i / 239);
+            const v = 20 * Math.log10(colorMag(f, deg) + 0.02);
+            const X = fx(f), Y = dy(v);
+            i ? g.lineTo(X, Y) : g.moveTo(X, Y);
+          }
+          g.stroke();
+        };
+        trace(mirrorDeg(state.azDeg), '#bc122a', 2);
+        trace(state.azDeg, '#2a8b2a', 2);
+
+        // probe-frequency cursor
+        g.strokeStyle = 'rgba(232,185,35,0.55)';
+        g.lineWidth = 1;
+        g.setLineDash([3, 3]);
+        g.beginPath(); g.moveTo(fx(state.freq), pad.t); g.lineTo(fx(state.freq), h - pad.b); g.stroke();
+        g.setLineDash([]);
+
+        if (state.mode === 'bare') {
+          g.fillStyle = 'rgba(255,255,255,0.5)';
+          g.font = '700 12px Roboto, Helvetica, sans-serif';
+          g.textAlign = 'center';
+          g.fillText('flat at every angle — no spectral cue', w / 2, dy(0) - 12);
+        }
+      }
+
+      // ================= spacing trade-off chart =================
+      function drawTradeChart() {
+        const cv = $('tradeChart');
+        const o = fit(cv, 240), g = o.g, w = o.w, h = o.h;
+        const pad = { l: 52, r: 54, t: 18, b: 34 };
+        const DMIN = 0.005, DMAX = 0.25;
+        const xs = d => pad.l + Math.log(d / DMIN) / Math.log(DMAX / DMIN) * (w - pad.l - pad.r);
+        const ITDMAX = 800;                                  // µs, left axis
+        const VARMAX = 9;                                    // dB, right axis
+        const yL = v => pad.t + (1 - v / ITDMAX) * (h - pad.t - pad.b);
+        const yR = v => pad.t + (1 - v / VARMAX) * (h - pad.t - pad.b);
+
+        axes(g, w, h, pad);
+        g.strokeStyle = 'rgba(255,255,255,0.07)';
+        [0.01, 0.02, 0.05, 0.1, 0.2].forEach(d => {
+          g.beginPath(); g.moveTo(xs(d), pad.t); g.lineTo(xs(d), h - pad.b); g.stroke();
+          labelX(g, xs(d), h - 12, (d * 100) + ' cm');
+        });
+        [0, 200, 400, 600, 800].forEach(v => labelY(g, pad.l - 6, yL(v) + 3, v, 'rgba(42,139,42,0.75)'));
+        [0, 3, 6, 9].forEach(v => {
+          g.fillStyle = 'rgba(188,18,42,0.75)';
+          g.font = '10px Roboto, Helvetica, sans-serif';
+          g.textAlign = 'left';
+          g.fillText(v + ' dB', w - pad.r + 6, yR(v) + 3);
+        });
+        g.fillStyle = 'rgba(42,139,42,0.75)';
+        g.font = '10px Roboto, Helvetica, sans-serif';
+        g.textAlign = 'left';
+        g.fillText('peak ITD (µs)', pad.l + 4, pad.t - 5);
+        g.textAlign = 'right';
+        g.fillStyle = 'rgba(188,18,42,0.75)';
+        g.fillText('room-to-room variation @ 4 kHz', w - pad.r, pad.t - 5);
+
+        // ITD gained
+        g.strokeStyle = '#2a8b2a'; g.lineWidth = 2.2;
+        g.beginPath();
+        for (let i = 0; i <= 200; i++) {
+          const d = DMIN * Math.pow(DMAX / DMIN, i / 200);
+          const X = xs(d), Y = yL(clamp(d / C * 1e6, 0, ITDMAX));
+          i ? g.lineTo(X, Y) : g.moveTo(X, Y);
+        }
+        g.stroke();
+        // variation gained
+        g.strokeStyle = '#bc122a'; g.lineWidth = 2.2;
+        g.beginPath();
+        for (let i = 0; i <= 200; i++) {
+          const d = DMIN * Math.pow(DMAX / DMIN, i / 200);
+          const X = xs(d), Y = yR(envVarDb(4000, d));
+          i ? g.lineTo(X, Y) : g.moveTo(X, Y);
+        }
+        g.stroke();
+
+        // measured points from the paper
+        g.setLineDash([4, 4]);
+        g.lineWidth = 1;
+        [[0.01, '1 cm\n< 2.2 dB'], [0.08, '8 cm'], [0.16, '16 cm\n> 6 dB']].forEach(([d, lab]) => {
+          g.strokeStyle = 'rgba(255,255,255,0.28)';
+          g.beginPath(); g.moveTo(xs(d), pad.t); g.lineTo(xs(d), h - pad.b); g.stroke();
+          const lines = lab.split('\n');
+          lines.forEach((t, i) => labelX(g, xs(d), pad.t + 14 + i * 12, t, 'rgba(255,255,255,0.6)'));
+        });
+        g.setLineDash([]);
+
+        // current spacing marker
+        const dCur = spacingM();
+        g.strokeStyle = '#E8B923'; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(xs(dCur), pad.t); g.lineTo(xs(dCur), h - pad.b); g.stroke();
+        labelX(g, xs(dCur), h - pad.b + 24, state.mode === 'ears' ? 'head' : 'you are here', 'rgba(232,185,35,0.95)');
+      }
+
+      // ================= audio =================
+      const IRN = 512;                                    // impulse-response length, samples
+      let ac = null, srcBuf = { speech: null, noise: null }, srcKind = 'speech';
+      let node = null, chains = null, activeChain = 0, lastIrDeg = null, lastIrMode = null;
+      let orbiting = false, orbitT0 = 0, playing = false;
+
+      // precomputed DFT basis so IR rebuilds stay cheap
+      const cosT = new Float32Array(IRN), sinT = new Float32Array(IRN);
+      for (let n = 0; n < IRN; n++) {
+        cosT[n] = Math.cos(2 * Math.PI * n / IRN);
+        sinT[n] = Math.sin(2 * Math.PI * n / IRN);
+      }
+      const irWin = new Float32Array(IRN);
+      for (let n = 0; n < IRN; n++) irWin[n] = 0.5 - 0.5 * Math.cos(2 * Math.PI * n / (IRN - 1));
+
+      // real IFFT of a magnitude/delay response onto one channel
+      function synthIR(out, sr, magFn, tauSec) {
+        const half = IRN / 2;
+        const t0 = half / sr;
+        const Ck = new Float32Array(half), Sk = new Float32Array(half);
+        for (let k = 1; k < half; k++) {
+          const f = k * sr / IRN;
+          const m = magFn(f);
+          const ph = -2 * Math.PI * f * (tauSec + t0);
+          Ck[k] = m * Math.cos(ph);
+          Sk[k] = m * Math.sin(ph);
+        }
+        for (let n = 0; n < IRN; n++) {
+          let acc = 0;
+          for (let k = 1; k < half; k++) {
+            const idx = (k * n) % IRN;
+            acc += Ck[k] * cosT[idx] - Sk[k] * sinT[idx];
+          }
+          out[n] = (2 * acc / IRN) * irWin[n];
+        }
+      }
+
+      // stereo IR for the current geometry at azimuth deg: ch0 = shaped, ch1 = reference
+      function buildIR(sr, deg) {
+        const buf = ac.createBuffer(2, IRN, sr);
+        const tau = itdSec(deg);          // positive when the source is to the right
+        const th = deg2rad(deg);
+        if (state.mode === 'ears') {
+          // both ears carry the pinna coloring; the shadow splits between them
+          const pin = f => pinnaMag(f, th);
+          const gL = f => Math.pow(10, (-shadowDb(f) * Math.sin(th) / 2) / 20) * pin(f);
+          const gR = f => Math.pow(10, ( shadowDb(f) * Math.sin(th) / 2) / 20) * pin(f);
+          synthIR(buf.getChannelData(0), sr, gL, tau / 2);
+          synthIR(buf.getChannelData(1), sr, gR, -tau / 2);
+        } else {
+          const shaped = state.mode === 'struct' ? (f => structMag(f, th) + 1e-3) : (() => 1);
+          synthIR(buf.getChannelData(0), sr, shaped, tau / 2);
+          synthIR(buf.getChannelData(1), sr, () => 1, -tau / 2);
+        }
+        return buf;
+      }
+
+      function ensureCtx() {
+        if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state === 'suspended') ac.resume();
+        if (!chains) {
+          chains = [0, 1].map(() => {
+            const conv = ac.createConvolver();
+            conv.normalize = false;
+            const gain = ac.createGain();
+            gain.gain.value = 0;
+            conv.connect(gain);
+            gain.connect(ac.destination);
+            return { conv, gain };
+          });
+        }
+        return ac;
+      }
+
+      function makeNoise(sr) {
+        const n = Math.floor(sr * 3);
+        const b = ac.createBuffer(1, n, sr);
+        const d = b.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < n; i++) {
+          // pink-ish noise, gated into 180 ms bursts every 300 ms
+          const white = Math.random() * 2 - 1;
+          last = 0.72 * last + 0.28 * white;
+          const ph = (i / sr) % 0.3;
+          const env = ph < 0.18 ? Math.min(1, ph / 0.008) * Math.min(1, (0.18 - ph) / 0.02) : 0;
+          d[i] = last * env * 0.5;
+        }
+        return b;
+      }
+
+      async function loadSpeech() {
+        if (srcBuf.speech) return srcBuf.speech;
+        const r = await fetch('../room-impulse-response/voice.mp3');
+        const ab = await r.arrayBuffer();
+        const dec = await ac.decodeAudioData(ab);
+        // downmix to mono so the spatialization is entirely ours
+        const mono = ac.createBuffer(1, dec.length, dec.sampleRate);
+        const m = mono.getChannelData(0);
+        for (let c = 0; c < dec.numberOfChannels; c++) {
+          const s = dec.getChannelData(c);
+          for (let i = 0; i < dec.length; i++) m[i] += s[i] / dec.numberOfChannels;
+        }
+        srcBuf.speech = mono;
+        return mono;
+      }
+
+      function updateIR(force) {
+        if (!ac || !chains) return;
+        const deg = state.azDeg;
+        if (!force && lastIrMode === state.mode + state.spacingCm &&
+            lastIrDeg !== null && Math.abs(deg - lastIrDeg) < 4) return;
+        lastIrDeg = deg;
+        lastIrMode = state.mode + state.spacingCm;
+        const next = 1 - activeChain;
+        chains[next].conv.buffer = buildIR(ac.sampleRate, deg);
+        const t = ac.currentTime;
+        chains[next].gain.gain.cancelScheduledValues(t);
+        chains[next].gain.gain.setTargetAtTime(playing ? 1 : 0, t, 0.012);
+        chains[activeChain].gain.gain.cancelScheduledValues(t);
+        chains[activeChain].gain.gain.setTargetAtTime(0, t, 0.012);
+        activeChain = next;
+        drawIRChart();
+      }
+
+      function stopAudio() {
+        orbiting = false;
+        playing = false;
+        if (node) { try { node.stop(); } catch (e) {} node.disconnect(); node = null; }
+        if (chains) chains.forEach(c => c.gain.gain.setTargetAtTime(0, ac.currentTime, 0.02));
+        $('btnPlay').classList.remove('active');
+        $('btnOrbit').classList.remove('active');
+      }
+
+      async function startAudio(orbit) {
+        ensureCtx();
+        let buf;
+        if (srcKind === 'speech') {
+          $('audioNote').textContent = 'Loading speech…';
+          try { buf = await loadSpeech(); }
+          catch (e) { srcKind = 'noise'; $('srcNoise').classList.add('active'); $('srcSpeech').classList.remove('active'); }
+        }
+        if (!buf) {
+          if (!srcBuf.noise) srcBuf.noise = makeNoise(ac.sampleRate);
+          buf = srcBuf.noise;
+        }
+        $('audioNote').textContent = 'Headphones required — over speakers the two channels mix in the air and every cue is destroyed.';
+        if (node) { try { node.stop(); } catch (e) {} node.disconnect(); }
+        node = ac.createBufferSource();
+        node.buffer = buf;
+        node.loop = true;
+        chains.forEach(c => node.connect(c.conv));
+        playing = true;
+        node.start();
+        lastIrDeg = null;
+        updateIR(true);
+        orbiting = orbit;
+        orbitT0 = performance.now();
+        $('btnPlay').classList.toggle('active', !orbit);
+        $('btnOrbit').classList.toggle('active', orbit);
+      }
+
+      function drawIRChart() {
+        const cv = $('irChart');
+        const o = fit(cv, 150), g = o.g, w = o.w, h = o.h;
+        const pad = { l: 44, r: 12, t: 14, b: 22 };
+        axes(g, w, h, pad);
+        if (!ac || !chains || !chains[activeChain].conv.buffer) {
+          g.fillStyle = 'rgba(255,255,255,0.35)';
+          g.font = '12px Roboto, Helvetica, sans-serif';
+          g.textAlign = 'center';
+          g.fillText('press Play or Orbit to render the impulse response', w / 2, h / 2);
+          return;
+        }
+        const b = chains[activeChain].conv.buffer;
+        const sr = b.sampleRate;
+        const N = b.length;
+        // zoom to the middle of the window where the response actually sits
+        const lo = Math.floor(N / 2 - 48), hi = Math.floor(N / 2 + 80);
+        let peak = 1e-6;
+        for (let c = 0; c < 2; c++) {
+          const d = b.getChannelData(c);
+          for (let i = lo; i < hi; i++) peak = Math.max(peak, Math.abs(d[i]));
+        }
+        const xs = i => pad.l + (i - lo) / (hi - lo - 1) * (w - pad.l - pad.r);
+        const mid = pad.t + (h - pad.t - pad.b) / 2;
+        const ys = v => mid - (v / peak) * (h - pad.t - pad.b) * 0.45;
+        g.strokeStyle = 'rgba(255,255,255,0.12)';
+        g.beginPath(); g.moveTo(pad.l, mid); g.lineTo(w - pad.r, mid); g.stroke();
+        [['#2a8b2a', 0], ['#bc122a', 1]].forEach(([col, c]) => {
+          const d = b.getChannelData(c);
+          g.strokeStyle = col; g.lineWidth = 1.5;
+          g.beginPath();
+          for (let i = lo; i < hi; i++) {
+            const X = xs(i), Y = ys(d[i]);
+            i === lo ? g.moveTo(X, Y) : g.lineTo(X, Y);
+          }
+          g.stroke();
+        });
+        for (let k = 0; k <= 4; k++) {
+          const i = lo + (hi - lo - 1) * k / 4;
+          labelX(g, xs(i), h - 7, ((i - N / 2) / sr * 1000).toFixed(2) + ' ms');
+        }
+        labelY(g, pad.l - 6, mid + 3, '0');
+        g.fillStyle = 'rgba(255,255,255,0.5)';
+        g.font = '10px Roboto, Helvetica, sans-serif';
+        g.textAlign = 'right';
+        g.fillText('green = shaped channel   red = reference', w - pad.r, pad.t + 2);
+      }
+
+      // ================= readouts =================
+      // Cue strengths depend only on the geometry and probe frequency, never on where
+      // the talker is — so cache them rather than recomputing during an orbit sweep.
+      let cueCache = { key: null, val: null };
+      function cueStrengths() {
+        const key = state.mode + '|' + state.spacingCm + '|' + state.freq;
+        if (cueCache.key === key) return cueCache.val;
+        // true peak-to-peak swing across all azimuths; the microstructure's response
+        // is not symmetric about 0 dB, so a doubled max-absolute would overstate it
+        let itdLo = Infinity, itdHi = -Infinity, ildLo = Infinity, ildHi = -Infinity;
+        for (let a = -180; a <= 180; a += 2) {
+          const ti = itdSec(a) * 1e6, li = ildDb(state.freq, a);
+          if (ti < itdLo) itdLo = ti;
+          if (ti > itdHi) itdHi = ti;
+          if (li < ildLo) ildLo = li;
+          if (li > ildHi) ildHi = li;
+        }
+        const val = { itdPP: itdHi - itdLo, ildPP: ildHi - ildLo, fb: frontBackContrastDb() };
+        cueCache = { key, val };
+        return val;
+      }
+
+      function updateReadouts() {
+        const d = state.azDeg, m = mirrorDeg(d), f = state.freq;
+        const itdA = itdSec(d) * 1e6, itdB = itdSec(m) * 1e6;
+        const ildA = ildDb(f, d), ildB = ildDb(f, m);
+        $('roItd').textContent = (itdA >= 0 ? '+' : '') + itdA.toFixed(Math.abs(itdA) < 100 ? 1 : 0);
+        $('roItdU').textContent = 'µs · mirror: ' + (itdB >= 0 ? '+' : '') + itdB.toFixed(Math.abs(itdB) < 100 ? 1 : 0) + ' µs';
+        $('roIld').textContent = (ildA >= 0 ? '+' : '') + ildA.toFixed(1);
+        $('roIldU').textContent = 'dB · mirror: ' + (ildB >= 0 ? '+' : '') + ildB.toFixed(1) + ' dB';
+
+        const sd = spectralDistanceDb(d, m);
+        $('roSpec').textContent = sd.toFixed(1);
+        const resolved = sd > 1.5;
+        const fb = $('roFB');
+        fb.textContent = resolved ? 'RESOLVED' : 'AMBIGUOUS';
+        fb.className = 'v ' + (resolved ? 'good' : 'bad');
+        $('roFBU').textContent = resolved
+          ? 'coloring differs between the two'
+          : (Math.abs(Math.abs(d) - 90) < 3 ? 'θ is its own mirror here' : 'no cue separates them');
+
+        const cue = cueStrengths();
+        $('roCueT').textContent = cue.itdPP.toFixed(cue.itdPP < 200 ? 1 : 0);
+        $('roCueL').textContent = cue.ildPP.toFixed(1);
+        $('roCueLU').textContent = 'dB swing at ' + f + ' Hz';
+        $('roCueS').textContent = cue.fb.toFixed(1);
+
+        const res = resolutionDeg(d);
+        const rEl = $('roRes');
+        rEl.textContent = isFinite(res) ? (res < 10 ? res.toFixed(1) : res.toFixed(0)) + '°' : '—';
+        rEl.className = 'v ' + (res < 4 ? 'good' : res > 12 ? 'bad' : '');
+      }
+
+      // ================= wiring =================
+      function setMode(m) {
+        state.mode = m;
+        document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+        $('spSlider').disabled = (m === 'ears');
+        $('modeNote').textContent = m === 'ears'
+          ? 'Two ears 17.5 cm apart, with a shadowing sphere and a pinna between them.'
+          : m === 'bare'
+            ? 'Two plain microphones on a small rigid body — no shadow, no shape, cue strength set purely by spacing.'
+            : 'Same pair, but the first mic sits inside a 3D-printed microstructure; the second is a bare reference.';
+        $('sceneTag').textContent = m === 'ears'
+          ? 'Head at origin · wavefront arriving from θ'
+          : 'Mic pair at origin · wavefront arriving from θ';
+        lastIrDeg = null;
+        redraw();
+        updateIR(true);
+      }
+
+      // per-frame work: everything that tracks the source azimuth
+      function redraw() {
+        drawScene();
+        drawCueChart($('itdChart'), d => itdSec(d) * 1e6, 'ITD (µs)', v => v.toFixed(Math.abs(v) < 100 ? 1 : 0), 20);
+        drawCueChart($('ildChart'), d => ildDb(state.freq, d), 'ILD (dB)', v => v.toFixed(1), 2);
+        drawSpecChart();
+        drawIRChart();
+        updateReadouts();
+      }
+      // only depends on geometry, not on where the talker is
+      function redrawAll() {
+        redraw();
+        drawTradeChart();
+      }
+
+      document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+      $('spSlider').addEventListener('input', e => {
+        state.spacingCm = +e.target.value;
+        $('spVal').textContent = state.spacingCm.toFixed(1) + ' cm';
+        lastIrDeg = null;
+        redrawAll();
+        updateIR(true);
+      });
+      $('frSlider').addEventListener('input', e => {
+        state.freq = +e.target.value;
+        $('frVal').textContent = state.freq + ' Hz';
+        redraw();
+      });
+      $('azSlider').addEventListener('input', e => {
+        setAz(+e.target.value);
+      });
+
+      function setAz(deg) {
+        state.azDeg = clamp(Math.round(deg), -180, 180);
+        $('azSlider').value = state.azDeg;
+        $('azVal').textContent = (state.azDeg > 0 ? '+' : '') + state.azDeg + '°';
+        redraw();
+        updateIR(false);
+      }
+
+      // drag the talker in the scene
+      let dragging = false;
+      function pointerAz(e) {
+        const r = scene.getBoundingClientRect();
+        const pt = e.touches ? e.touches[0] : e;
+        return xyToAz(pt.clientX - r.left, pt.clientY - r.top);
+      }
+      function onDown(e) {
+        const az = pointerAz(e);
+        dragging = true;
+        orbiting = false;
+        $('btnOrbit').classList.remove('active');
+        setAz(az);
+        e.preventDefault();
+      }
+      function onMove(e) { if (dragging) { setAz(pointerAz(e)); e.preventDefault(); } }
+      function onUp() { dragging = false; }
+      scene.addEventListener('mousedown', onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      scene.addEventListener('touchstart', onDown, { passive: false });
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend', onUp);
+
+      $('srcSpeech').addEventListener('click', () => {
+        srcKind = 'speech';
+        $('srcSpeech').classList.add('active'); $('srcNoise').classList.remove('active');
+        if (playing) startAudio(orbiting);
+      });
+      $('srcNoise').addEventListener('click', () => {
+        srcKind = 'noise';
+        $('srcNoise').classList.add('active'); $('srcSpeech').classList.remove('active');
+        if (playing) startAudio(orbiting);
+      });
+      $('btnPlay').addEventListener('click', () => startAudio(false));
+      $('btnOrbit').addEventListener('click', () => startAudio(true));
+      $('btnStop').addEventListener('click', stopAudio);
+
+      function tick() {
+        if (orbiting && playing) {
+          const t = (performance.now() - orbitT0) / 1000;
+          let a = ((t / 7) * 360) % 360;
+          if (a > 180) a -= 360;
+          setAz(a);
+        }
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener('resize', redrawAll);
+      setMode('ears');
+      setAz(40);
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>
