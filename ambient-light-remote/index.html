@@ -392,7 +392,8 @@
             <span class="unit" id="luxUnitBig">lx</span>
             <span class="desc">
               <span id="luxScene">&mdash;</span><br />
-              Source <strong id="luxSource">&mdash;</strong>
+              Source <strong id="luxSource">&mdash;</strong><br />
+              Sampling <strong id="luxRate">&mdash; Hz</strong>
             </span>
           </div>
           <div class="canvas-wrap">
@@ -587,6 +588,7 @@
         const luxUnitsEl   = document.getElementById('luxUnits');
         const luxSceneEl   = document.getElementById('luxScene');
         const luxSourceEl  = document.getElementById('luxSource');
+        const luxRateEl    = document.getElementById('luxRate');
 
         const WMIN = 1, WMAX = 600;
         const sliderToWin = t => WMIN * Math.pow(WMAX / WMIN, t);
@@ -763,7 +765,7 @@
           }
           if (now - rateAt > 500) {
             const hz = sampleCount * 1000 / (now - rateAt);
-            rateEl.textContent = hz.toFixed(0) + ' Hz';
+            rateEl.textContent = luxRateEl.textContent = hz.toFixed(hz < 10 ? 1 : 0) + ' Hz';
             rateAt = now;
             sampleCount = 0;
           }
@@ -784,9 +786,9 @@
 
         setInterval(() => {
           if (!dataConn || !dataConn.open) {
-            rateEl.textContent = '— Hz';
+            rateEl.textContent = luxRateEl.textContent = '— Hz';
           } else if (performance.now() - lastSampleAt > 1500) {
-            rateEl.textContent = 'idle';
+            rateEl.textContent = luxRateEl.textContent = 'idle';
           }
         }, 500);
       }
@@ -1423,8 +1425,10 @@
           conn.send({ type: 'caps', src, unit, note: exposureNote });
         }
 
+        let emitCount = 0, emitRateAt = performance.now(), emitHz = null;
         function emit(v) {
           latest = v;
+          emitCount++;
           if (!conn || !conn.open) return;
           conn.send({ type: 'light', t: (performance.now() - t0) / 1000, v });
         }
@@ -1559,6 +1563,13 @@
         setInterval(() => {
           if (latest === null) return;
           phoneLux.textContent = fmtLevel(latest) + ' ' + unit;
+          const now = performance.now();
+          if (now - emitRateAt >= 1000) {
+            emitHz = emitCount * 1000 / (now - emitRateAt);
+            emitCount = 0;
+            emitRateAt = now;
+            phoneMeta.textContent = exposureNote + (exposureNote ? ' · ' : '') + emitHz.toFixed(emitHz < 10 ? 1 : 0) + ' Hz';
+          }
         }, 100);
 
         phoneStart.addEventListener('click', async () => {
