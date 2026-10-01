@@ -3,7 +3,7 @@
 
 Reads the laptop's current Wi-Fi link metrics from the operating system
 and streams them to a browser page over Server-Sent Events. Open
-http://localhost:8765 once the helper is running.
+http://localhost:8737 once the helper is running.
 
 Demo: turn on your phone's personal hotspot, connect this laptop to it,
 then run this helper, open the page, and walk the phone around the room.
@@ -24,7 +24,7 @@ and serves them over Server-Sent Events to a browser page at
 http://localhost:PORT.
 
 Options:
-  --port PORT   Port to listen on (default: 8765)
+  --port PORT   Port to listen on (default: 8737)
   --no-browser  Don't auto-open the page in the default browser
 
 Per-platform sources:
@@ -47,7 +47,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-PORT = 8765
+PORT = 8737
 if '--port' in sys.argv:
     PORT = int(sys.argv[sys.argv.index('--port') + 1])
 OPEN_BROWSER = '--no-browser' not in sys.argv

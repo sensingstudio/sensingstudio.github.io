@@ -276,7 +276,7 @@
           <li>Turn on your phone's <b>personal hotspot</b> and connect this laptop to it.</li>
           <li>Download the helper script and place it in a folder of your choice.</li>
           <li>In a terminal, <code>cd</code> into that folder and run <code>python3 helper.py</code>.</li>
-          <li>Open <code>http://localhost:8765</code> in your browser. (If you're already there, refresh.)</li>
+          <li>Open <code>http://localhost:8737</code> in your browser. (If you're already there, refresh.)</li>
           <li>Walk the phone around the room and watch the dBm value (and TX rate) change.</li>
         </ol>
         <div class="actions">
@@ -685,7 +685,7 @@
       function connect() {
         const url = (location.protocol === 'http:' || location.protocol === 'https:')
           ? '/rssi'
-          : 'http://localhost:8765/rssi';
+          : 'http://localhost:8737/rssi';
         const es = new EventSource(url);
         es.onmessage = (ev) => {
           try { render(JSON.parse(ev.data)); } catch (e) {}
@@ -949,7 +949,7 @@
         try {
           const url = (location.protocol === 'http:' || location.protocol === 'https:')
             ? '/scan'
-            : 'http://localhost:8765/scan';
+            : 'http://localhost:8737/scan';
           const r = await fetch(url, { cache: 'no-store' });
           const d = await r.json();
           renderScan(d);
