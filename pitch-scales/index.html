@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Linear vs Log Pitch · Sensing Studio</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XTHNL4559K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-XTHNL4559K');
+    </script>
+    <style>
+      :root {
+        --red: #bc122a;
+        --black: #111;
+        --grey-line: #dee2e6;
+        --grey-text: #5b6068;
+        --bg: #fafafa;
+        --lin: #4a90e8;
+        --log: #b88a0c;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: 'Roboto', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--black);
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 20px 32px;
+        border-bottom: 1px solid var(--grey-line);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header a.brand {
+        color: var(--black);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: -0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      header a.brand .red { color: var(--red); }
+      header a.brand svg.logo { width: 28px; height: 28px; flex: 0 0 auto; }
+      header .crumb {
+        color: var(--grey-text);
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      @media (max-width: 600px) { main { padding: 20px 16px; } }
+      h1 {
+        font-weight: 900;
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      p.lead {
+        color: var(--grey-text);
+        margin: 0 0 32px;
+        max-width: 64ch;
+        line-height: 1.5;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--grey-line);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      @media (max-width: 600px) { .panel { padding: 18px 14px; } }
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px 28px;
+        margin-bottom: 18px;
+      }
+      .ctl { display: flex; flex-direction: column; gap: 6px; }
+      .ctl-head { display: flex; justify-content: space-between; align-items: baseline; }
+      label {
+        font-size: 12px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 500;
+      }
+      .val { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; }
+      input[type="range"] { width: 100%; }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      button {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 10px 18px;
+        border: 1px solid var(--black);
+        background: var(--black);
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      button:hover:not(:disabled) { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--black); }
+      button.danger { background: var(--red); border-color: var(--red); }
+      button .sw { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+      .sw.lin { background: var(--lin); }
+      .sw.log { background: var(--log); }
+      .seg { display: inline-flex; border: 1px solid var(--grey-line); border-radius: 6px; overflow: hidden; }
+      .seg button {
+        border: 0;
+        border-radius: 0;
+        background: #fff;
+        color: var(--grey-text);
+        padding: 8px 14px;
+        font-size: 12px;
+      }
+      .seg button.on { background: var(--black); color: #fff; }
+      .canvas-wrap {
+        position: relative;
+        background: #0c0c0e;
+        border-radius: 6px;
+        overflow: hidden;
+        height: 500px;
+      }
+      @media (max-width: 600px) { .canvas-wrap { height: 470px; } }
+      canvas { width: 100%; height: 100%; display: block; }
+      .tip {
+        position: absolute;
+        pointer-events: none;
+        background: rgba(20, 20, 24, 0.94);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #f2f2f2;
+        font-size: 12px;
+        line-height: 1.45;
+        padding: 7px 10px;
+        border-radius: 5px;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+        display: none;
+        z-index: 2;
+      }
+      .tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .stat {
+        border: 1px solid var(--grey-line);
+        border-radius: 8px;
+        padding: 12px 14px;
+      }
+      .stat .k {
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--grey-text);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .stat .v { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+      .stat .s { font-size: 12px; color: var(--grey-text); margin-top: 2px; line-height: 1.4; }
+      .note {
+        font-size: 13px;
+        color: var(--grey-text);
+        margin: 16px 0 0;
+        line-height: 1.55;
+        max-width: 72ch;
+      }
+      .note code { background: #f1f2f4; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+      .quiz-status { font-size: 14px; color: var(--grey-text); line-height: 1.5; min-height: 21px; }
+      .quiz-status b { color: var(--black); }
+      .tally { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--grey-text); margin-left: auto; }
+    </style>
+  </head>
+  <body>
+    <header data-nav data-crumb="Linear vs Log Pitch"></header>
+    <script src="../nav.js" defer></script>
+    <main>
+      <h1>Linear vs Log Pitch</h1>
+      <p class="lead">Two staircases of tones span the same range. One climbs in equal steps of <em>hertz</em>; the other climbs in equal <em>ratios</em>. On paper the linear one is the &ldquo;even&rdquo; one &mdash; but play them and the logarithmic staircase is the one that sounds evenly spaced, because the ear hears pitch by ratio.</p>
+
+      <section class="panel">
+        <h2>Scales</h2>
+        <div class="controls">
+          <div class="ctl">
+            <div class="ctl-head"><label for="loSlider">Lowest</label><span class="val" id="loVal"></span></div>
+            <input type="range" id="loSlider" min="0" max="1" step="0.001" />
+          </div>
+          <div class="ctl">
+            <div class="ctl-head"><label for="hiSlider">Highest</label><span class="val" id="hiVal"></span></div>
+            <input type="range" id="hiSlider" min="0" max="1" step="0.001" />
+          </div>
+          <div class="ctl">
+            <div class="ctl-head"><label for="nSlider">Notes</label><span class="val" id="nVal"></span></div>
+            <input type="range" id="nSlider" min="3" max="25" step="1" value="13" />
+          </div>
+          <div class="ctl">
+            <div class="ctl-head"><label for="durSlider" id="durLabel">Note length</label><span class="val" id="durVal"></span></div>
+            <input type="range" id="durSlider" min="120" max="900" step="10" value="320" />
+          </div>
+          <div class="ctl">
+            <div class="ctl-head"><label for="volSlider">Volume</label><span class="val" id="volVal"></span></div>
+            <input type="range" id="volSlider" min="0" max="0.4" step="0.005" value="0.12" />
+          </div>
+          <div class="ctl">
+            <label>Playback</label>
+            <div class="row">
+              <div class="seg" id="modeSeg">
+                <button data-v="steps" class="on">Steps</button>
+                <button data-v="glide">Glide</button>
+              </div>
+              <div class="seg" id="timbreSeg">
+                <button data-v="sine" class="on">Sine</button>
+                <button data-v="soft">Soft</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <button id="playLin"><span class="sw lin"></span>Play linear</button>
+          <button id="playLog"><span class="sw log"></span>Play logarithmic</button>
+          <button id="playBoth" class="secondary">Linear, then log</button>
+          <button id="stopBtn" class="secondary" disabled>Stop</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Where the notes land</h2>
+        <div class="canvas-wrap" id="wrap">
+          <canvas id="cv" aria-label="Note positions on a hertz axis and on a pitch axis, plus step size in semitones"></canvas>
+          <div class="tip" id="tip"></div>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="k"><span class="sw lin" style="width:9px;height:9px;border-radius:50%;display:inline-block"></span>Linear step</div>
+            <div class="v" id="linStep"></div>
+            <div class="s" id="linSub"></div>
+          </div>
+          <div class="stat">
+            <div class="k"><span class="sw log" style="width:9px;height:9px;border-radius:50%;display:inline-block"></span>Log step</div>
+            <div class="v" id="logStep"></div>
+            <div class="s" id="logSub"></div>
+          </div>
+          <div class="stat">
+            <div class="k">Now playing</div>
+            <div class="v" id="nowVal">&mdash;</div>
+            <div class="s" id="nowSub">Click a dot to hear a single note.</div>
+          </div>
+        </div>
+        <p class="note">Top ruler: hertz on a linear axis &mdash; the linear notes are evenly spaced, the log notes pile up at the bottom. Middle ruler: the same notes on a log axis, which is roughly how the cochlea lays out frequency &mdash; now the log notes are even and the linear ones crowd together at the top. Bottom: each step's size in semitones (<code>12&middot;log<sub>2</sub>(f<sub>k</sub>/f<sub>k&minus;1</sub>)</code>). The linear staircase opens with huge leaps and ends in steps so small they blur together.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Blind test</h2>
+        <p class="note" style="margin: -6px 0 16px;">Hear both staircases in random order without the labels, then pick the one whose steps sounded equally sized.</p>
+        <div class="row" style="margin-bottom: 14px;">
+          <button id="quizPlay">Play A, then B</button>
+          <button id="pickA" class="secondary" disabled>A sounded even</button>
+          <button id="pickB" class="secondary" disabled>B sounded even</button>
+          <span class="tally" id="tally">Picked log 0 of 0</span>
+        </div>
+        <div class="quiz-status" id="quizStatus">Uses the settings above.</div>
+      </section>
+
+      <style>
+        .attribution { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--grey-line); width: 100%; font-size: 13px; letter-spacing: 0.5px; color: var(--grey-text); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .attribution a { display: inline-flex; align-items: center; gap: 8px; color: var(--black); text-decoration: none; font-weight: 700; transition: color 0.15s, opacity 0.15s; }
+        .attribution a img { width: 22px; height: 22px; border-radius: 4px; display: block; }
+        .attribution a:hover { color: var(--red); }
+        .attribution a:hover img { opacity: 0.85; }
+      </style>
+      <footer class="attribution">
+        Created by
+        <a href="https://semanticsignals.com" target="_blank" rel="noopener">
+          <img src="../semanticsignals-logo.png" alt="" />
+          <span>Semantic Signals</span>
+        </a>
+      </footer>
+    </main>
+
+    <script>
+      const COL = { lin: '#4a90e8', log: '#b88a0c' };
+      const NAME = { lin: 'Linear', log: 'Logarithmic' };
+      const LO_MIN = 50, LO_MAX = 1000, HI_MIN = 400, HI_MAX = 10000;
+
+      const $ = id => document.getElementById(id);
+      const loSlider = $('loSlider'), hiSlider = $('hiSlider'), nSlider = $('nSlider');
+      const durSlider = $('durSlider'), volSlider = $('volSlider');
+      const cv = $('cv'), ctx = cv.getContext('2d'), wrap = $('wrap'), tip = $('tip');
+
+      const logMap = (t, a, b) => a * Math.pow(b / a, t);
+      const logUnmap = (f, a, b) => Math.log(f / a) / Math.log(b / a);
+      loSlider.value = logUnmap(220, LO_MIN, LO_MAX);
+      hiSlider.value = logUnmap(3520, HI_MIN, HI_MAX);
+
+      let mode = 'steps', timbre = 'sine';
+
+      const fmtHz = f => f >= 1000 ? (f / 1000).toFixed(f >= 10000 ? 1 : 2) + ' kHz' : Math.round(f) + ' Hz';
+      const semis = (a, b) => 12 * Math.log2(b / a);
+      const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      function noteName(f) {
+        const m = 69 + 12 * Math.log2(f / 440);
+        const r = Math.round(m);
+        const cents = Math.round((m - r) * 100);
+        return NOTES[((r % 12) + 12) % 12] + (Math.floor(r / 12) - 1) + (cents ? (cents > 0 ? ' +' : ' ') + cents + '¢' : '');
+      }
+
+      /** Read the controls and return both note sequences. Highest is kept at least an octave above lowest. */
+      function params() {
+        const lo = logMap(+loSlider.value, LO_MIN, LO_MAX);
+        let hi = logMap(+hiSlider.value, HI_MIN, HI_MAX);
+        if (hi < lo * 2) hi = lo * 2;
+        const n = +nSlider.value;
+        const lin = [], log = [];
+        for (let k = 0; k < n; k++) {
+          const t = k / (n - 1);
+          lin.push(lo + (hi - lo) * t);
+          log.push(lo * Math.pow(hi / lo, t));
+        }
+        return { lo, hi, n, dur: +durSlider.value, seq: { lin, log } };
+      }
+
+      // ---------- audio ----------
+      let audioCtx = null, master = null, softWave = null;
+      let voices = [];      // oscillators currently scheduled
+      let events = [];      // {t0, t1, series, idx, f0, f1, glide, label}
+      let blind = false;
+
+      function ensureContext() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          master = audioCtx.createGain();
+          master.gain.value = +volSlider.value;
+          master.connect(audioCtx.destination);
+          // a few decaying harmonics: easier to hear pitch on small speakers than a bare sine
+          softWave = audioCtx.createPeriodicWave(new Float32Array([0, 0, 0, 0, 0, 0]),
+                                                 new Float32Array([0, 1, 0.45, 0.2, 0.1, 0.05]));
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      }
+
+      function makeOsc() {
+        const osc = audioCtx.createOscillator();
+        if (timbre === 'soft') osc.setPeriodicWave(softWave); else osc.type = 'sine';
+        const g = audioCtx.createGain();
+        g.gain.value = 0;
+        osc.connect(g).connect(master);
+        voices.push(osc);
+        osc.onended = () => { g.disconnect(); voices = voices.filter(v => v !== osc); };
+        return { osc, g };
+      }
+
+      function envelope(g, t0, t1) {
+        const atk = 0.012, rel = Math.min(0.06, (t1 - t0) * 0.3);
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(1, t0 + atk);
+        g.gain.setValueAtTime(1, t1 - rel);
+        g.gain.linearRampToValueAtTime(0, t1);
+      }
+
+      function scheduleNote(f, t0, t1, ev) {
+        const { osc, g } = makeOsc();
+        osc.frequency.value = f;
+        envelope(g, t0, t1);
+        osc.start(t0); osc.stop(t1 + 0.02);
+        events.push({ ...ev, t0, t1, f0: f, f1: f });
+      }
+
+      /** Schedule one staircase starting at t; returns the time it ends. */
+      function scheduleSeries(series, t, label) {
+        const p = params();
+        const seq = p.seq[series];
+        const step = p.dur / 1000;
+        if (mode === 'steps') {
+          seq.forEach((f, idx) => scheduleNote(f, t + idx * step, t + idx * step + step * 0.88, { series, idx, label }));
+          return t + seq.length * step;
+        }
+        const T = step * (seq.length - 1);
+        const { osc, g } = makeOsc();
+        osc.frequency.setValueAtTime(p.lo, t);
+        if (series === 'lin') osc.frequency.linearRampToValueAtTime(p.hi, t + T);
+        else osc.frequency.exponentialRampToValueAtTime(p.hi, t + T);
+        envelope(g, t, t + T);
+        osc.start(t); osc.stop(t + T + 0.02);
+        events.push({ series, glide: true, t0: t, t1: t + T, f0: p.lo, f1: p.hi, label });
+        return t + T;
+      }
+
+      function stopAll() {
+        voices.forEach(o => { try { o.stop(); } catch (e) {} });
+        voices = [];
+        events = [];
+        playingUntil = 0;
+        $('stopBtn').disabled = true;
+      }
+
+      let playingUntil = 0;
+      function play(list, isBlind = false) {
+        ensureContext();
+        stopAll();
+        blind = isBlind;
+        let t = audioCtx.currentTime + 0.08;
+        list.forEach(([series, label], i) => {
+          if (i) t += 0.9;
+          t = scheduleSeries(series, t, label);
+        });
+        playingUntil = t;
+        $('stopBtn').disabled = false;
+        startAnim();
+      }
+
+      $('playLin').onclick = () => play([['lin']]);
+      $('playLog').onclick = () => play([['log']]);
+      $('playBoth').onclick = () => play([['lin'], ['log']]);
+      $('stopBtn').onclick = () => { stopAll(); draw(); };
+
+      volSlider.addEventListener('input', () => {
+        if (master) master.gain.setTargetAtTime(+volSlider.value, audioCtx.currentTime, 0.02);
+        updateLabels();
+      });
+
+      function bindSeg(el, set) {
+        el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+          el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+          set(b.dataset.v);
+          updateLabels();
+        }));
+      }
+      bindSeg($('modeSeg'), v => { mode = v; });
+      bindSeg($('timbreSeg'), v => { timbre = v; });
+
+      // ---------- blind test ----------
+      let quiz = null, nQuiz = 0, nLog = 0;
+      $('quizPlay').onclick = () => {
+        const order = Math.random() < 0.5 ? ['lin', 'log'] : ['log', 'lin'];
+        quiz = { A: order[0], B: order[1] };
+        play([[order[0], 'A'], [order[1], 'B']], true);
+        $('pickA').disabled = $('pickB').disabled = false;
+        $('quizStatus').textContent = 'Listening: A first, then B. Pick whenever you are ready.';
+      };
+      function pick(which) {
+        if (!quiz) return;
+        const chosen = quiz[which];
+        nQuiz++;
+        if (chosen === 'log') nLog++;
+        $('quizStatus').innerHTML = `${which} was the <b>${NAME[chosen].toLowerCase()}</b> staircase. ` +
+          (chosen === 'log'
+            ? 'Equal ratios sound like equal steps.'
+            : 'Equal hertz steps only sound even over a narrow range &mdash; try widening it.');
+        $('tally').textContent = `Picked log ${nLog} of ${nQuiz}`;
+        $('pickA').disabled = $('pickB').disabled = true;
+        quiz = null;
+        blind = false;
+        draw();
+      }
+      $('pickA').onclick = () => pick('A');
+      $('pickB').onclick = () => pick('B');
+
+      // ---------- drawing ----------
+      let W = 0, H = 0, layout = null, hover = null;
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        W = wrap.clientWidth; H = wrap.clientHeight;
+        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+      }
+      new ResizeObserver(resize).observe(wrap);
+
+      function niceStep(span, target) {
+        const raw = span / target, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+        const r = raw / mag;
+        return (r < 1.5 ? 1 : r < 3.5 ? 2 : r < 7.5 ? 5 : 10) * mag;
+      }
+
+      /** What is sounding right now, if anything. */
+      function current() {
+        if (!audioCtx || !events.length) return null;
+        const t = audioCtx.currentTime;
+        const ev = events.find(e => t >= e.t0 && t < e.t1);
+        if (!ev) return null;
+        if (!ev.glide) return { ...ev, f: ev.f0 };
+        const u = (t - ev.t0) / (ev.t1 - ev.t0);
+        const f = ev.series === 'lin' ? ev.f0 + (ev.f1 - ev.f0) * u : ev.f0 * Math.pow(ev.f1 / ev.f0, u);
+        return { ...ev, f };
+      }
+
+      function draw() {
+        if (!W) return;
+        const p = params();
+        const narrow = W < 560;
+        const L = narrow ? 64 : 104, R = narrow ? 14 : 24;
+        const x0 = L, x1 = W - R;
+        const pad = (p.hi - p.lo) * 0.03;
+        const linX = f => x0 + (f - (p.lo - pad)) / ((p.hi + pad) - (p.lo - pad)) * (x1 - x0);
+        const lpad = Math.log(p.hi / p.lo) * 0.03;
+        const logX = f => x0 + (Math.log(f / p.lo) + lpad) / (Math.log(p.hi / p.lo) + 2 * lpad) * (x1 - x0);
+
+        const laneH = 24;
+        const rulers = [
+          { title: 'HERTZ  (linear axis)', y: 30, X: linX, kind: 'lin' },
+          { title: 'PITCH  (log axis, how the ear hears)', y: 150, X: logX, kind: 'log' },
+        ];
+        const chart = { top: 290, bottom: H - 34 };
+        layout = { rulers, chart, laneH, x0, x1, p, narrow };
+
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0c0c0e';
+        ctx.fillRect(0, 0, W, H);
+        ctx.font = '500 11px Roboto, Helvetica, Arial, sans-serif';
+        ctx.textBaseline = 'middle';
+
+        const cur = current();
+        const showCur = cur && !blind;
+
+        rulers.forEach(r => {
+          ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          ctx.textAlign = 'left';
+          ctx.font = '700 10.5px Roboto, Helvetica, Arial, sans-serif';
+          ctx.fillText(r.title, x0, r.y);
+          ctx.font = '500 11px Roboto, Helvetica, Arial, sans-serif';
+
+          const axisY = r.y + 18 + laneH * 2 + 8;
+          // grid + tick labels
+          let ticks;
+          if (r.kind === 'lin') {
+            const st = niceStep(p.hi - p.lo, narrow ? 4 : 7);
+            ticks = [];
+            for (let v = Math.ceil(p.lo / st) * st; v <= p.hi; v += st) ticks.push(v);
+          } else {
+            ticks = [];
+            for (let e = 1; e <= 5; e++) for (const m of [1, 2, 5]) {
+              const v = m * Math.pow(10, e);
+              if (v >= p.lo * 0.999 && v <= p.hi * 1.001) ticks.push(v);
+            }
+            if (narrow && ticks.length > 5) ticks = ticks.filter((_, i) => i % 2 === 0);
+          }
+          ctx.textAlign = 'center';
+          ticks.forEach(v => {
+            const x = r.X(v);
+            ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x, r.y + 14); ctx.lineTo(x, axisY); ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.45)';
+            ctx.fillText(fmtHz(v), x, axisY + 12);
+          });
+          ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+          ctx.beginPath(); ctx.moveTo(x0, axisY); ctx.lineTo(x1, axisY); ctx.stroke();
+
+          ['lin', 'log'].forEach((s, li) => {
+            const cy = r.y + 18 + laneH * li + laneH / 2;
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.beginPath(); ctx.moveTo(x0, cy); ctx.lineTo(x1, cy); ctx.stroke();
+            ctx.textAlign = 'right';
+            ctx.fillStyle = 'rgba(255,255,255,0.78)';
+            ctx.fillText(narrow ? (s === 'lin' ? 'Lin' : 'Log') : NAME[s], x0 - 12, cy);
+            p.seq[s].forEach((f, idx) => {
+              const x = r.X(f);
+              const playing = showCur && !cur.glide && cur.series === s && cur.idx === idx;
+              const hov = hover && hover.type === 'dot' && hover.series === s && hover.idx === idx;
+              ctx.beginPath();
+              ctx.arc(x, cy, playing ? 7 : 4.5, 0, Math.PI * 2);
+              ctx.fillStyle = COL[s];
+              ctx.fill();
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = playing || hov ? '#fff' : '#0c0c0e';
+              ctx.stroke();
+            });
+            if (showCur && cur.glide && cur.series === s) {
+              const x = r.X(cur.f);
+              ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+              ctx.beginPath(); ctx.moveTo(x, cy - 10); ctx.lineTo(x, cy + 10); ctx.stroke();
+            }
+          });
+        });
+
+        drawIntervals(p, chart, x0, x1, showCur ? cur : null);
+      }
+
+      function drawIntervals(p, c, x0, x1, cur) {
+        const n = p.n;
+        const lin = p.seq.lin, log = p.seq.log;
+        const iv = { lin: [], log: [] };
+        for (let k = 1; k < n; k++) {
+          iv.lin.push(semis(lin[k - 1], lin[k]));
+          iv.log.push(semis(log[k - 1], log[k]));
+        }
+        const ymax = Math.max(...iv.lin, ...iv.log) * 1.08;
+        const yTop = c.top + 26, yBot = c.bottom;
+        const X = k => x0 + (n === 2 ? 0.5 : (k - 1) / (n - 2)) * (x1 - x0 - 70);
+        const Y = v => yBot - v / ymax * (yBot - yTop);
+        layout.iv = { iv, X, Y, yTop, yBot };
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '700 10.5px Roboto, Helvetica, Arial, sans-serif';
+        ctx.fillText('STEP SIZE  (semitones)', x0, c.top);
+        ctx.font = '500 11px Roboto, Helvetica, Arial, sans-serif';
+
+        const st = niceStep(ymax, 4);
+        ctx.textAlign = 'right';
+        for (let v = 0; v <= ymax; v += st) {
+          const y = Y(v);
+          ctx.strokeStyle = v === 0 ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)';
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.fillText(+v.toFixed(1), x0 - 10, y);
+        }
+        ctx.textAlign = 'center';
+        const every = Math.ceil((n - 1) / (layout.narrow ? 6 : 12));
+        for (let k = 1; k < n; k += every) {
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.fillText(`${k}→${k + 1}`, X(k), yBot + 14);
+        }
+
+        if (hover && hover.type === 'step') {
+          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+          ctx.beginPath(); ctx.moveTo(X(hover.k), yTop); ctx.lineTo(X(hover.k), yBot); ctx.stroke();
+        }
+
+        ['log', 'lin'].forEach(s => {
+          ctx.strokeStyle = COL[s];
+          ctx.lineWidth = 2;
+          ctx.setLineDash(s === 'lin' ? [6, 4] : []);
+          ctx.beginPath();
+          iv[s].forEach((v, i) => { const x = X(i + 1), y = Y(v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+          ctx.stroke();
+          ctx.setLineDash([]);
+          iv[s].forEach((v, i) => {
+            const active = cur && !cur.glide && cur.series === s && cur.idx === i + 1;
+            const hov = hover && hover.type === 'step' && hover.k === i + 1;
+            ctx.beginPath();
+            ctx.arc(X(i + 1), Y(v), active ? 6.5 : 4, 0, Math.PI * 2);
+            ctx.fillStyle = COL[s]; ctx.fill();
+            ctx.lineWidth = 2; ctx.strokeStyle = active || hov ? '#fff' : '#0c0c0e'; ctx.stroke();
+          });
+          // direct label at the line end
+          const last = iv[s][iv[s].length - 1];
+          ctx.textAlign = 'left';
+          ctx.fillStyle = 'rgba(255,255,255,0.78)';
+          const ly = Y(last) + (s === 'log' && Math.abs(Y(last) - Y(iv.lin[iv.lin.length - 1])) < 14 ? -9 : 0);
+          ctx.fillText(s === 'lin' ? 'Linear' : 'Log', X(n - 1) + 12, ly);
+        });
+      }
+
+      // ---------- hover + click ----------
+      function hitTest(mx, my) {
+        if (!layout) return null;
+        const { rulers, laneH, p } = layout;
+        let best = null, bd = 14;
+        rulers.forEach(r => ['lin', 'log'].forEach((s, li) => {
+          const cy = r.y + 18 + laneH * li + laneH / 2;
+          if (Math.abs(my - cy) > laneH / 2) return;
+          p.seq[s].forEach((f, idx) => {
+            const d = Math.abs(mx - r.X(f));
+            if (d < bd) { bd = d; best = { type: 'dot', series: s, idx, f }; }
+          });
+        }));
+        if (best) return best;
+        const iv = layout.iv;
+        if (iv && my > iv.yTop - 10 && my < iv.yBot + 10 && p.n > 2) {
+          let k = 1, kd = Infinity;
+          for (let j = 1; j < p.n; j++) { const d = Math.abs(mx - iv.X(j)); if (d < kd) { kd = d; k = j; } }
+          if (kd < 40) return { type: 'step', k };
+        }
+        return null;
+      }
+
+      cv.addEventListener('pointermove', e => {
+        const rc = cv.getBoundingClientRect();
+        const mx = e.clientX - rc.left, my = e.clientY - rc.top;
+        hover = blind ? null : hitTest(mx, my);
+        cv.style.cursor = hover && hover.type === 'dot' ? 'pointer' : 'default';
+        if (!hover) { tip.style.display = 'none'; draw(); return; }
+        const p = layout.p;
+        let html;
+        if (hover.type === 'dot') {
+          const s = hover.series, k = hover.idx, f = hover.f;
+          const prev = k ? p.seq[s][k - 1] : null;
+          html = `<span class="sw" style="background:${COL[s]}"></span><b>${NAME[s]}</b> note ${k + 1}<br>` +
+                 `${fmtHz(f)} &middot; ${noteName(f)}` +
+                 (prev ? `<br>+${(f - prev).toFixed(0)} Hz = ${semis(prev, f).toFixed(2)} st from previous` : '');
+        } else {
+          const k = hover.k, iv = layout.iv.iv;
+          html = `Step ${k}→${k + 1}<br>` +
+                 `<span class="sw" style="background:${COL.lin}"></span>Linear ${iv.lin[k - 1].toFixed(2)} st<br>` +
+                 `<span class="sw" style="background:${COL.log}"></span>Log ${iv.log[k - 1].toFixed(2)} st`;
+        }
+        tip.innerHTML = html;
+        tip.style.display = 'block';
+        const tw = tip.offsetWidth, th = tip.offsetHeight;
+        let tx = mx + 14, ty = my - th - 10;
+        if (tx + tw > W - 6) tx = mx - tw - 14;
+        if (ty < 6) ty = my + 16;
+        tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
+        draw();
+      });
+      cv.addEventListener('pointerleave', () => { hover = null; tip.style.display = 'none'; draw(); });
+      cv.addEventListener('click', () => {
+        if (!hover || hover.type !== 'dot' || blind) return;
+        ensureContext();
+        stopAll();
+        const t = audioCtx.currentTime + 0.03;
+        scheduleNote(hover.f, t, t + Math.max(0.35, +durSlider.value / 1000), { series: hover.series, idx: hover.idx });
+        playingUntil = t + 0.6;
+        $('stopBtn').disabled = false;
+        startAnim();
+      });
+
+      // ---------- readouts ----------
+      function updateLabels() {
+        const p = params();
+        $('loVal').textContent = fmtHz(p.lo);
+        $('hiVal').textContent = fmtHz(p.hi) + (logMap(+hiSlider.value, HI_MIN, HI_MAX) < p.lo * 2 ? ' (min 1 oct)' : '');
+        $('nVal').textContent = p.n;
+        $('durLabel').textContent = mode === 'steps' ? 'Note length' : 'Glide time / note';
+        $('durVal').textContent = mode === 'steps' ? p.dur + ' ms' : ((p.dur * (p.n - 1)) / 1000).toFixed(1) + ' s total';
+        $('volVal').textContent = Math.round(+volSlider.value / 0.4 * 100) + '%';
+
+        const dHz = (p.hi - p.lo) / (p.n - 1);
+        const ratio = Math.pow(p.hi / p.lo, 1 / (p.n - 1));
+        const first = semis(p.lo, p.lo + dHz), last = semis(p.hi - dHz, p.hi);
+        $('linStep').textContent = `+${dHz < 100 ? dHz.toFixed(1) : Math.round(dHz)} Hz`;
+        $('linSub').textContent = `${first.toFixed(1)} st at the bottom, ${last.toFixed(1)} st at the top (${(first / last).toFixed(1)}× smaller)`;
+        $('logStep').textContent = `×${ratio.toFixed(3)}`;
+        $('logSub').textContent = `${semis(1, ratio).toFixed(2)} st every step, ${(Math.log2(p.hi / p.lo)).toFixed(1)} octaves total`;
+        draw();
+      }
+      [loSlider, hiSlider, nSlider, durSlider].forEach(el => el.addEventListener('input', () => {
+        if (events.length) stopAll();
+        updateLabels();
+      }));
+
+      let animating = false;
+      function startAnim() {
+        if (animating) return;
+        animating = true;
+        requestAnimationFrame(tick);
+      }
+      function tick() {
+        const cur = current();
+        if (cur) {
+          if (blind) {
+            $('nowVal').textContent = cur.label || '';
+            $('nowSub').textContent = 'Hidden during the blind test.';
+          } else {
+            $('nowVal').textContent = fmtHz(cur.f);
+            $('nowSub').textContent = `${NAME[cur.series]} · ${noteName(cur.f)}` +
+              (!cur.glide && cur.idx ? ` · +${semis(params().seq[cur.series][cur.idx - 1], cur.f).toFixed(2)} st` : '');
+          }
+        }
+        draw();
+        if (audioCtx && audioCtx.currentTime < playingUntil + 0.05 && events.length) {
+          requestAnimationFrame(tick);
+        } else {
+          animating = false;
+          events = [];
+          $('stopBtn').disabled = true;
+          if (!quiz) blind = false;
+          $('nowVal').textContent = '—';
+          $('nowSub').textContent = 'Click a dot to hear a single note.';
+          draw();
+        }
+      }
+
+      document.addEventListener('keydown', e => {
+        if (e.code === 'Escape') { stopAll(); draw(); }
+      });
+
+      updateLabels();
+      resize();
+    </script>
+  </body>
+</html>
